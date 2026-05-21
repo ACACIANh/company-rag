@@ -1,5 +1,6 @@
 import pytest
 import tempfile
+from unittest.mock import MagicMock, patch
 from shared.models import Chunk
 from shared.vector_store.base import VectorStore
 from shared.vector_store.chroma_store import ChromaStore
@@ -39,3 +40,91 @@ def test_chroma_store_search(chroma_store):
     assert len(results) == 1
     assert results[0].chunk.source == "vacation.md"
     assert results[0].score >= 0
+
+
+@pytest.fixture
+def mock_qdrant_client():
+    with patch("shared.vector_store.qdrant_store.QdrantClient") as mock_cls:
+        mock_instance = MagicMock()
+        # 기본적으로 collection이 없는 상태
+        mock_instance.get_collections.return_value.collections = []
+        mock_cls.return_value = mock_instance
+        yield mock_instance
+
+
+def test_qdrant_store_count_when_empty(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
+    assert store.count() == 0
+
+
+def test_qdrant_store_add_creates_collection_and_upserts(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
+    chunks = [Chunk(text="안녕하세요", source="doc.md", chunk_id="c1")]
+    embeddings = [[0.1, 0.2, 0.3]]
+
+    store.add(chunks, embeddings)
+
+    mock_qdrant_client.create_collection.assert_called_once()
+    call_kwargs = mock_qdrant_client.create_collection.call_args.kwargs
+    assert call_kwargs["collection_name"] == "docs"
+
+    mock_qdrant_client.upsert.assert_called_once()
+    upsert_kwargs = mock_qdrant_client.upsert.call_args.kwargs
+    assert upsert_kwargs["collection_name"] == "docs"
+    assert len(upsert_kwargs["points"]) == 1
+
+
+def test_qdrant_store_add_skips_create_if_collection_exists(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    existing = MagicMock()
+    existing.name = "docs"
+    mock_qdrant_client.get_collections.return_value.collections = [existing]
+
+    store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
+    chunks = [Chunk(text="테스트", source="a.md", chunk_id="c2")]
+    store.add(chunks, [[0.1, 0.2, 0.3]])
+
+    mock_qdrant_client.create_collection.assert_not_called()
+
+
+def test_qdrant_store_search_returns_results(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    hit = MagicMock()
+    hit.score = 0.95
+    hit.payload = {"text": "연차는 15일입니다", "source": "vacation.md", "chunk_id": "c1"}
+    mock_qdrant_client.search.return_value = [hit]
+
+    store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
+    results = store.search(query_embedding=[1.0, 0.0, 0.0], top_k=1)
+
+    assert len(results) == 1
+    assert results[0].chunk.text == "연차는 15일입니다"
+    assert results[0].chunk.source == "vacation.md"
+    assert results[0].chunk.chunk_id == "c1"
+    assert results[0].score == 0.95
+
+    mock_qdrant_client.search.assert_called_once_with(
+        collection_name="docs",
+        query_vector=[1.0, 0.0, 0.0],
+        limit=1,
+    )
+
+
+def test_qdrant_store_count_after_add(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    existing = MagicMock()
+    existing.name = "docs"
+    mock_qdrant_client.get_collections.return_value.collections = [existing]
+    mock_qdrant_client.count.return_value.count = 3
+
+    store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
+    assert store.count() == 3
+
+    mock_qdrant_client.count.assert_called_once_with(collection_name="docs")
