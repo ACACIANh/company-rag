@@ -26,9 +26,9 @@ class LRUCache:
 
 
 class CachedEmbedder(Embedder):
-    """Decorator over an Embedder-like object (duck-typed: embed + embed_batch)."""
+    """Caching decorator that wraps a concrete Embedder."""
 
-    def __init__(self, inner, cache: LRUCache) -> None:
+    def __init__(self, inner: Embedder, cache: LRUCache) -> None:
         self._inner = inner
         self._cache = cache
 

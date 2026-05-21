@@ -1,5 +1,3 @@
-from typing import List
-
 from shared.embedder.base import Embedder
 
 
@@ -9,8 +7,8 @@ class LangChainEmbeddingsAdapter:
     def __init__(self, embedder: Embedder) -> None:
         self._embedder = embedder
 
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self._embedder.embed_batch(texts)
 
-    def embed_query(self, text: str) -> List[float]:
+    def embed_query(self, text: str) -> list[float]:
         return self._embedder.embed(text)
