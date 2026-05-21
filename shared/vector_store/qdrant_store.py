@@ -37,11 +37,11 @@ class QdrantStore(VectorStore):
         existing = [c.name for c in self._client.get_collections().collections]
         if self._collection not in existing:
             return []
-        hits = self._client.search(
+        hits = self._client.query_points(
             collection_name=self._collection,
-            query_vector=query_embedding,
+            query=query_embedding,
             limit=top_k,
-        )
+        ).points
         return [
             SearchResult(
                 chunk=Chunk(

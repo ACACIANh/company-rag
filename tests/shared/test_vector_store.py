@@ -97,7 +97,6 @@ def test_qdrant_store_add_skips_create_if_collection_exists(mock_qdrant_client):
 def test_qdrant_store_search_returns_results(mock_qdrant_client):
     from shared.vector_store.qdrant_store import QdrantStore
 
-    # collection이 존재하는 상태로 설정
     existing = MagicMock()
     existing.name = "docs"
     mock_qdrant_client.get_collections.return_value.collections = [existing]
@@ -105,7 +104,7 @@ def test_qdrant_store_search_returns_results(mock_qdrant_client):
     hit = MagicMock()
     hit.score = 0.95
     hit.payload = {"text": "연차는 15일입니다", "source": "vacation.md", "chunk_id": "c1"}
-    mock_qdrant_client.search.return_value = [hit]
+    mock_qdrant_client.query_points.return_value.points = [hit]
 
     store = QdrantStore(url="https://test.qdrant.io", api_key="key", collection="docs")
     results = store.search(query_embedding=[1.0, 0.0, 0.0], top_k=1)
@@ -116,9 +115,9 @@ def test_qdrant_store_search_returns_results(mock_qdrant_client):
     assert results[0].chunk.chunk_id == "c1"
     assert results[0].score == 0.95
 
-    mock_qdrant_client.search.assert_called_once_with(
+    mock_qdrant_client.query_points.assert_called_once_with(
         collection_name="docs",
-        query_vector=[1.0, 0.0, 0.0],
+        query=[1.0, 0.0, 0.0],
         limit=1,
     )
 
@@ -155,7 +154,7 @@ def test_qdrant_store_search_empty_collection_returns_empty(mock_qdrant_client):
     results = store.search(query_embedding=[1.0, 0.0, 0.0], top_k=5)
 
     assert results == []
-    mock_qdrant_client.search.assert_not_called()
+    mock_qdrant_client.query_points.assert_not_called()
 
 
 def test_factory_creates_qdrant_store(mock_qdrant_client):
