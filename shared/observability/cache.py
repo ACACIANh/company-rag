@@ -2,6 +2,7 @@ import hashlib
 from collections import OrderedDict
 from typing import Any
 
+from shared.embedder.base import Embedder
 from shared.llm.base import LLMClient
 
 
@@ -24,7 +25,7 @@ class LRUCache:
             self._data.popitem(last=False)
 
 
-class CachedEmbedder:
+class CachedEmbedder(Embedder):
     """Decorator over an Embedder-like object (duck-typed: embed + embed_batch)."""
 
     def __init__(self, inner, cache: LRUCache) -> None:
