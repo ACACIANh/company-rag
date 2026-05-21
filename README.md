@@ -49,21 +49,21 @@ git clone https://github.com/ACACIANh/company-rag.git
 cd company-rag
 
 # 2. 가상환경 생성 및 활성화
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 # 3. 의존성 설치
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # 4. 환경변수 설정
 cp .env.example .env
 # .env를 열어 OPENAI_API_KEY (또는 ANTHROPIC_API_KEY) 입력
 
 # 5. 문서 인덱싱 (최초 1회)
-python main.py --build-index
+python3 main.py --build-index
 
 # 6. 실행
-python main.py --mode simple -q "연차는 며칠이야?"
+python3 main.py --mode simple -q "연차는 며칠이야?"
 ```
 
 ---
@@ -73,9 +73,9 @@ python main.py --mode simple -q "연차는 며칠이야?"
 ### 1. 환경 설정
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ```bash
@@ -101,22 +101,22 @@ QDRANT_COLLECTION=documents
 ### 2. 문서 인덱싱 (최초 1회)
 
 ```bash
-python main.py --build-index
+python3 main.py --build-index
 ```
 
 ### 3. 각 워크플로우 실행
 
 ```bash
-python main.py --mode simple     -q "연차는 며칠이야?"
-python main.py --mode langchain  -q "코드 리뷰 가이드가 뭐야?"
-python main.py --mode agentic    -q "온보딩 절차가 어떻게 돼?"
-python main.py --mode langgraph  -q "보안 정책에서 비밀번호 규정이 뭐야?"
+python3 main.py --mode simple     -q "연차는 며칠이야?"
+python3 main.py --mode langchain  -q "코드 리뷰 가이드가 뭐야?"
+python3 main.py --mode agentic    -q "온보딩 절차가 어떻게 돼?"
+python3 main.py --mode langgraph  -q "보안 정책에서 비밀번호 규정이 뭐야?"
 ```
 
 ### 4. 4가지 방식 동시 비교
 
 ```bash
-python main.py --mode all -q "연차는 며칠이야?"
+python3 main.py --mode all -q "연차는 며칠이야?"
 ```
 
 출력 예시:
