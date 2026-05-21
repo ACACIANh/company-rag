@@ -1,0 +1,16 @@
+questions:
+  - question: "연차는 며칠이야?"
+    expected_keywords: ["연차", "일"]
+    expected_source: "vacation-policy.md"
+  - question: "코드 리뷰할 때 주의사항이 뭐야?"
+    expected_keywords: ["리뷰", "PR"]
+    expected_source: "code-review-guide.md"
+  - question: "팀 구조가 어떻게 돼?"
+    expected_keywords: ["팀", "구조"]
+    expected_source: "team-structure.md"
+  - question: "보안 정책에서 비밀번호 규정이 뭐야?"
+    expected_keywords: ["비밀번호", "보안"]
+    expected_source: "security-policy.md"
+  - question: "온보딩 절차가 어떻게 돼?"
+    expected_keywords: ["온보딩", "입사"]
+    expected_source: "onboarding.md"
