@@ -7,8 +7,11 @@
   - Eval adapter → graphs/adapters.py
 """
 
+from functools import partial
+
 from langchain_core.messages import AIMessage
-from langgraph.graph import MessagesState
+from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph.state import CompiledStateGraph
 
 from shared.llm.base import LLMClient
 from shared.models import SearchResult
@@ -37,3 +40,16 @@ def generate_node(state: RagState, *, llm: LLMClient) -> dict:
     prompt = f"context:\n{context}\n\nquestion: {question}\nanswer in Korean."
     text = llm.complete(prompt)
     return {"messages": [AIMessage(content=text)]}
+
+
+# ===== Graph assembly =====
+
+
+def build_graph(retriever: Retriever, llm: LLMClient) -> CompiledStateGraph:
+    g = StateGraph(RagState)
+    g.add_node("retrieve", partial(retrieve_node, retriever=retriever))
+    g.add_node("generate", partial(generate_node, llm=llm))
+    g.add_edge(START, "retrieve")
+    g.add_edge("retrieve", "generate")
+    g.add_edge("generate", END)
+    return g.compile()

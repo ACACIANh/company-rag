@@ -4,7 +4,7 @@ from shared.llm.base import LLMClient
 from shared.models import Chunk, SearchResult
 from shared.retriever.base import Retriever
 
-from graphs.rag_basic import generate_node, retrieve_node
+from graphs.rag_basic import build_graph, generate_node, retrieve_node
 
 
 class FakeRetriever(Retriever):
@@ -63,3 +63,21 @@ def test_generate_node_appends_aimessage_with_context():
     assert len(result["messages"]) == 1
     assert isinstance(result["messages"][0], AIMessage)
     assert result["messages"][0].content == "final answer"
+
+
+def test_build_graph_end_to_end_with_fakes():
+    fake_r = FakeRetriever([_sr("ctx", "x.md")])
+    fake_l = FakeLLM(response="final")
+
+    graph = build_graph(fake_r, fake_l)
+    final = graph.invoke({"messages": [HumanMessage(content="q?")]})
+
+    assert len(final["retrieved_docs"]) == 1
+    assert final["retrieved_docs"][0].chunk.source == "x.md"
+    last = final["messages"][-1]
+    assert isinstance(last, AIMessage)
+    assert last.content == "final"
+    # retriever가 마지막 user message로 검색되었는지
+    assert fake_r.last_query == "q?"
+    # llm prompt에 context 포함
+    assert "ctx" in fake_l.last_prompt
