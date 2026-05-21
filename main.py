@@ -43,7 +43,7 @@ def _run_pipeline(question: str) -> None:
 
 
 def _run_all(question: str) -> None:
-    from evals.runner import print_comparison, run_all
+    from eval_suite.runner import print_comparison, run_all
 
     results = run_all(question)
     print_comparison(question, results)

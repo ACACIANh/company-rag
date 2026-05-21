@@ -34,7 +34,7 @@ company-rag/
 │   ├── 02_1_langchain_basic/      # LangChain LCEL 2-Step
 │   ├── 02_2_langchain_agentic/    # LangChain ReAct Agent
 │   └── 03_langgraph/              # LangGraph 라우팅 챗봇
-├── evals/                         # 비교 평가셋 (questions.yaml + runner.py)
+├── eval_suite/                    # 평가 데이터셋 + 실행 진입점 (questions.yaml + runner.py)
 ├── tests/                         # 단위 테스트 (25개)
 └── main.py                        # 단일 CLI 진입점
 ```
