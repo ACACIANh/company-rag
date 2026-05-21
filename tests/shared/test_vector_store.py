@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 from shared.models import Chunk
 from shared.vector_store.base import VectorStore
 from shared.vector_store.chroma_store import ChromaStore
+from shared.vector_store.factory import create_vector_store
+from shared.config import Config
 
 
 def test_vector_store_is_abstract():
@@ -154,3 +156,47 @@ def test_qdrant_store_search_empty_collection_returns_empty(mock_qdrant_client):
 
     assert results == []
     mock_qdrant_client.search.assert_not_called()
+
+
+def test_factory_creates_qdrant_store(mock_qdrant_client):
+    from shared.vector_store.qdrant_store import QdrantStore
+
+    config = Config(
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        openai_api_key="",
+        anthropic_api_key="",
+        vector_store="qdrant",
+        chroma_mode="embedded",
+        chroma_path="./.chroma",
+        embedding_model="paraphrase-multilingual-MiniLM-L12-v2",
+        qdrant_url="https://test.qdrant.io",
+        qdrant_api_key="test-key",
+        qdrant_collection="my-col",
+    )
+
+    store = create_vector_store(config)
+
+    assert isinstance(store, QdrantStore)
+
+
+def test_factory_creates_chroma_store_by_default(tmp_path):
+    from shared.vector_store.chroma_store import ChromaStore
+
+    config = Config(
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        openai_api_key="",
+        anthropic_api_key="",
+        vector_store="chroma",
+        chroma_mode="embedded",
+        chroma_path=str(tmp_path),
+        embedding_model="paraphrase-multilingual-MiniLM-L12-v2",
+        qdrant_url="",
+        qdrant_api_key="",
+        qdrant_collection="documents",
+    )
+
+    store = create_vector_store(config)
+
+    assert isinstance(store, ChromaStore)
