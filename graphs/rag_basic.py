@@ -7,8 +7,10 @@
   - Eval adapter → graphs/adapters.py
 """
 
+from langchain_core.messages import AIMessage
 from langgraph.graph import MessagesState
 
+from shared.llm.base import LLMClient
 from shared.models import SearchResult
 from shared.retriever.base import Retriever
 
@@ -27,3 +29,11 @@ def retrieve_node(state: RagState, *, retriever: Retriever) -> dict:
     query = state["messages"][-1].content
     results = retriever.retrieve(query, top_k=5)
     return {"retrieved_docs": results}
+
+
+def generate_node(state: RagState, *, llm: LLMClient) -> dict:
+    question = state["messages"][-1].content
+    context = "\n\n".join(d.chunk.text for d in state["retrieved_docs"])
+    prompt = f"context:\n{context}\n\nquestion: {question}\nanswer in Korean."
+    text = llm.complete(prompt)
+    return {"messages": [AIMessage(content=text)]}
