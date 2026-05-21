@@ -9,7 +9,7 @@
 | 항목 | 결정 |
 |---|---|
 | 다룰 비판점 | PRD #1~#6 전부 |
-| 기존 workflow(01~03) | deprecated로 보존. 테스트는 그대로 통과해야 함 |
+| 기존 workflow(01~03) | **코드 전체 주석 처리**로 보존. 동작은 안 함. 학습 참조용으로 형태만 남김 |
 | 새 workflow | `workflows/04_pipeline/`에 1개 추가 |
 | Reranker 구현체 | `Reranker` ABC + `NoOpReranker`만. BGE/Cohere는 후속 |
 | Observability 범위 | Tracing + Cache + Eval 전부 |
@@ -55,10 +55,10 @@ shared/
         └── evaluator.py          # Evaluator
 
 workflows/
-├── 01_simple/                    # deprecated, 유지
-├── 02_1_langchain_basic/         # deprecated, 유지
-├── 02_2_langchain_agentic/       # deprecated, 유지
-├── 03_langgraph/                 # deprecated, 유지
+├── 01_simple/                    # 전체 주석 처리, 파일 구조만 보존
+├── 02_1_langchain_basic/         # 전체 주석 처리
+├── 02_2_langchain_agentic/       # 전체 주석 처리
+├── 03_langgraph/                 # 전체 주석 처리
 └── 04_pipeline/                  # 신규
     ├── qa.py                     # run(question) -> Answer
     ├── steps.py                  # RetrieveStep, RerankStep, GenerateStep
@@ -366,7 +366,7 @@ def _build_index():
 ### 원칙
 
 - 인터페이스마다 fake/stub.
-- 기존 테스트(deprecated workflow 4개 + 그들이 쓰는 컴포넌트) 무손상.
+- shared 컴포넌트 중 deprecated workflow가 안 쓰는 부분(LLM/VectorStore/config 등)의 기존 테스트는 무손상.
 - 신규 컴포넌트는 TDD로 작성.
 
 ### 신규 테스트 (`tests/shared/`)
@@ -400,7 +400,8 @@ def _build_index():
 
 - `test_indexer.py`: 새 시그니처에 맞춰 수정
 - `test_retriever.py`: 인터페이스화 반영해 약간 손봄
-- 나머지 (`test_adapters.py`, `test_llm.py`, `test_vector_store.py`, `test_models.py`, `test_config.py`, `tests/workflows/test_0*.py`): 무손상
+- `tests/workflows/test_0*.py`: workflow 코드가 주석화되므로 **테스트 파일도 전체 주석 처리**(skip 처리 대신). pytest 통과 가능.
+- 나머지 (`test_adapters.py`, `test_llm.py`, `test_vector_store.py`, `test_models.py`, `test_config.py`): 무손상
 
 ### Eval ≠ 테스트
 
@@ -410,38 +411,27 @@ def _build_index():
 
 ## 7. 마이그레이션 순서 (구현 단계에서 참조)
 
-1. `shared/models.py`에 Document, Chunk.metadata 추가
-2. `shared/observability/`(tracer, cache, eval) 먼저 — 의존성 없음, 가장 안쪽
-3. `shared/loader/`, `shared/chunker/`, `shared/embedder/` — 1차 구현체 + 테스트
-4. `shared/retriever/`, `shared/reranker/` — 인터페이스화 + 1차 구현체
-5. **기존 deprecated workflow의 import 경로 업데이트**: `shared.retriever.embedding.EmbeddingService` → `shared.embedder.SentenceTransformerEmbedder`, `shared.retriever.retriever.Retriever` → `shared.retriever.BasicRetriever`. shim/alias 없이 직접 교체. 기존 workflow는 보존하되 새 경로를 쓰도록 한다.
-6. `shared/indexer/` — 새 시그니처로 교체. `test_indexer.py` 수정. main.py의 `_build_index`도 같이 업데이트(loader/chunker/embedder/store 주입)
+1. **기존 deprecated workflow 코드 전체 주석 처리** — `workflows/01_simple/`, `workflows/02_1_langchain_basic/`, `workflows/02_2_langchain_agentic/`, `workflows/03_langgraph/` 아래 모든 `.py`의 내용을 `#`로 주석화 (파일/디렉터리 자체는 유지). `tests/workflows/test_0*.py`도 동일. `__init__.py`도 빈 모듈로 남김. `main.py`의 `_WORKFLOW_PATHS`와 `--mode` choices에서 해당 mode 제거.
+2. `shared/models.py`에 Document, Chunk.metadata 추가
+3. `shared/observability/`(tracer, cache, eval) — 의존성 없음, 가장 안쪽
+4. `shared/loader/`, `shared/chunker/`, `shared/embedder/` — 1차 구현체 + 테스트
+5. `shared/retriever/`(인터페이스화 + BasicRetriever), `shared/reranker/`(ABC + NoOp) — 기존 `shared/retriever/embedding.py`, `shared/retriever/retriever.py`는 **삭제**(주석 처리된 워크플로우만 참조하므로 안전)
+6. `shared/indexer/` — 새 시그니처로 교체. `test_indexer.py` 수정. `main.py`의 `_build_index`도 같이 업데이트
 7. `shared/orchestrator/` — Step/Pipeline/Context
 8. `workflows/04_pipeline/` — Step 구현체 + qa.py + 프롬프트
 9. `main.py` — 새 mode `"pipeline"` 등록 (`--mode pipeline`)
-10. `evals/runner.py` — Evaluator 사용으로 리팩토링, questions.yaml 그대로
-11. 기존 deprecated workflow 동작 확인 (smoke run + `tests/workflows/test_0*.py` 통과)
+10. `evals/runner.py` — Evaluator 사용으로 리팩토링, questions.yaml 그대로. `_WORKFLOW_PATHS`도 `pipeline`만 남김
+11. 전체 pytest 통과 + `--build-index`, `--mode pipeline -q "..."` smoke 실행
 
 각 단계는 통과해야 다음으로. 중간 커밋 가능.
 
-### 5단계 import 매핑 (정확한 치환)
+### 1단계 주석 처리 방식
 
-| 기존 | 새 |
-|---|---|
-| `from shared.retriever.embedding import EmbeddingService` | `from shared.embedder import SentenceTransformerEmbedder` |
-| `EmbeddingService(model_name)` | `SentenceTransformerEmbedder(model_name)` |
-| `from shared.retriever.retriever import Retriever` | `from shared.retriever import BasicRetriever` |
-| `Retriever(store, embedder)` | `BasicRetriever(store, embedder)` |
-
-영향 받는 파일:
-- `main.py`
-- `workflows/01_simple/qa.py`
-- `workflows/02_1_langchain_basic/qa.py`, `workflows/02_1_langchain_basic/chain/chain.py`
-- `workflows/02_2_langchain_agentic/qa.py`, `workflows/02_2_langchain_agentic/tools/rag_tool.py`
-- `workflows/03_langgraph/qa.py`, `workflows/03_langgraph/nodes/*`
-- `tests/shared/test_retriever.py`, `tests/shared/test_indexer.py`
-
-(실제 import 위치는 구현 시 grep으로 재확인.)
+- 파일 첫 줄에 `# DEPRECATED: 새 구조(workflows/04_pipeline/)로 대체됨. 학습 참조용으로 코드 형태만 보존.`
+- 그 아래 모든 코드 라인 앞에 `# ` 추가
+- 빈 줄은 그대로
+- import도 주석으로 처리되므로 모듈 로드 시 에러 없음
+- `__init__.py`는 빈 파일로(혹은 docstring만 남김)
 
 ## 8. 안 하는 것 (1차 범위 밖)
 
