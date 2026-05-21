@@ -15,6 +15,9 @@ class Config:
     chroma_mode: str
     chroma_path: str
     embedding_model: str
+    qdrant_url: str
+    qdrant_api_key: str
+    qdrant_collection: str
 
 
 def load_config() -> Config:
@@ -29,4 +32,7 @@ def load_config() -> Config:
         embedding_model=os.getenv(
             "EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2"
         ),
+        qdrant_url=os.getenv("QDRANT_URL", ""),
+        qdrant_api_key=os.getenv("QDRANT_API_KEY", ""),
+        qdrant_collection=os.getenv("QDRANT_COLLECTION", "documents"),
     )

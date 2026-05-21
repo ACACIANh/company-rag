@@ -32,3 +32,27 @@ def test_load_config_from_env(monkeypatch):
     assert config.llm_provider == "anthropic"
     assert config.llm_model == "claude-3-haiku-20240307"
     assert config.anthropic_api_key == "sk-ant-test"
+
+
+def test_load_config_qdrant_defaults(monkeypatch):
+    monkeypatch.delenv("QDRANT_URL", raising=False)
+    monkeypatch.delenv("QDRANT_API_KEY", raising=False)
+    monkeypatch.delenv("QDRANT_COLLECTION", raising=False)
+
+    config = load_config()
+
+    assert config.qdrant_url == ""
+    assert config.qdrant_api_key == ""
+    assert config.qdrant_collection == "documents"
+
+
+def test_load_config_qdrant_from_env(monkeypatch):
+    monkeypatch.setenv("QDRANT_URL", "https://xyz.qdrant.io:6333")
+    monkeypatch.setenv("QDRANT_API_KEY", "test-api-key")
+    monkeypatch.setenv("QDRANT_COLLECTION", "my-collection")
+
+    config = load_config()
+
+    assert config.qdrant_url == "https://xyz.qdrant.io:6333"
+    assert config.qdrant_api_key == "test-api-key"
+    assert config.qdrant_collection == "my-collection"
