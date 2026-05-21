@@ -13,7 +13,7 @@
 ## File Map
 
 ```
-company-agent/
+company-rag/
 ├── docs/                          ← 참고 프로젝트에서 복사
 ├── .env.example
 ├── .gitignore
@@ -130,7 +130,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 - [ ] **Step 2: docs 복사 및 디렉토리 생성**
 
 ```bash
-cp -r /Users/acacian/vscode/ai-agent/company-agent/rag-day1/docs /Users/acacian/vscode/company-agent/
+cp -r /Users/acacian/vscode/ai-agent/company-rag/rag-day1/docs /Users/acacian/vscode/company-rag/
 mkdir -p shared/llm/adapters shared/vector_store/adapters shared/indexer shared/retriever
 mkdir -p workflows/01_simple workflows/02_1_langchain_basic/chain
 mkdir -p workflows/02_2_langchain_agentic/tools workflows/02_2_langchain_agentic/agent

@@ -14,7 +14,7 @@
 ## 디렉토리 구조
 
 ```
-company-agent/
+company-rag/
 ├── docs/                          # 공유 회사 내부 문서 (참고 프로젝트에서 복사)
 ├── .env                           # 공유 환경 변수 (LLM API 키, Chroma 설정 등)
 ├── requirements.txt               # 전체 의존성
