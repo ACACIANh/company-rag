@@ -1,52 +1,65 @@
-# tests/shared/test_indexer.py
-import os
-import pytest
 from unittest.mock import MagicMock
+
 from shared.indexer.indexer import Indexer
+from shared.models import Chunk, Document
 
 
-@pytest.fixture
-def mock_store():
-    store = MagicMock()
-    store.add = MagicMock()
-    return store
+def test_indexer_composes_loader_chunker_embedder_store():
+    loader = MagicMock()
+    loader.load.return_value = [Document(text="hello world", source="a.md")]
 
+    chunker = MagicMock()
+    chunker.chunk.return_value = [
+        Chunk(text="hello world", source="a.md", chunk_id="c1")
+    ]
 
-@pytest.fixture
-def mock_embedder():
     embedder = MagicMock()
-    embedder.embed_batch.return_value = [[0.1, 0.2], [0.3, 0.4]]
-    return embedder
+    embedder.embed_batch.return_value = [[0.1, 0.2, 0.3]]
+
+    store = MagicMock()
+
+    indexer = Indexer(loader=loader, chunker=chunker, embedder=embedder, store=store)
+    count = indexer.index("/some/path")
+
+    loader.load.assert_called_once_with("/some/path")
+    chunker.chunk.assert_called_once()
+    embedder.embed_batch.assert_called_once_with(["hello world"])
+    store.add.assert_called_once()
+    assert count == 1
 
 
-@pytest.fixture
-def docs_dir(tmp_path):
-    (tmp_path / "policy.md").write_text("연차는 15일입니다. 모든 직원에게 적용됩니다.")
-    return str(tmp_path)
+def test_indexer_empty_docs_skips_store_add():
+    loader = MagicMock()
+    loader.load.return_value = []
+    chunker = MagicMock()
+    embedder = MagicMock()
+    store = MagicMock()
 
-
-def test_indexer_indexes_markdown_files(mock_store, mock_embedder, docs_dir):
-    indexer = Indexer(
-        vector_store=mock_store,
-        embedding_service=mock_embedder,
-        chunk_size=100,
-        chunk_overlap=10,
-    )
-
-    count = indexer.index_directory(docs_dir)
-
-    assert count > 0
-    mock_store.add.assert_called_once()
-
-
-def test_indexer_ignores_non_md_files(mock_store, mock_embedder, tmp_path):
-    (tmp_path / "README.txt").write_text("이 파일은 무시됩니다.")
-    mock_embedder.embed_batch.return_value = []
-    indexer = Indexer(
-        vector_store=mock_store, embedding_service=mock_embedder
-    )
-
-    count = indexer.index_directory(str(tmp_path))
+    indexer = Indexer(loader=loader, chunker=chunker, embedder=embedder, store=store)
+    count = indexer.index("/empty")
 
     assert count == 0
-    mock_store.add.assert_not_called()
+    chunker.chunk.assert_not_called()
+    embedder.embed_batch.assert_not_called()
+    store.add.assert_not_called()
+
+
+def test_indexer_concatenates_chunks_from_multiple_docs():
+    loader = MagicMock()
+    loader.load.return_value = [
+        Document(text="A", source="a.md"),
+        Document(text="B", source="b.md"),
+    ]
+    chunker = MagicMock()
+    chunker.chunk.side_effect = [
+        [Chunk(text="A", source="a.md", chunk_id="ca")],
+        [Chunk(text="B", source="b.md", chunk_id="cb")],
+    ]
+    embedder = MagicMock()
+    embedder.embed_batch.return_value = [[0.1], [0.2]]
+    store = MagicMock()
+
+    Indexer(loader=loader, chunker=chunker, embedder=embedder, store=store).index("/p")
+
+    embedder.embed_batch.assert_called_once_with(["A", "B"])
+    assert store.add.call_count == 1

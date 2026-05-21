@@ -1,7 +1,9 @@
 from sentence_transformers import SentenceTransformer
 
+from shared.embedder.base import Embedder
 
-class EmbeddingService:
+
+class SentenceTransformerEmbedder(Embedder):
     def __init__(self, model_name: str) -> None:
         self._model = SentenceTransformer(model_name)
 

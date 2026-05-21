@@ -1,14 +1,13 @@
+from shared.embedder.base import Embedder
 from shared.models import SearchResult
-from shared.retriever.embedding import EmbeddingService
+from shared.retriever.base import Retriever
 from shared.vector_store.base import VectorStore
 
 
-class Retriever:
-    def __init__(
-        self, vector_store: VectorStore, embedding_service: EmbeddingService
-    ) -> None:
-        self._store = vector_store
-        self._embedder = embedding_service
+class BasicRetriever(Retriever):
+    def __init__(self, store: VectorStore, embedder: Embedder) -> None:
+        self._store = store
+        self._embedder = embedder
 
     def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
         embedding = self._embedder.embed(query)

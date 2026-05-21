@@ -1,4 +1,4 @@
-from shared.models import Chunk, SearchResult, Answer
+from shared.models import Answer, Chunk, Document, SearchResult
 
 
 def test_chunk_fields():
@@ -26,3 +26,25 @@ def test_answer_with_trace():
     trace = [{"step": "retrieve", "count": 5}]
     answer = Answer(text="답변", sources=["doc.md"], trace=trace)
     assert answer.trace == trace
+
+
+def test_document_dataclass():
+    d = Document(text="hello", source="a.md")
+    assert d.text == "hello"
+    assert d.source == "a.md"
+    assert d.metadata == {}
+
+
+def test_document_with_metadata():
+    d = Document(text="t", source="s", metadata={"page": 1})
+    assert d.metadata == {"page": 1}
+
+
+def test_chunk_has_metadata_default_empty():
+    c = Chunk(text="t", source="s", chunk_id="id1")
+    assert c.metadata == {}
+
+
+def test_chunk_with_metadata():
+    c = Chunk(text="t", source="s", chunk_id="id1", metadata={"k": "v"})
+    assert c.metadata == {"k": "v"}
