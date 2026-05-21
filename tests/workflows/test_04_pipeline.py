@@ -23,8 +23,8 @@ def test_pipeline_qa_end_to_end():
 
     from workflows.pipeline import qa as qa_mod
 
-    with patch.object(qa_mod, "_build_components") as build:
-        build.return_value = (fake_retriever, fake_reranker, fake_llm)
+    with patch.object(qa_mod, "_get_components") as get:
+        get.return_value = (fake_retriever, fake_reranker, fake_llm)
         ans: Answer = qa_mod.run("연차 며칠?")
 
     assert ans.text == "연차는 15일입니다."

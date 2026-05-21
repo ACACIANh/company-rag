@@ -1,4 +1,4 @@
-from shared.observability.eval.metrics import recall_at_k, latency_ms
+from shared.observability.eval.metrics import keyword_hit_rate, latency_ms, recall_at_k
 from shared.observability.eval.evaluator import Evaluator, EvalCase, EvalReport
 from shared.observability.tracer import Span
 from shared.models import Answer
@@ -19,6 +19,18 @@ def test_recall_at_k_outside_k():
 def test_latency_ms_from_span():
     s = Span(name="x", started_at=10.0, ended_at=10.250)
     assert round(latency_ms(s)) == 250
+
+
+def test_keyword_hit_rate_all_present():
+    assert keyword_hit_rate("연차는 15일입니다", ["연차", "15일"]) == 1.0
+
+
+def test_keyword_hit_rate_partial():
+    assert keyword_hit_rate("연차는 15일입니다", ["연차", "없는단어"]) == 0.5
+
+
+def test_keyword_hit_rate_empty_keywords():
+    assert keyword_hit_rate("아무 텍스트", []) == 1.0
 
 
 def test_evaluator_runs_all_cases_and_records_metrics():

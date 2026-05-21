@@ -13,6 +13,9 @@ from workflows.pipeline.prompts import QA_PROMPT
 from workflows.pipeline.steps import GenerateStep, RerankStep, RetrieveStep
 
 
+_components = None
+
+
 def _build_components():
     config = load_config()
     embedder = CachedEmbedder(
@@ -30,8 +33,15 @@ def _build_components():
     return retriever, reranker, llm
 
 
+def _get_components():
+    global _components
+    if _components is None:
+        _components = _build_components()
+    return _components
+
+
 def run(question: str) -> Answer:
-    retriever, reranker, llm = _build_components()
+    retriever, reranker, llm = _get_components()
     tracer = Tracer()
     pipeline = Pipeline(
         steps=[

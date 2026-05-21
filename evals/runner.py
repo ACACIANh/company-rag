@@ -61,10 +61,14 @@ def run_eval(yaml_path: str | None = None) -> None:
 
     print("\n=== EVAL REPORT ===")
     for c in report.cases:
-        line = f"Q: {c['question']!s:<40}"
+        line = f"Q: {c['question']:<40}"
         if "error" in c:
             line += f"  ERROR: {c['error']}"
         else:
-            line += f"  recall@5={c['recall_at_k']:.2f}  src={c.get('sources')}"
+            line += (
+                f"  recall@5={c['recall_at_k']:.2f}"
+                f"  keyword_hit={c['keyword_hit_rate']:.2f}"
+                f"  src={c.get('sources')}"
+            )
         print(line)
     print(f"\nAggregate: {report.aggregate}")

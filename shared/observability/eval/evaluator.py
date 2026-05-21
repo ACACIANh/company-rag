@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from shared.models import Answer
-from shared.observability.eval.metrics import recall_at_k
+from shared.observability.eval.metrics import keyword_hit_rate, recall_at_k
 
 
 @dataclass
@@ -36,13 +36,16 @@ class Evaluator:
                 entry["answer"] = ans.text
                 entry["sources"] = ans.sources
                 entry["recall_at_k"] = recall_at_k(ans.sources, case.expected_source, self._k)
+                entry["keyword_hit_rate"] = keyword_hit_rate(ans.text, case.expected_keywords)
             except Exception as e:
                 entry["error"] = type(e).__name__
             results.append(entry)
 
         recalls = [r["recall_at_k"] for r in results if "recall_at_k" in r]
+        hits = [r["keyword_hit_rate"] for r in results if "keyword_hit_rate" in r]
         agg = {
             "mean_recall_at_k": sum(recalls) / len(recalls) if recalls else 0.0,
+            "mean_keyword_hit_rate": sum(hits) / len(hits) if hits else 0.0,
             "n_cases": len(cases),
             "n_errors": sum(1 for r in results if "error" in r),
         }
