@@ -11,6 +11,8 @@ class QdrantStore(VectorStore):
         self._collection = collection
 
     def add(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:
+        if not chunks:
+            return
         existing = [c.name for c in self._client.get_collections().collections]
         if self._collection not in existing:
             self._client.create_collection(
@@ -32,6 +34,9 @@ class QdrantStore(VectorStore):
     def search(
         self, query_embedding: list[float], top_k: int = 5
     ) -> list[SearchResult]:
+        existing = [c.name for c in self._client.get_collections().collections]
+        if self._collection not in existing:
+            return []
         hits = self._client.search(
             collection_name=self._collection,
             query_vector=query_embedding,
