@@ -8,12 +8,8 @@ import yaml
 
 from shared.models import Answer
 
-_WORKFLOW_PATHS = {
-    "simple": "workflows/01_simple/qa.py",
-    "langchain": "workflows/02_1_langchain_basic/qa.py",
-    "agentic": "workflows/02_2_langchain_agentic/qa.py",
-    "langgraph": "workflows/03_langgraph/qa.py",
-}
+# Task 15 will repopulate with new pipeline workflow paths.
+_WORKFLOW_PATHS = {}
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
