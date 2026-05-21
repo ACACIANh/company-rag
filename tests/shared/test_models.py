@@ -26,3 +26,29 @@ def test_answer_with_trace():
     trace = [{"step": "retrieve", "count": 5}]
     answer = Answer(text="답변", sources=["doc.md"], trace=trace)
     assert answer.trace == trace
+
+
+def test_document_dataclass():
+    from shared.models import Document
+    d = Document(text="hello", source="a.md")
+    assert d.text == "hello"
+    assert d.source == "a.md"
+    assert d.metadata == {}
+
+
+def test_document_with_metadata():
+    from shared.models import Document
+    d = Document(text="t", source="s", metadata={"page": 1})
+    assert d.metadata == {"page": 1}
+
+
+def test_chunk_has_metadata_default_empty():
+    from shared.models import Chunk
+    c = Chunk(text="t", source="s", chunk_id="id1")
+    assert c.metadata == {}
+
+
+def test_chunk_with_metadata():
+    from shared.models import Chunk
+    c = Chunk(text="t", source="s", chunk_id="id1", metadata={"k": "v"})
+    assert c.metadata == {"k": "v"}
