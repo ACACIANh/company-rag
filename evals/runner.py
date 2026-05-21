@@ -1,39 +1,25 @@
-import importlib.util
 import os
-import sys
 import time
 from typing import Any
 
 import yaml
 
 from shared.models import Answer
-
-# Task 15 will repopulate with new pipeline workflow paths.
-_WORKFLOW_PATHS = {}
-
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from shared.observability.eval.evaluator import EvalCase, Evaluator
 
 
-def _load_workflow(mode: str):
-    qa_path = os.path.join(_ROOT, _WORKFLOW_PATHS[mode])
-    workflow_dir = os.path.dirname(qa_path)
-    sys.path.insert(0, workflow_dir)
-    spec = importlib.util.spec_from_file_location(f"qa_{mode}", qa_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.path.pop(0)
-    return module
+def _load_workflow_run():
+    from workflows.pipeline.qa import run
+    return run
 
 
 def run_all(question: str) -> dict[str, dict[str, Any]]:
-    results = {}
-    for mode in _WORKFLOW_PATHS:
-        module = _load_workflow(mode)
-        start = time.time()
-        answer: Answer = module.run(question)
-        elapsed = time.time() - start
-        results[mode] = {"answer": answer, "elapsed_sec": round(elapsed, 2)}
-    return results
+    """단일 질문을 pipeline 워크플로우로 실행 (deprecated 워크플로우 제거 후)."""
+    run = _load_workflow_run()
+    start = time.time()
+    answer: Answer = run(question)
+    elapsed = time.time() - start
+    return {"pipeline": {"answer": answer, "elapsed_sec": round(elapsed, 2)}}
 
 
 def print_comparison(question: str, results: dict[str, dict[str, Any]]) -> None:
@@ -57,3 +43,28 @@ def load_questions(yaml_path: str | None = None) -> list[dict]:
     path = yaml_path or os.path.join(os.path.dirname(__file__), "questions.yaml")
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)["questions"]
+
+
+def run_eval(yaml_path: str | None = None) -> None:
+    """questions.yaml 전체를 Evaluator로 채점하고 결과 출력."""
+    raw = load_questions(yaml_path)
+    cases = [
+        EvalCase(
+            question=q["question"],
+            expected_keywords=q.get("expected_keywords", []),
+            expected_source=q.get("expected_source", ""),
+        )
+        for q in raw
+    ]
+    run = _load_workflow_run()
+    report = Evaluator(k=5).evaluate(run, cases)
+
+    print("\n=== EVAL REPORT ===")
+    for c in report.cases:
+        line = f"Q: {c['question']!s:<40}"
+        if "error" in c:
+            line += f"  ERROR: {c['error']}"
+        else:
+            line += f"  recall@5={c['recall_at_k']:.2f}  src={c.get('sources')}"
+        print(line)
+    print(f"\nAggregate: {report.aggregate}")
