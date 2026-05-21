@@ -41,6 +41,33 @@ company-rag/
 
 ---
 
+## 빠른 시작
+
+```bash
+# 1. 저장소 클론 후 이동
+git clone https://github.com/ACACIANh/company-rag.git
+cd company-rag
+
+# 2. 가상환경 생성 및 활성화
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# 3. 의존성 설치
+pip install -r requirements.txt
+
+# 4. 환경변수 설정
+cp .env.example .env
+# .env를 열어 OPENAI_API_KEY (또는 ANTHROPIC_API_KEY) 입력
+
+# 5. 문서 인덱싱 (최초 1회)
+python main.py --build-index
+
+# 6. 실행
+python main.py --mode simple -q "연차는 며칠이야?"
+```
+
+---
+
 ## 설치 및 실행
 
 ### 1. 환경 설정
@@ -52,16 +79,23 @@ pip install -r requirements.txt
 ```
 
 ```bash
-# .env 파일 생성
 cp .env.example .env
 # .env에 API 키 입력
 ```
 
+**.env 최소 설정 (ChromaDB 기본):**
 ```
-LLM_PROVIDER=openai          # openai | anthropic
+LLM_PROVIDER=openai
 LLM_MODEL=gpt-4o-mini
 OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**.env Qdrant Cloud 사용 시 추가:**
+```
+VECTOR_STORE=qdrant
+QDRANT_URL=https://xxx.qdrant.io:6333
+QDRANT_API_KEY=your-api-key
+QDRANT_COLLECTION=documents
 ```
 
 ### 2. 문서 인덱싱 (최초 1회)
@@ -157,6 +191,6 @@ pytest tests/workflows/ # 워크플로우 테스트 (5개)
 
 - **LLM**: OpenAI GPT / Anthropic Claude
 - **임베딩**: sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`)
-- **벡터 저장소**: ChromaDB
+- **벡터 저장소**: ChromaDB / Qdrant Cloud
 - **오케스트레이션**: LangChain LCEL, LangGraph
 - **테스트**: pytest, pytest-mock
