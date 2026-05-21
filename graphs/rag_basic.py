@@ -9,12 +9,12 @@
 
 from functools import partial
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from shared.llm.base import LLMClient
-from shared.models import SearchResult
+from shared.models import Answer, SearchResult
 from shared.retriever.base import Retriever
 
 
@@ -53,3 +53,12 @@ def build_graph(retriever: Retriever, llm: LLMClient) -> CompiledStateGraph:
     g.add_edge("retrieve", "generate")
     g.add_edge("generate", END)
     return g.compile()
+
+
+# ===== Eval adapter =====
+
+
+def answer_question(graph: CompiledStateGraph, question: str) -> Answer:
+    final = graph.invoke({"messages": [HumanMessage(content=question)]})
+    sources = [d.chunk.source for d in final["retrieved_docs"]]
+    return Answer(text=final["messages"][-1].content, sources=sources)

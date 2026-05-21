@@ -1,10 +1,10 @@
 from langchain_core.messages import AIMessage, HumanMessage
 
 from shared.llm.base import LLMClient
-from shared.models import Chunk, SearchResult
+from shared.models import Answer, Chunk, SearchResult
 from shared.retriever.base import Retriever
 
-from graphs.rag_basic import build_graph, generate_node, retrieve_node
+from graphs.rag_basic import answer_question, build_graph, generate_node, retrieve_node
 
 
 class FakeRetriever(Retriever):
@@ -81,3 +81,18 @@ def test_build_graph_end_to_end_with_fakes():
     assert fake_r.last_query == "q?"
     # llm prompt에 context 포함
     assert "ctx" in fake_l.last_prompt
+
+
+def test_answer_question_returns_answer_dto():
+    fake_r = FakeRetriever([
+        _sr("a", "a.md", chunk_id="c1"),
+        _sr("b", "b.md", chunk_id="c2", score=0.8),
+    ])
+    fake_l = FakeLLM(response="answer")
+    graph = build_graph(fake_r, fake_l)
+
+    ans = answer_question(graph, "q?")
+
+    assert isinstance(ans, Answer)
+    assert ans.text == "answer"
+    assert ans.sources == ["a.md", "b.md"]
