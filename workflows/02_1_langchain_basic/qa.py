@@ -25,10 +25,14 @@ def run(question: str) -> Answer:
     llm_adapter = LangChainLLMAdapter(llm_client=llm_client)
     chain = build_chain(retriever_adapter, llm_adapter)
 
-    text = chain.invoke(question)
+    result = chain.invoke(question)
 
-    docs = retriever_adapter.invoke(question)
+    text = result["text"]
+    docs = result["docs"]
     sources = list({d.metadata["source"] for d in docs})
-    trace = [{"step": "lcel_chain", "output": text}]
+    trace = [
+        {"step": "retriever", "docs_count": len(docs), "sources": sources},
+        {"step": "lcel_chain", "output": text},
+    ]
 
     return Answer(text=text, sources=sources, trace=trace)

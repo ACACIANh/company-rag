@@ -26,22 +26,24 @@ def test_run_returns_answer(mocker):
     mock_docs = [
         Document(page_content="연차는 15일", metadata={"source": "vacation.md", "score": 0.9})
     ]
-    mock_retriever_adapter = MagicMock()
-    mock_retriever_adapter.invoke.return_value = mock_docs
-    mock_llm_adapter = MagicMock()
     mock_chain = MagicMock()
-    mock_chain.invoke.return_value = "연차는 15일입니다."
+    mock_chain.invoke.return_value = {
+        "text": "연차는 15일입니다.",
+        "docs": mock_docs,
+    }
 
     mocker.patch.object(qa, "load_config")
     mocker.patch.object(qa, "EmbeddingService")
     mocker.patch.object(qa, "create_vector_store")
     mocker.patch.object(qa, "create_llm")
-    mocker.patch.object(qa, "LangChainRetrieverAdapter", return_value=mock_retriever_adapter)
-    mocker.patch.object(qa, "LangChainLLMAdapter", return_value=mock_llm_adapter)
+    mocker.patch.object(qa, "LangChainRetrieverAdapter")
+    mocker.patch.object(qa, "LangChainLLMAdapter")
     mocker.patch.object(qa, "build_chain", return_value=mock_chain)
 
     answer = qa.run("연차 며칠이야?")
 
     assert isinstance(answer, Answer)
     assert answer.text == "연차는 15일입니다."
+    assert "vacation.md" in answer.sources
     assert answer.trace is not None
+    assert len(answer.trace) == 2

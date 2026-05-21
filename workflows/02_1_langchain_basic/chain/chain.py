@@ -1,6 +1,6 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 
 _PROMPT = PromptTemplate.from_template(
     """\
@@ -19,10 +19,14 @@ def _format_docs(docs) -> str:
 
 
 def build_chain(retriever_adapter, llm_adapter):
-    """LCEL 파이프라인: retriever | prompt | llm | parser"""
-    return (
+    """LCEL 파이프라인: retriever | prompt | llm | parser
+
+    반환: {"text": str, "docs": list[Document]}
+    """
+    answer_chain = (
         {"context": retriever_adapter | _format_docs, "question": RunnablePassthrough()}
         | _PROMPT
         | llm_adapter
         | StrOutputParser()
     )
+    return RunnableParallel({"text": answer_chain, "docs": retriever_adapter})
