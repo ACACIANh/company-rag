@@ -14,3 +14,5 @@ class AgentState(TypedDict):
     answer: str
     citations: list[str]
     hallucination_passed: bool
+    confirmed: bool
+    tool_input: str
