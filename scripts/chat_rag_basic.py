@@ -18,7 +18,7 @@ from shared.llm.factory import create_llm
 from shared.retriever import BasicRetriever
 from shared.vector_store.factory import create_vector_store
 
-from graphs.rag_basic import answer_question, build_graph
+from app.graph.builder import answer_question, build_graph
 
 
 def main() -> None:

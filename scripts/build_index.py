@@ -10,32 +10,13 @@ import sys
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
-from shared.chunker import FixedSizeChunker
-from shared.config import load_config
-from shared.embedder import SentenceTransformerEmbedder
-from shared.indexer.indexer import Indexer
-from shared.loader import MarkdownLoader
-from shared.observability.cache import CachedEmbedder, LRUCache
-from shared.vector_store.factory import create_vector_store
+from app.ingestion.indexer import build_index
 
 
-def build_index() -> None:
-    config = load_config()
-    embedder = CachedEmbedder(
-        SentenceTransformerEmbedder(config.embedding_model),
-        LRUCache(max_size=4096),
-    )
-    store = create_vector_store(config)
-    indexer = Indexer(
-        loader=MarkdownLoader(),
-        chunker=FixedSizeChunker(chunk_size=500, chunk_overlap=50),
-        embedder=embedder,
-        store=store,
-    )
+def main() -> None:
     docs_path = os.path.join(_ROOT, "docs")
-    count = indexer.index(docs_path)
-    print(f"인덱싱 완료: {count}개 청크 ({docs_path})")
+    build_index(docs_path)
 
 
 if __name__ == "__main__":
-    build_index()
+    main()
