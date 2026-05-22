@@ -87,6 +87,16 @@ def build_graph(
     return g.compile(checkpointer=MemorySaver())
 
 
+def _ensure_thread_id(config: dict | None) -> dict:
+    if config is None:
+        return {"configurable": {"thread_id": str(uuid.uuid4())}}
+    if "configurable" not in config:
+        return {**config, "configurable": {"thread_id": str(uuid.uuid4())}}
+    if "thread_id" not in config["configurable"]:
+        return {**config, "configurable": {**config["configurable"], "thread_id": str(uuid.uuid4())}}
+    return config
+
+
 def answer_question(
     graph: CompiledStateGraph,
     question: str,
@@ -106,11 +116,5 @@ def answer_question(
         "confirmed": False,
         "tool_input": "",
     }
-    if config is None:
-        config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-    elif "configurable" not in config:
-        config = {**config, "configurable": {"thread_id": str(uuid.uuid4())}}
-    elif "thread_id" not in config["configurable"]:
-        config = {**config, "configurable": {**config["configurable"], "thread_id": str(uuid.uuid4())}}
-    final = graph.invoke(initial, config=config)
+    final = graph.invoke(initial, config=_ensure_thread_id(config))
     return Answer(text=final["answer"], sources=final["citations"])

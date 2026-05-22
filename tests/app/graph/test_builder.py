@@ -1,5 +1,4 @@
-import pytest
-from langgraph.errors import GraphInterrupt
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 from unittest.mock import MagicMock
 
@@ -15,8 +14,24 @@ def _make_retriever(text: str = "문서", source: str = "doc.md"):
     return mock
 
 
+def _make_initial_state(question: str) -> dict:
+    return {
+        "question": question,
+        "rewritten_question": "",
+        "chat_history": [],
+        "route": "doc_search",
+        "documents": [],
+        "relevance_score": 0.0,
+        "retry_count": 0,
+        "answer": "",
+        "citations": [],
+        "hallucination_passed": False,
+        "confirmed": False,
+        "tool_input": "",
+    }
+
+
 def test_build_graph_returns_compiled_graph():
-    from langgraph.graph.state import CompiledStateGraph
     retriever = _make_retriever()
     llm = MagicMock()
     llm.complete.side_effect = ["재작성", "doc_search", "0.9", "답변", "YES"]
@@ -90,22 +105,7 @@ def test_tool_call_triggers_interrupt():
     graph = build_graph(retriever=doc_retriever, llm=llm, web_search_retriever=web_retriever)
     config = {"configurable": {"thread_id": "test-interrupt-1"}}
 
-    initial = {
-        "question": "회의실 예약해줘",
-        "rewritten_question": "",
-        "chat_history": [],
-        "route": "doc_search",
-        "documents": [],
-        "relevance_score": 0.0,
-        "retry_count": 0,
-        "answer": "",
-        "citations": [],
-        "hallucination_passed": False,
-        "confirmed": False,
-        "tool_input": "",
-    }
-
-    result = graph.invoke(initial, config=config)
+    result = graph.invoke(_make_initial_state("회의실 예약해줘"), config=config)
     assert "__interrupt__" in result
     assert len(result["__interrupt__"]) > 0
 
@@ -124,22 +124,7 @@ def test_tool_call_completes_after_user_approves():
     graph = build_graph(retriever=doc_retriever, llm=llm, web_search_retriever=web_retriever)
     config = {"configurable": {"thread_id": "test-interrupt-2"}}
 
-    initial = {
-        "question": "회의실 예약해줘",
-        "rewritten_question": "",
-        "chat_history": [],
-        "route": "doc_search",
-        "documents": [],
-        "relevance_score": 0.0,
-        "retry_count": 0,
-        "answer": "",
-        "citations": [],
-        "hallucination_passed": False,
-        "confirmed": False,
-        "tool_input": "",
-    }
-
-    result = graph.invoke(initial, config=config)
+    result = graph.invoke(_make_initial_state("회의실 예약해줘"), config=config)
     assert "__interrupt__" in result
 
     final = graph.invoke(Command(resume=True), config=config)
@@ -158,22 +143,7 @@ def test_tool_call_ends_when_user_denies():
     graph = build_graph(retriever=doc_retriever, llm=llm, web_search_retriever=web_retriever)
     config = {"configurable": {"thread_id": "test-interrupt-3"}}
 
-    initial = {
-        "question": "팀에 공지 보내줘",
-        "rewritten_question": "",
-        "chat_history": [],
-        "route": "doc_search",
-        "documents": [],
-        "relevance_score": 0.0,
-        "retry_count": 0,
-        "answer": "",
-        "citations": [],
-        "hallucination_passed": False,
-        "confirmed": False,
-        "tool_input": "",
-    }
-
-    result = graph.invoke(initial, config=config)
+    result = graph.invoke(_make_initial_state("팀에 공지 보내줘"), config=config)
     assert "__interrupt__" in result
 
     final = graph.invoke(Command(resume=False), config=config)
