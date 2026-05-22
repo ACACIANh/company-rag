@@ -133,7 +133,7 @@ class AgentState(TypedDict):
 - [x] 평가셋에서 정답률 측정 완료 (베이스라인 기록)
   - recall@5: **0.60** / keyword_hit: **0.80** (5개 질문 기준, 2026-05-22)
   - 취약: 연차(recall=0), 온보딩(recall=0) — Phase 2 Self-RAG로 개선 목표
-- [ ] LangSmith 트레이싱 연동
+- [x] LangSmith 트레이싱 연동 (`company-rag` 프로젝트, 2026-05-22)
 
 **의존성**: 없음 (출발점)
 
