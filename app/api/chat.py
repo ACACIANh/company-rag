@@ -1,9 +1,10 @@
 import uuid
 from functools import lru_cache
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel
 
+from shared.auth.base import AuthUser
 from shared.config import load_config
 from shared.embedder import SentenceTransformerEmbedder
 from shared.llm.factory import create_llm
@@ -14,6 +15,7 @@ from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
+from app.api.deps import check_rate_limit, get_current_user
 
 init_tracker([FileSink("logs")])
 
@@ -44,8 +46,18 @@ def get_graph():
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest) -> ChatResponse:
+async def chat(
+    req: ChatRequest,
+    current_user: AuthUser = Depends(get_current_user),
+    _: None = Depends(check_rate_limit),
+) -> ChatResponse:
     thread_id = req.session_id or str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
-    result = answer_question(get_graph(), req.question, config=config)
+    result = answer_question(
+        get_graph(),
+        req.question,
+        config=config,
+        user_id=current_user["user_id"],
+        allowed_doc_ids=current_user["allowed_doc_ids"],
+    )
     return ChatResponse(answer=result.text, sources=result.sources, session_id=thread_id)
