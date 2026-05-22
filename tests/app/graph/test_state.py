@@ -31,3 +31,28 @@ def test_documents_is_plain_list_not_annotated():
     doc_hint = hints["documents"]
     # Annotated[..., add]가 아닌 순수 list 타입이어야 함
     assert get_origin(doc_hint) is list or doc_hint is list or str(doc_hint).startswith("list")
+
+
+def test_agent_state_has_phase3_fields():
+    hints = get_type_hints(AgentState, include_extras=True)
+    assert "confirmed" in hints
+    assert "tool_input" in hints
+
+
+def test_agent_state_phase3_instantiation():
+    state: AgentState = {
+        "question": "회의실 예약해줘",
+        "rewritten_question": "회의실 예약 요청",
+        "chat_history": [],
+        "route": "tool_call",
+        "documents": [],
+        "relevance_score": 0.0,
+        "retry_count": 0,
+        "answer": "",
+        "citations": [],
+        "hallucination_passed": False,
+        "confirmed": False,
+        "tool_input": "회의실 A, 2026-06-01 14:00",
+    }
+    assert state["confirmed"] is False
+    assert state["tool_input"] == "회의실 A, 2026-06-01 14:00"
