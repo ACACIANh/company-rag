@@ -7,10 +7,14 @@ from pydantic import BaseModel
 from shared.config import load_config
 from shared.embedder import SentenceTransformerEmbedder
 from shared.llm.factory import create_llm
+from shared.observability.cost_tracker import init_tracker
+from shared.observability.sinks.file_sink import FileSink
 from shared.retriever import BasicRetriever
 from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
 from app.api.auth import router as auth_router
+
+init_tracker([FileSink("logs")])
 
 app = FastAPI()
 app.include_router(auth_router)
