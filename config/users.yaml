@@ -1,0 +1,21 @@
+users:
+  - username: admin
+    password: admin123
+    user_id: user-admin
+    roles:
+      - admin
+      - user
+    allowed_doc_ids: []
+  - username: alice
+    password: alice123
+    user_id: user-alice
+    roles:
+      - user
+    allowed_doc_ids: []
+  - username: restricted
+    password: restricted123
+    user_id: user-restricted
+    roles:
+      - user
+    allowed_doc_ids:
+      - docs/company/hr_policy.md
