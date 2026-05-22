@@ -23,7 +23,9 @@ LangGraph 관련 설계/구현 질문이 생기면 **먼저 `docs/langgraph-guid
 | 상태 관리 | `MessagesState` 상속해서 확장 | `docs/langgraph-guide/01-stategraph.md` |
 | 메모리 | 개발: `InMemorySaver`, 다음 단계: `SqliteSaver` | `docs/langgraph-guide/02-memory.md` |
 | 에이전트 시작점 | `create_agent` (Part 2-2) | `docs/langgraph-guide/03-agent.md` |
-| RAG | 기본 워크플로우 (`graphs/rag_basic.py`) → 추후 고급 RAG | `docs/langgraph-guide/04-rag.md` |
+| RAG | `app/graph/` 워크플로우 슬라이스 (Phase 단위 확장) → `plan/plan.md` 기준 | `docs/langgraph-guide/04-rag.md` |
+| State | `AgentState(TypedDict)` — plan.md §3 기준, MessagesState 미사용 | `app/graph/state.py` |
+| 워크플로우 구조 | Phase 하나 = `app/graph/` 슬라이스. 신규 Phase는 nodes/ + edges.py 확장 | `plan/plan.md` |
 | 멀티에이전트 | Supervisor 패턴 (Part 4-2-1) | `docs/langgraph-guide/05-multi-agent.md` |
 | 스트리밍 | `messages` 모드 (토큰 스트리밍) | `docs/langgraph-guide/06-streaming.md` |
 | HITL/가드레일 | 결정론적 가드레일 우선, 민감 도구는 `interrupt()` | `docs/langgraph-guide/07-safety.md` |
