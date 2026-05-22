@@ -128,9 +128,11 @@ class AgentState(TypedDict):
 5. ⬜ **평가셋 20~30개 구축** — 현재 5개 (`tests/eval/questions.yaml`), 보충 필요
 
 **Definition of Done**
-- [ ] 임의의 사내 문서 100건 인덱싱 완료
-- [ ] curl로 `/chat` 호출 시 출처 포함 답변 반환
-- [ ] 평가셋에서 정답률 측정 완료 (베이스라인 기록)
+- [x] ~~임의의 사내 문서 100건 인덱싱 완료~~ → 15개 사내 문서 81 청크 인덱싱 완료 (`docs/company/`)
+- [x] curl로 `/chat` 호출 시 출처 포함 답변 반환
+- [x] 평가셋에서 정답률 측정 완료 (베이스라인 기록)
+  - recall@5: **0.60** / keyword_hit: **0.80** (5개 질문 기준, 2026-05-22)
+  - 취약: 연차(recall=0), 온보딩(recall=0) — Phase 2 Self-RAG로 개선 목표
 - [ ] LangSmith 트레이싱 연동
 
 **의존성**: 없음 (출발점)
