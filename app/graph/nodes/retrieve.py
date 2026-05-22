@@ -3,5 +3,6 @@ from shared.retriever.base import Retriever
 
 
 def retrieve_node(state: dict, *, retriever: Retriever) -> dict:
-    results: list[SearchResult] = retriever.retrieve(state["question"], top_k=5)
+    query = state.get("rewritten_question") or state["question"]
+    results: list[SearchResult] = retriever.retrieve(query, top_k=5)
     return {"documents": results}

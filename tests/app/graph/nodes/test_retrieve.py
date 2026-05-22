@@ -26,3 +26,27 @@ def test_retrieve_node_uses_question_field():
 
     retrieve_node({"question": "특정 질문"}, retriever=mock_retriever)
     mock_retriever.retrieve.assert_called_once_with("특정 질문", top_k=5)
+
+
+def test_retrieve_node_uses_rewritten_question_when_available():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = []
+
+    retrieve_node(
+        {"question": "원본 질문", "rewritten_question": "재작성 질문"},
+        retriever=mock_retriever,
+    )
+
+    mock_retriever.retrieve.assert_called_once_with("재작성 질문", top_k=5)
+
+
+def test_retrieve_node_falls_back_to_question_when_rewritten_empty():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = []
+
+    retrieve_node(
+        {"question": "원본 질문", "rewritten_question": ""},
+        retriever=mock_retriever,
+    )
+
+    mock_retriever.retrieve.assert_called_once_with("원본 질문", top_k=5)
