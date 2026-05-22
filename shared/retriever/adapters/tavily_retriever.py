@@ -1,3 +1,5 @@
+from tavily import TavilyClient
+
 from shared.models import Chunk, SearchResult
 from shared.retriever.base import Retriever
 
@@ -7,8 +9,6 @@ class TavilyRetriever(Retriever):
         self._api_key = api_key
 
     def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        from tavily import TavilyClient
-
         client = TavilyClient(api_key=self._api_key)
         response = client.search(query, max_results=top_k)
         return [

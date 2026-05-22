@@ -12,7 +12,7 @@ def test_duckduckgo_retriever_returns_search_results():
         _make_ddg_result("LangGraph 설명", "https://example.com/1"),
         _make_ddg_result("LangGraph 튜토리얼", "https://example.com/2"),
     ]
-    with patch("duckduckgo_search.DDGS") as MockDDGS:
+    with patch("shared.retriever.adapters.duckduckgo_retriever.DDGS") as MockDDGS:
         mock_ddgs = MagicMock()
         mock_ddgs.__enter__ = MagicMock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = MagicMock(return_value=False)
@@ -29,7 +29,7 @@ def test_duckduckgo_retriever_returns_search_results():
 
 
 def test_duckduckgo_retriever_respects_top_k():
-    with patch("duckduckgo_search.DDGS") as MockDDGS:
+    with patch("shared.retriever.adapters.duckduckgo_retriever.DDGS") as MockDDGS:
         mock_ddgs = MagicMock()
         mock_ddgs.__enter__ = MagicMock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = MagicMock(return_value=False)
@@ -42,7 +42,7 @@ def test_duckduckgo_retriever_respects_top_k():
 
 
 def test_duckduckgo_retriever_returns_empty_on_no_results():
-    with patch("duckduckgo_search.DDGS") as MockDDGS:
+    with patch("shared.retriever.adapters.duckduckgo_retriever.DDGS") as MockDDGS:
         mock_ddgs = MagicMock()
         mock_ddgs.__enter__ = MagicMock(return_value=mock_ddgs)
         mock_ddgs.__exit__ = MagicMock(return_value=False)
