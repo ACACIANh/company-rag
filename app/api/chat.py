@@ -10,8 +10,10 @@ from shared.llm.factory import create_llm
 from shared.retriever import BasicRetriever
 from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
+from app.api.auth import router as auth_router
 
 app = FastAPI()
+app.include_router(auth_router)
 
 
 class ChatRequest(BaseModel):
