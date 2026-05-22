@@ -8,7 +8,7 @@ from app.ingestion.embedder import get_embedder
 
 def build_index(docs_path: str) -> None:
     config = load_config()
-    loader = MarkdownLoader(docs_path)
+    loader = MarkdownLoader()
     chunker = get_chunker()
     embedder = get_embedder(config.embedding_model)
     store = create_vector_store(config)
