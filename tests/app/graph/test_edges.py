@@ -30,9 +30,9 @@ def test_route_after_grade_forces_generate_when_retry_limit_reached():
 
 # ─── route_after_hallucination ───
 
-def test_route_after_hallucination_ends_when_passed():
+def test_route_after_hallucination_goes_to_save_memory_when_passed():
     state = {"hallucination_passed": True, "retry_count": 0}
-    assert route_after_hallucination(state) == "end"
+    assert route_after_hallucination(state) == "save_memory"
 
 
 def test_route_after_hallucination_retries_when_failed_and_count_below_limit():
@@ -40,15 +40,15 @@ def test_route_after_hallucination_retries_when_failed_and_count_below_limit():
     assert route_after_hallucination(state) == "generate"
 
 
-def test_route_after_hallucination_ends_when_retry_limit_reached():
+def test_route_after_hallucination_goes_to_save_memory_when_retry_limit_reached():
     state = {"hallucination_passed": False, "retry_count": 3}
-    assert route_after_hallucination(state) == "end"
+    assert route_after_hallucination(state) == "save_memory"
 
 
-def test_route_after_hallucination_ends_after_two_grade_retries_and_one_halluc_retry():
-    # grade 2회 + hallucination 1회 → retry_count=3 → 종료
+def test_route_after_hallucination_goes_to_save_memory_after_max_retries():
+    # grade 2회 + hallucination 1회 → retry_count=3 → save_memory
     state = {"hallucination_passed": False, "retry_count": 3}
-    assert route_after_hallucination(state) == "end"
+    assert route_after_hallucination(state) == "save_memory"
 
 
 # ─── route_after_router ───

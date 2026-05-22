@@ -27,11 +27,11 @@ def route_after_hallucination(state: dict) -> str:
         state: Graph state containing hallucination_passed and retry_count
 
     Returns:
-        "end" if hallucination check passed or retry limit reached,
+        "save_memory" if hallucination check passed or retry limit reached,
         "generate" otherwise
     """
     if state["hallucination_passed"] or state["retry_count"] >= _MAX_TOTAL_RETRIES:
-        return "end"
+        return "save_memory"
     return "generate"
 
 
