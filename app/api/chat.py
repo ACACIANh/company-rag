@@ -1,3 +1,4 @@
+import uuid
 from functools import lru_cache
 
 from fastapi import FastAPI
@@ -15,11 +16,13 @@ app = FastAPI()
 
 class ChatRequest(BaseModel):
     question: str
+    session_id: str | None = None
 
 
 class ChatResponse(BaseModel):
     answer: str
     sources: list[str]
+    session_id: str
 
 
 @lru_cache(maxsize=1)
@@ -34,5 +37,7 @@ def get_graph():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest) -> ChatResponse:
-    result = answer_question(get_graph(), req.question)
-    return ChatResponse(answer=result.text, sources=result.sources)
+    thread_id = req.session_id or str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+    result = answer_question(get_graph(), req.question, config=config)
+    return ChatResponse(answer=result.text, sources=result.sources, session_id=thread_id)
