@@ -17,7 +17,7 @@ def test_retrieve_node_returns_documents():
 
     assert "documents" in result
     assert len(result["documents"]) == 1
-    mock_retriever.retrieve.assert_called_once_with("테스트 질문", top_k=5)
+    mock_retriever.retrieve.assert_called_once_with("테스트 질문", top_k=5, filter_doc_ids=[])
 
 
 def test_retrieve_node_uses_question_field():
@@ -25,7 +25,7 @@ def test_retrieve_node_uses_question_field():
     mock_retriever.retrieve.return_value = []
 
     retrieve_node({"question": "특정 질문"}, retriever=mock_retriever)
-    mock_retriever.retrieve.assert_called_once_with("특정 질문", top_k=5)
+    mock_retriever.retrieve.assert_called_once_with("특정 질문", top_k=5, filter_doc_ids=[])
 
 
 def test_retrieve_node_uses_rewritten_question_when_available():
@@ -37,7 +37,7 @@ def test_retrieve_node_uses_rewritten_question_when_available():
         retriever=mock_retriever,
     )
 
-    mock_retriever.retrieve.assert_called_once_with("재작성 질문", top_k=5)
+    mock_retriever.retrieve.assert_called_once_with("재작성 질문", top_k=5, filter_doc_ids=[])
 
 
 def test_retrieve_node_falls_back_to_question_when_rewritten_empty():
@@ -49,4 +49,27 @@ def test_retrieve_node_falls_back_to_question_when_rewritten_empty():
         retriever=mock_retriever,
     )
 
-    mock_retriever.retrieve.assert_called_once_with("원본 질문", top_k=5)
+    mock_retriever.retrieve.assert_called_once_with("원본 질문", top_k=5, filter_doc_ids=[])
+
+
+def test_retrieve_node_passes_allowed_doc_ids():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = []
+
+    retrieve_node(
+        {"question": "질문", "allowed_doc_ids": ["docs/company/policy.md"]},
+        retriever=mock_retriever,
+    )
+
+    mock_retriever.retrieve.assert_called_once_with(
+        "질문", top_k=5, filter_doc_ids=["docs/company/policy.md"]
+    )
+
+
+def test_retrieve_node_passes_empty_filter_when_no_acl():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve.return_value = []
+
+    retrieve_node({"question": "질문"}, retriever=mock_retriever)
+
+    mock_retriever.retrieve.assert_called_once_with("질문", top_k=5, filter_doc_ids=[])
