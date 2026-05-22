@@ -1,4 +1,4 @@
-from typing import get_type_hints
+from typing import get_type_hints, get_args, get_origin
 from app.graph.state import AgentState
 
 
@@ -24,3 +24,10 @@ def test_agent_state_instantiation():
         "hallucination_passed": False,
     }
     assert state["question"] == "테스트"
+
+
+def test_documents_is_plain_list_not_annotated():
+    hints = get_type_hints(AgentState, include_extras=True)
+    doc_hint = hints["documents"]
+    # Annotated[..., add]가 아닌 순수 list 타입이어야 함
+    assert get_origin(doc_hint) is list or doc_hint is list or str(doc_hint).startswith("list")
