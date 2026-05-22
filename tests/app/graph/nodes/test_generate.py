@@ -66,3 +66,20 @@ def test_generate_node_falls_back_to_question_when_rewritten_empty():
 
     prompt = mock_llm.complete.call_args[0][0]
     assert "원본 질문" in prompt
+
+
+def test_generate_node_includes_chat_history_in_prompt():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "답변"
+
+    history = [{"role": "user", "content": "이전 대화 내용"}]
+    state = {
+        "question": "질문",
+        "rewritten_question": "재작성",
+        "documents": [_make_result("문서", "doc.md")],
+        "chat_history": history,
+    }
+    generate_node(state, llm=mock_llm)
+
+    prompt = mock_llm.complete.call_args[0][0]
+    assert "이전 대화 내용" in prompt

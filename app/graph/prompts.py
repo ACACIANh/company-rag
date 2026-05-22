@@ -1,4 +1,12 @@
-RAG_GENERATE = "context:\n{context}\n\nquestion: {question}\nanswer in Korean."
+RAG_GENERATE = """\
+이전 대화:
+{chat_history}
+
+참고 문서:
+{context}
+
+질문: {question}
+한국어로 답변하세요."""
 
 REWRITE_QUERY = """\
 다음 질문을 사내 문서 검색에 최적화되도록 재작성하세요.
