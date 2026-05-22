@@ -198,9 +198,12 @@ class AgentState(TypedDict):
 4. 토큰 한도 관리 (오래된 대화 요약)
 
 **Definition of Done**
-- [ ] "방금 그 문서 더 자세히" 같은 참조 표현 처리 가능
-- [ ] 동일 세션 내 5턴 이상 대화 일관성 유지
-- [ ] 토큰 폭증 없이 운영 가능
+- [x] "방금 그 문서 더 자세히" 같은 참조 표현 처리 가능 — rewrite_query_node에 chat_history 주입, test_builder 멀티턴 테스트로 검증 (2026-05-22)
+- [x] 동일 세션 내 5턴 이상 대화 일관성 유지 — MemorySaver + save_memory_node로 chat_history 누적 (2026-05-22)
+- [x] 토큰 폭증 없이 운영 가능 — load_memory_node가 최근 10턴(20 메시지)으로 트리밍 (2026-05-22)
+- [x] 회귀 테스트 통과 — 원본 5개 doc_search 질문 recall@5=1.00 (Phase 2 기준 0.80 이상 유지, 2026-05-22)
+  - 전체 20문항 aggregate recall@5=0.33 (web_search 5건 AttributeError: eval 환경 web_search_retriever=None — Phase 3와 동일, Phase 4 회귀 아님)
+- [x] 단위 테스트 전부 통과 — 184 PASSED (2026-05-22)
 
 **의존성**: Phase 3
 

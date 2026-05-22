@@ -19,9 +19,11 @@ from app.graph.nodes.confirm import confirm_node
 from app.graph.nodes.generate import generate_node
 from app.graph.nodes.grade_documents import grade_documents_node
 from app.graph.nodes.increment_retry import increment_retry_node
+from app.graph.nodes.load_memory import load_memory_node
 from app.graph.nodes.retrieve import retrieve_node
 from app.graph.nodes.rewrite_query import rewrite_query_node
 from app.graph.nodes.router import router_node
+from app.graph.nodes.save_memory import save_memory_node
 from app.graph.nodes.tool_executor import tool_executor_node
 from app.graph.nodes.web_search import web_search_node
 from app.graph.state import AgentState
@@ -34,6 +36,7 @@ def build_graph(
 ) -> CompiledStateGraph:
     g = StateGraph(AgentState)
 
+    g.add_node("load_memory", load_memory_node)
     g.add_node("rewrite_query", partial(rewrite_query_node, llm=llm))
     g.add_node("router", partial(router_node, llm=llm))
     g.add_node("retrieve", partial(retrieve_node, retriever=retriever))
@@ -44,9 +47,11 @@ def build_graph(
     g.add_node("tool_executor", tool_executor_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
+    g.add_node("save_memory", save_memory_node)
 
-    # 공통 진입 경로
-    g.add_edge(START, "rewrite_query")
+    # 공통 진입: START → load_memory → rewrite_query → router
+    g.add_edge(START, "load_memory")
+    g.add_edge("load_memory", "rewrite_query")
     g.add_edge("rewrite_query", "router")
 
     # 라우터 → 세 경로 분기
@@ -76,13 +81,14 @@ def build_graph(
     # web_search 경로
     g.add_edge("web_search", "generate")
 
-    # 공통 꼬리
+    # 공통 꼬리: generate → check_hallucination → save_memory → END
     g.add_edge("generate", "check_hallucination")
     g.add_conditional_edges(
         "check_hallucination",
         route_after_hallucination,
-        {"end": END, "generate": "generate"},
+        {"save_memory": "save_memory", "generate": "generate"},
     )
+    g.add_edge("save_memory", END)
 
     return g.compile(checkpointer=MemorySaver())
 
@@ -102,10 +108,14 @@ def answer_question(
     question: str,
     config: dict | None = None,
 ) -> Answer:
+    config = _ensure_thread_id(config)
+    existing = graph.get_state(config)
+    chat_history = (existing.values or {}).get("chat_history", [])
+
     initial: AgentState = {
         "question": question,
         "rewritten_question": "",
-        "chat_history": [],
+        "chat_history": chat_history,
         "route": "doc_search",
         "documents": [],
         "relevance_score": 0.0,
@@ -116,5 +126,5 @@ def answer_question(
         "confirmed": False,
         "tool_input": "",
     }
-    final = graph.invoke(initial, config=_ensure_thread_id(config))
+    final = graph.invoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])

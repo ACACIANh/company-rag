@@ -148,3 +148,57 @@ def test_tool_call_ends_when_user_denies():
 
     final = graph.invoke(Command(resume=False), config=config)
     assert final["answer"] == ""
+
+
+def test_answer_question_multi_turn_accumulates_chat_history():
+    """2턴 대화 시 chat_history가 누적되고 2턴 rewrite_query 프롬프트에 1턴 질문이 포함된다."""
+    retriever = _make_retriever(text="연차는 15일", source="vacation.md")
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        # Turn 1: load_memory(pure) → rewrite → router → retrieve → grade → generate → halluc → save(pure)
+        "연차 신청 방법",       # rewrite_query
+        "doc_search",          # router
+        "0.9",                 # grade_documents
+        "연차는 15일입니다.",   # generate
+        "YES",                 # check_hallucination
+        # Turn 2: 동일 순서
+        "연차 상세 설명",       # rewrite_query (should receive history from turn 1)
+        "doc_search",          # router
+        "0.9",                 # grade_documents
+        "더 자세히 설명하면.", # generate
+        "YES",                 # check_hallucination
+    ]
+    graph = build_graph(retriever=retriever, llm=llm)
+    config = {"configurable": {"thread_id": "multi-turn-test-1"}}
+
+    result1 = answer_question(graph, "연차 어떻게 써?", config=config)
+    assert result1.text == "연차는 15일입니다."
+
+    result2 = answer_question(graph, "더 자세히 알려줘", config=config)
+    assert result2.text == "더 자세히 설명하면."
+
+    # 2턴 rewrite_query 프롬프트(6번째 LLM 호출, index=5)에 1턴 질문이 있어야 함
+    rewrite_prompt_turn2 = llm.complete.call_args_list[5][0][0]
+    assert "연차 어떻게 써?" in rewrite_prompt_turn2
+
+
+def test_answer_question_new_session_starts_with_empty_history():
+    """다른 thread_id는 이전 대화에 접근할 수 없다."""
+    retriever = _make_retriever(text="문서", source="doc.md")
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "연차 신청 방법",  # rewrite_query
+        "doc_search",     # router
+        "0.9",            # grade_documents
+        "정답",           # generate
+        "YES",            # check_hallucination
+    ]
+    graph = build_graph(retriever=retriever, llm=llm)
+    # 새 세션 ID — 이전 대화 없음
+    config = {"configurable": {"thread_id": "brand-new-session-999"}}
+    result = answer_question(graph, "연차 어떻게 써?", config=config)
+    assert result.text == "정답"
+
+    # rewrite_query 프롬프트에 "없음"이 포함되어야 함 (빈 히스토리)
+    rewrite_prompt = llm.complete.call_args_list[0][0][0]
+    assert "없음" in rewrite_prompt
