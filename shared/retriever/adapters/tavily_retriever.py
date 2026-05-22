@@ -6,11 +6,10 @@ from shared.retriever.base import Retriever
 
 class TavilyRetriever(Retriever):
     def __init__(self, api_key: str) -> None:
-        self._api_key = api_key
+        self._client = TavilyClient(api_key=api_key)
 
     def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        client = TavilyClient(api_key=self._api_key)
-        response = client.search(query, max_results=top_k)
+        response = self._client.search(query, max_results=top_k)
         return [
             SearchResult(
                 chunk=Chunk(

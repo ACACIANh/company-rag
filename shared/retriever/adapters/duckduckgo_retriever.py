@@ -11,8 +11,13 @@ class DuckDuckGoRetriever(Retriever):
 
         return [
             SearchResult(
-                chunk=Chunk(text=r["body"], source=r["href"], chunk_id=r["href"]),
+                chunk=Chunk(
+                    text=r.get("body", ""),
+                    source=r.get("href", ""),
+                    chunk_id=r.get("href", ""),
+                ),
                 score=0.5,
             )
             for r in raw
+            if r.get("href")
         ]
