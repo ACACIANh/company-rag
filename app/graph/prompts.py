@@ -29,3 +29,16 @@ CHECK_HALLUCINATION = """\
 답변: {answer}
 
 검증 결과 (YES 또는 NO):"""
+
+ROUTER_PROMPT = """\
+다음 질문을 분석해 적절한 처리 방식을 선택하세요.
+
+선택지:
+- doc_search: 사내 문서에서 정보를 찾는 질문 (정책, 절차, 규정, 가이드 등)
+- tool_call: 실제 작업을 수행하는 요청 (예약, 조회, 실행, 전송 등 동작)
+- web_search: 외부 최신 정보가 필요한 질문 (사내 문서에 없는 일반 지식, 뉴스 등)
+
+다음 중 하나만 출력하세요. 다른 텍스트 없이 정확히 한 단어만: doc_search, web_search, tool_call
+
+질문: {question}
+선택:"""
