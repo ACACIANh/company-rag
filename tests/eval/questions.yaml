@@ -14,3 +14,54 @@ questions:
   - question: "온보딩 절차가 어떻게 돼?"
     expected_keywords: ["온보딩", "입사"]
     expected_source: "onboarding.md"
+
+  # web_search 유형
+  - question: "최신 Python 3.13 릴리즈 노트 알려줘"
+    expected_keywords: ["Python", "릴리즈"]
+    expected_route: "web_search"
+  - question: "오늘 날씨 어때?"
+    expected_keywords: ["날씨"]
+    expected_route: "web_search"
+  - question: "GPT-5 출시일이 언제야?"
+    expected_keywords: ["GPT"]
+    expected_route: "web_search"
+  - question: "LangGraph 0.3 변경사항이 뭐야?"
+    expected_keywords: ["LangGraph", "변경"]
+    expected_route: "web_search"
+  - question: "요즘 AI 트렌드가 뭐야?"
+    expected_keywords: ["AI", "트렌드"]
+    expected_route: "web_search"
+
+  # tool_call 유형
+  - question: "다음 주 월요일 회의실 A 예약해줘"
+    expected_keywords: ["회의실", "예약"]
+    expected_route: "tool_call"
+  - question: "팀 전체에 슬랙으로 공지 보내줘"
+    expected_keywords: ["슬랙", "공지"]
+    expected_route: "tool_call"
+  - question: "내 연차 잔여일 인사 시스템에서 조회해줘"
+    expected_keywords: ["연차", "잔여"]
+    expected_route: "tool_call"
+  - question: "김철수 대리에게 메일 보내줘"
+    expected_keywords: ["메일"]
+    expected_route: "tool_call"
+  - question: "오늘 오후 2시 캘린더에 미팅 잡아줘"
+    expected_keywords: ["캘린더", "미팅"]
+    expected_route: "tool_call"
+
+  # doc_search 추가 유형
+  - question: "출장 비용 처리 절차가 어떻게 돼?"
+    expected_keywords: ["출장", "비용"]
+    expected_route: "doc_search"
+  - question: "재택근무 신청은 어떻게 해?"
+    expected_keywords: ["재택", "신청"]
+    expected_route: "doc_search"
+  - question: "인시던트 발생 시 대응 절차는?"
+    expected_keywords: ["인시던트", "대응"]
+    expected_route: "doc_search"
+  - question: "사내 API 접근 권한 받는 방법이 뭐야?"
+    expected_keywords: ["권한", "API"]
+    expected_route: "doc_search"
+  - question: "성과 평가 주기와 기준이 어떻게 돼?"
+    expected_keywords: ["성과", "평가"]
+    expected_route: "doc_search"
