@@ -153,9 +153,11 @@ class AgentState(TypedDict):
 5. `retry_count`로 무한 루프 방지
 
 **Definition of Done**
-- [ ] Phase 1 평가셋에서 정답률 10% 이상 향상
-- [ ] 환각 발생률 측정 가능
-- [ ] 루프백 발생 시 LangSmith에서 시각적 확인 가능
+- [x] Phase 1 평가셋에서 정답률 10% 이상 향상
+  - recall@5: **0.80** (Phase 1: 0.60, **+33% 향상**) / keyword_hit: **1.00** (2026-05-22)
+  - 취약: 온보딩(recall=0) — 관련 파일 docs/onboarding.md 삭제 상태로 검색 불가
+- [x] 환각 발생률 측정 가능 — `check_hallucination_node`가 YES/NO로 판정, LangSmith에 기록됨
+- [x] 루프백 발생 시 LangSmith에서 시각적 확인 가능 — 조건부 엣지 `route_after_grade` / `route_after_hallucination` 연동
 
 **의존성**: Phase 1
 
