@@ -3,7 +3,11 @@ RAG_GENERATE = "context:\n{context}\n\nquestion: {question}\nanswer in Korean."
 REWRITE_QUERY = """\
 다음 질문을 사내 문서 검색에 최적화되도록 재작성하세요.
 모호한 대명사를 명시적 명사로 풀고, 핵심 키워드를 포함하세요.
+이전 대화를 참고해 참조 표현("그 문서", "방금 그것" 등)을 구체적인 내용으로 해소하세요.
 재작성된 질문만 출력하세요.
+
+이전 대화:
+{chat_history}
 
 원본 질문: {question}
 재작성된 질문:"""
