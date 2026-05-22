@@ -1,4 +1,4 @@
-from app.graph.edges import route_after_grade, route_after_hallucination
+from app.graph.edges import route_after_confirm, route_after_grade, route_after_hallucination, route_after_router
 
 
 # ─── route_after_grade ───
@@ -49,3 +49,27 @@ def test_route_after_hallucination_ends_after_two_grade_retries_and_one_halluc_r
     # grade 2회 + hallucination 1회 → retry_count=3 → 종료
     state = {"hallucination_passed": False, "retry_count": 3}
     assert route_after_hallucination(state) == "end"
+
+
+# ─── route_after_router ───
+
+def test_route_after_router_returns_doc_search():
+    assert route_after_router({"route": "doc_search"}) == "doc_search"
+
+
+def test_route_after_router_returns_web_search():
+    assert route_after_router({"route": "web_search"}) == "web_search"
+
+
+def test_route_after_router_returns_tool_call():
+    assert route_after_router({"route": "tool_call"}) == "tool_call"
+
+
+# ─── route_after_confirm ───
+
+def test_route_after_confirm_proceeds_when_confirmed():
+    assert route_after_confirm({"confirmed": True}) == "tool_executor"
+
+
+def test_route_after_confirm_ends_when_denied():
+    assert route_after_confirm({"confirmed": False}) == "end"

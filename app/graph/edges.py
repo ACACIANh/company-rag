@@ -33,3 +33,27 @@ def route_after_hallucination(state: dict) -> str:
     if state["hallucination_passed"] or state["retry_count"] >= _MAX_TOTAL_RETRIES:
         return "end"
     return "generate"
+
+
+def route_after_router(state: dict) -> str:
+    """Route based on router decision.
+
+    Args:
+        state: Graph state containing route field
+
+    Returns:
+        The route value from state (e.g., "doc_search", "web_search", "tool_call")
+    """
+    return state["route"]
+
+
+def route_after_confirm(state: dict) -> str:
+    """Route based on user confirmation.
+
+    Args:
+        state: Graph state containing confirmed flag
+
+    Returns:
+        "tool_executor" if confirmed is True, "end" otherwise
+    """
+    return "tool_executor" if state["confirmed"] else "end"
