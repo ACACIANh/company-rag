@@ -7,7 +7,6 @@
 ## High
 
 - `#infra` **접근 권한 제어 (OpenFGA + Chroma Pre-filter)** — ABAC/RBAC 혼합 모델 구현. 상세 설계: [`plan/access-control.md`](access-control.md), 결정 사항: [`docs/superpowers/decisions/2026-05-23-openfga-hosting.md`](../docs/superpowers/decisions/2026-05-23-openfga-hosting.md) 외 3개 ADR
-- `#perf` Reranker 연결 (C-10) — `shared/reranker/` 폴더 존재, `retrieve_node` 이후 rerank 단계 삽입하여 검색 품질 개선
 - `#perf` Hybrid Search (C-9) — 현재 Vector Only, BM25 결합으로 recall 향상 / Qdrant sparse vector 또는 별도 BM25 인덱스 검토
 
 <!-- 빠르게 처리해야 하는 개선사항 -->
