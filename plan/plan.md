@@ -227,6 +227,20 @@ class AgentState(TypedDict):
 
 ---
 
+### 백로그 완료 항목 (Phase 이후)
+
+#### Reranker (C-10) — 2026-05-23 완료
+
+- LLMReranker (OpenAI 호환 HTTP, listwise), RRFReranker (Rank Fusion), NoOpReranker 3종 구현
+- retrieve_top_k=20 → reranker → top_k=5 파이프라인 연결
+- MRR + recall@[1,3,5] eval 지표 추가 (`shared/observability/eval/`)
+- **eval 결과 (doc_search 5개 기준, 2026-05-23):**
+  - baseline (top-5, NoRerank): recall@1=0.80 / MRR=0.84
+  - reranker (top-20, LLMRerank): recall@1=1.00 / MRR=1.00
+  - 온보딩 질문: 5위 → 1위로 상승 (가장 큰 개선)
+
+---
+
 ## 5. 전체 순서도 (최종 아키텍처)
 
 ```mermaid
