@@ -5,6 +5,16 @@ def recall_at_k(retrieved_sources: list[str], expected_source: str, k: int) -> f
     return 1.0 if expected_source in retrieved_sources[:k] else 0.0
 
 
+def mrr(retrieved_sources: list[str], expected_source: str) -> float:
+    if not expected_source:
+        return 0.0
+    try:
+        rank = retrieved_sources.index(expected_source) + 1
+        return 1.0 / rank
+    except ValueError:
+        return 0.0
+
+
 def keyword_hit_rate(answer_text: str, expected_keywords: list[str]) -> float:
     if not expected_keywords:
         return 1.0
