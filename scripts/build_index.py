@@ -14,7 +14,7 @@ from app.ingestion.indexer import build_index
 
 
 def main() -> None:
-    docs_path = os.path.join(_ROOT, "docs")
+    docs_path = os.path.join(_ROOT, "docs", "company")
     build_index(docs_path)
 
 
