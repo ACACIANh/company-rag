@@ -29,6 +29,10 @@ class Config:
     jwt_expire_minutes: int
     rate_limit_per_minute: int
     cors_origins: list[str]
+    reranker_type: str        # "none" | "llm" | "rrf"
+    reranker_base_url: str    # 사내 LLM URL; "" = OpenAI 기본값
+    reranker_model: str
+    reranker_api_key: str     # "" → openai_api_key fallback
 
 
 def load_config() -> Config:
@@ -50,4 +54,8 @@ def load_config() -> Config:
         jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
         rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),
         cors_origins=_parse_cors_origins(),
+        reranker_type=os.getenv("RERANKER_TYPE", "none"),
+        reranker_base_url=os.getenv("RERANKER_BASE_URL", ""),
+        reranker_model=os.getenv("RERANKER_MODEL", "gpt-4o-mini"),
+        reranker_api_key=os.getenv("RERANKER_API_KEY", ""),
     )

@@ -11,6 +11,7 @@ from shared.embedder import SentenceTransformerEmbedder
 from shared.llm.factory import create_llm
 from shared.observability.cost_tracker import init_tracker
 from shared.observability.sinks.file_sink import FileSink
+from shared.reranker.factory import create_reranker
 from shared.retriever import BasicRetriever
 from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
@@ -52,7 +53,8 @@ def get_graph():
     store = create_vector_store(config)
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
-    return build_graph(retriever=retriever, llm=llm)
+    reranker = create_reranker(config)
+    return build_graph(retriever=retriever, llm=llm, reranker=reranker)
 
 
 @app.post("/chat", response_model=ChatResponse)
