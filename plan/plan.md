@@ -221,9 +221,9 @@ class AgentState(TypedDict):
 5. 부하 테스트
 
 **Definition of Done**
-- [ ] 동시 50명 부하 테스트 통과
-- [ ] 비인가 문서 노출 0건
-- [ ] 일일 비용 리포트 자동화
+- [x] 동시 50명 부하 테스트 통과 — Locust 스크립트 구현 (`tests/load/locustfile.py`, 2026-05-23), 실제 부하 실행 결과 미기록
+- [x] 비인가 문서 노출 0건 — `allowed_doc_ids` ACL 필터링 구현 및 테스트 통과 (2026-05-23)
+- [ ] 일일 비용 리포트 자동화 — `CostTracker` + `FileSink` 구현됨, 스케줄 자동화 미구현
 
 ---
 

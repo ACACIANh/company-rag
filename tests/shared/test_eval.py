@@ -1,4 +1,4 @@
-from shared.observability.eval.metrics import keyword_hit_rate, latency_ms, recall_at_k
+from shared.observability.eval.metrics import keyword_hit_rate, latency_ms, mrr, recall_at_k
 from shared.observability.eval.evaluator import Evaluator, EvalCase, EvalReport
 from shared.observability.tracer import Span
 from shared.models import Answer
@@ -31,6 +31,38 @@ def test_keyword_hit_rate_partial():
 
 def test_keyword_hit_rate_empty_keywords():
     assert keyword_hit_rate("아무 텍스트", []) == 1.0
+
+
+def test_mrr_first_rank():
+    assert mrr(["a.md", "b.md", "c.md"], "a.md") == 1.0
+
+
+def test_mrr_second_rank():
+    assert abs(mrr(["a.md", "b.md", "c.md"], "b.md") - 0.5) < 1e-9
+
+
+def test_mrr_miss():
+    assert mrr(["a.md", "b.md"], "z.md") == 0.0
+
+
+def test_mrr_empty_expected():
+    assert mrr(["a.md"], "") == 0.0
+
+
+def test_evaluator_includes_mrr_and_multi_k():
+    cases = [EvalCase(question="q1", expected_keywords=[], expected_source="a.md")]
+
+    def fake_workflow(_q):
+        return Answer(text="", sources=["x.md", "a.md", "b.md"], trace=None)
+
+    report = Evaluator(k=5, eval_ks=[1, 3, 5]).evaluate(fake_workflow, cases)
+    c = report.cases[0]
+    assert c["recall_at_1"] == 0.0   # a.md는 2위
+    assert c["recall_at_3"] == 1.0   # top-3 안에 있음
+    assert c["recall_at_5"] == 1.0
+    assert abs(c["mrr"] - 0.5) < 1e-9
+    assert "mean_mrr" in report.aggregate
+    assert "mean_recall_at_3" in report.aggregate
 
 
 def test_evaluator_runs_all_cases_and_records_metrics():
