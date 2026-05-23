@@ -49,6 +49,7 @@ def test_factory_creates_openai_by_default(monkeypatch, mocker):
         jwt_secret="test-secret",
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,
+        cors_origins=["http://localhost:5173"],
     )
     llm = create_llm(config)
     assert isinstance(llm, OpenAIClient)
@@ -65,6 +66,7 @@ def test_factory_creates_anthropic(mocker):
         jwt_secret="test-secret",
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,
+        cors_origins=["http://localhost:5173"],
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)

@@ -1,0 +1,45 @@
+export interface TokenRequest {
+  username: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface AuthUser {
+  user_id: string;
+  roles: string[];
+  allowed_doc_ids: string[];
+}
+
+export interface ChatRequest {
+  question: string;
+  session_id: string | null;
+}
+
+export interface ChatResponse {
+  answer: string;
+  sources: string[];
+  session_id: string;
+}
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+  sources?: string[];
+}
+
+export class ApiError extends Error {
+  status: number;
+  retryAfter?: number;
+
+  constructor(status: number, message: string, retryAfter?: number) {
+    super(message);
+    this.status = status;
+    this.retryAfter = retryAfter;
+  }
+}
