@@ -16,6 +16,7 @@
 ## Medium
 
 - `#feat` 스트리밍 응답 (B-6) — `POST /chat` SSE 또는 WebSocket 스트리밍, 프론트 연동 포함
+- `#feat` 열람 가능 문서 목록 표시 — `GET /docs` 엔드포인트(JWT 기반 필터링) + 프론트 사이드바/첫 화면 칩 표시
 - `#feat` 첫 질문창 진입 시 추천 질문 3개 제안 (빈 채팅 화면에 샘플 질문 버튼 표시)
 - `#feat` 문서 접근 제어 개선 (A-5) — 현재 `allowed_doc_ids: []`이면 전체 허용. role 기반(admin=전체, user=지정 문서)으로 전환 검토
 
