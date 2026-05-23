@@ -30,38 +30,58 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen gradient-mesh flex flex-col items-center justify-center px-4">
+      {/* Logo area */}
+      <div className="mb-8 text-center">
+        <h1
+          className="text-[32px] font-light text-ink tracking-[-0.64px]"
+          style={{ fontFeatureSettings: '"ss01"' }}
+        >
+          Company RAG
+        </h1>
+        <p className="mt-1 text-[15px] text-ink-mute font-light">
+          사내 문서 AI 어시스턴트
+        </p>
+      </div>
+
+      {/* Card */}
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-sm bg-white p-8 rounded-xl shadow space-y-4"
+        className="w-full max-w-sm bg-canvas rounded-xl border border-hairline px-8 py-8 space-y-5"
+        style={{ boxShadow: "rgba(0,55,112,0.08) 0 8px 24px, rgba(0,55,112,0.04) 0 2px 6px" }}
       >
-        <h1 className="text-xl font-semibold text-slate-800">로그인</h1>
-        <label className="block">
-          <span className="text-sm text-slate-600">아이디</span>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2"
-            autoComplete="username"
-            required
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm text-slate-600">비밀번호</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded border border-slate-300 px-3 py-2"
-            autoComplete="current-password"
-            required
-          />
-        </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="space-y-4">
+          <label className="block">
+            <span className="text-[13px] font-normal text-ink-mute tracking-[-0.39px]">아이디</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="mt-1 block w-full rounded-[6px] border border-hairline-input bg-canvas text-ink text-[15px] font-light px-3 py-2 outline-none focus:border-primary transition-colors"
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label className="block">
+            <span className="text-[13px] font-normal text-ink-mute tracking-[-0.39px]">비밀번호</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full rounded-[6px] border border-hairline-input bg-canvas text-ink text-[15px] font-light px-3 py-2 outline-none focus:border-primary transition-colors"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+        </div>
+
+        {error && (
+          <p className="text-[13px] text-ruby font-normal">{error}</p>
+        )}
+
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-slate-800 text-white rounded py-2 hover:bg-slate-900 disabled:opacity-50"
+          className="w-full bg-primary hover:bg-primary-deep active:bg-primary-press text-canvas font-normal text-[16px] rounded-pill py-2 transition-colors disabled:opacity-50"
         >
           {submitting ? "로그인 중…" : "로그인"}
         </button>

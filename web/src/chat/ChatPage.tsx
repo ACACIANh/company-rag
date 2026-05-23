@@ -55,27 +55,54 @@ export function ChatPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <h1 className="text-lg font-semibold text-slate-800">Company RAG</h1>
-        <div className="flex items-center gap-3 text-sm text-slate-600">
-          <span>{user?.user_id ?? ""}</span>
+    <div className="min-h-screen flex flex-col bg-canvas-soft">
+      {/* nav-bar-on-mesh */}
+      <header className="flex items-center justify-between border-b border-hairline bg-canvas px-6 py-3"
+        style={{ boxShadow: "rgba(0,55,112,0.08) 0 1px 3px" }}
+      >
+        <h1
+          className="text-[20px] font-light text-ink tracking-[-0.2px]"
+          style={{ fontFeatureSettings: '"ss01"' }}
+        >
+          Company RAG
+        </h1>
+        <div className="flex items-center gap-4">
+          <span className="text-[13px] text-ink-mute font-normal tracking-[-0.39px]">
+            {user?.user_id ?? ""}
+          </span>
           <button
             onClick={handleLogout}
-            className="text-slate-500 hover:text-slate-800"
+            className="text-[14px] font-normal text-primary hover:text-primary-deep transition-colors"
           >
             로그아웃
           </button>
         </div>
       </header>
-      <main className="flex-1 overflow-y-auto p-4">
+
+      <main className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl w-full mx-auto">
         <MessageList messages={messages} />
         {pending && (
-          <p className="text-sm text-slate-400 mt-3">답변 생성 중…</p>
+          <div className="flex items-center gap-2 mt-4">
+            <span className="flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-pill bg-primary-muted animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </span>
+            <span className="text-[13px] text-ink-mute font-normal">답변 생성 중…</span>
+          </div>
         )}
-        {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+        {error && (
+          <p className="text-[13px] text-ruby font-normal mt-3">{error}</p>
+        )}
       </main>
-      <MessageInput onSend={send} disabled={pending} />
+
+      <div className="max-w-3xl w-full mx-auto px-4 pb-4">
+        <MessageInput onSend={send} disabled={pending} />
+      </div>
     </div>
   );
 }
