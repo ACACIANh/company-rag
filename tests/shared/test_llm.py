@@ -46,6 +46,9 @@ def test_factory_creates_openai_by_default(monkeypatch, mocker):
         vector_store="chroma", chroma_mode="embedded",
         chroma_path=".chroma", embedding_model="test-model",
         qdrant_url="", qdrant_api_key="", qdrant_collection="documents",
+        jwt_secret="test-secret",
+        jwt_expire_minutes=60,
+        rate_limit_per_minute=20,
     )
     llm = create_llm(config)
     assert isinstance(llm, OpenAIClient)
@@ -59,6 +62,9 @@ def test_factory_creates_anthropic(mocker):
         vector_store="chroma", chroma_mode="embedded",
         chroma_path=".chroma", embedding_model="test-model",
         qdrant_url="", qdrant_api_key="", qdrant_collection="documents",
+        jwt_secret="test-secret",
+        jwt_expire_minutes=60,
+        rate_limit_per_minute=20,
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)

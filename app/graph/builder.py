@@ -107,6 +107,8 @@ def answer_question(
     graph: CompiledStateGraph,
     question: str,
     config: dict | None = None,
+    user_id: str = "anonymous",
+    allowed_doc_ids: list[str] | None = None,
 ) -> Answer:
     config = _ensure_thread_id(config)
     existing = graph.get_state(config)
@@ -125,6 +127,8 @@ def answer_question(
         "hallucination_passed": False,
         "confirmed": False,
         "tool_input": "",
+        "user_id": user_id,
+        "allowed_doc_ids": allowed_doc_ids or [],
     }
     final = graph.invoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])

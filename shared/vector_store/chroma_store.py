@@ -26,11 +26,19 @@ class ChromaStore(VectorStore):
         )
 
     def search(
-        self, query_embedding: list[float], top_k: int = 5
+        self,
+        query_embedding: list[float],
+        top_k: int = 5,
+        filter_doc_ids: list[str] | None = None,
     ) -> list[SearchResult]:
+        where = None
+        if filter_doc_ids:
+            where = {"source": {"$in": filter_doc_ids}}
+
         results = self._collection.query(
             query_embeddings=[query_embedding],
-            n_results=min(top_k, self._collection.count()),
+            n_results=min(top_k, max(self._collection.count(), 1)),
+            where=where,
         )
         output = []
         for i, doc in enumerate(results["documents"][0]):

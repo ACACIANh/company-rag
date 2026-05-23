@@ -18,6 +18,9 @@ class Config:
     qdrant_url: str
     qdrant_api_key: str
     qdrant_collection: str
+    jwt_secret: str
+    jwt_expire_minutes: int
+    rate_limit_per_minute: int
 
 
 def load_config() -> Config:
@@ -35,4 +38,7 @@ def load_config() -> Config:
         qdrant_url=os.getenv("QDRANT_URL", ""),
         qdrant_api_key=os.getenv("QDRANT_API_KEY", ""),
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "documents"),
+        jwt_secret=os.getenv("JWT_SECRET", "dev-secret-change-in-prod"),
+        jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
+        rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),
     )

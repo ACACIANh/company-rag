@@ -24,7 +24,7 @@ def test_basic_retriever_calls_embed_and_search():
     results = r.retrieve("연차 며칠이야", top_k=3)
 
     embedder.embed.assert_called_once_with("연차 며칠이야")
-    store.search.assert_called_once_with([0.1, 0.2, 0.3], top_k=3)
+    store.search.assert_called_once_with([0.1, 0.2, 0.3], top_k=3, filter_doc_ids=None)
     assert len(results) == 1
     assert results[0].chunk.source == "vacation.md"
 

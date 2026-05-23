@@ -172,6 +172,9 @@ def test_factory_creates_qdrant_store(mock_qdrant_client):
         qdrant_url="https://test.qdrant.io",
         qdrant_api_key="test-key",
         qdrant_collection="my-col",
+        jwt_secret="test-secret",
+        jwt_expire_minutes=60,
+        rate_limit_per_minute=20,
     )
 
     store = create_vector_store(config)
@@ -194,6 +197,9 @@ def test_factory_creates_chroma_store_by_default(tmp_path):
         qdrant_url="",
         qdrant_api_key="",
         qdrant_collection="documents",
+        jwt_secret="test-secret",
+        jwt_expire_minutes=60,
+        rate_limit_per_minute=20,
     )
 
     store = create_vector_store(config)

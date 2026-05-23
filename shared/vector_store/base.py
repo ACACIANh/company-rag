@@ -9,7 +9,10 @@ class VectorStore(ABC):
 
     @abstractmethod
     def search(
-        self, query_embedding: list[float], top_k: int = 5
+        self,
+        query_embedding: list[float],
+        top_k: int = 5,
+        filter_doc_ids: list[str] | None = None,
     ) -> list[SearchResult]:
         ...
 
