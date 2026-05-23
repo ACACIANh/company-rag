@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG 품질 평가와 실패 패턴 분석</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #242740;
+      --border: #2e3150;
+      --accent: #7c6df0;
+      --accent2: #5bc8af;
+      --accent3: #f0a050;
+      --danger: #e05c7a;
+      --text: #e2e4f0;
+      --text-muted: #8b8fa8;
+      --text-dim: #5a5e78;
+      --code-bg: #131520;
+      --tag-retrieval: #7c6df033;
+      --tag-generation: #5bc8af22;
+      --tag-failure: #e05c7a22;
+      --radius: 12px;
+      --radius-sm: 7px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    /* ── 레이아웃 ── */
+    .wrapper {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 24px 120px;
+    }
+
+    /* ── 히어로 ── */
+    .hero {
+      text-align: center;
+      padding: 56px 0 48px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 56px;
+    }
+    .hero .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1.25;
+      background: linear-gradient(135deg, #a99af8, #7c6df0, #5bc8af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .hero .meta {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .hero .meta a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ── 섹션 ── */
+    section { margin-bottom: 64px; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 28px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    /* ── 파이프라인 카드 3개 ── */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .pipe-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pipe-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .pipe-card.retriever::before { background: var(--accent); }
+    .pipe-card.reranker::before  { background: var(--accent3); }
+    .pipe-card.generator::before { background: var(--accent2); }
+
+    .pipe-icon {
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+    .pipe-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .pipe-card p  { font-size: 13px; color: var(--text-muted); }
+    .pipe-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .retriever .pipe-tag { background: #7c6df033; color: #a99af8; }
+    .reranker  .pipe-tag { background: #f0a05022; color: #f0c070; }
+    .generator .pipe-tag { background: #5bc8af22; color: #5bc8af; }
+
+    /* ── 지표 그리드 ── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .metric-card .metric-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .metric-card .formula {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--accent2);
+      background: var(--code-bg);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      margin: 8px 0;
+    }
+    .metric-card p { font-size: 13px; color: var(--text-muted); }
+
+    /* ── 코드 블록 ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.65;
+      margin: 14px 0;
+    }
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      color: #c9d1f0;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .st  { color: #c3e88d; }
+    .cm  { color: #546e7a; font-style: italic; }
+    .nu  { color: #f78c6c; }
+
+    /* ── 실패 패턴 카드 ── */
+    .failure-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .failure-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .failure-num {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--danger);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .failure-header h3 { margin: 0; font-size: 1.05rem; }
+    .severity-badge {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .sev-critical { background: #e05c7a33; color: #e05c7a; }
+    .sev-high     { background: #f0a05033; color: #f0c070; }
+    .sev-medium   { background: #7c6df033; color: #a99af8; }
+
+    .failure-body { padding: 20px 24px; }
+    .detail-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .detail-box {
+      background: var(--code-bg);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+    .detail-box .label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .detail-box ul {
+      padding-left: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .detail-box ul li { margin-bottom: 4px; }
+    .example-box {
+      background: #e05c7a11;
+      border: 1px solid #e05c7a33;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #f0a0b0;
+      margin-bottom: 14px;
+    }
+    .example-box strong { color: var(--danger); }
+
+    /* ── 표 ── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead th {
+      background: var(--surface2);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td {
+      padding: 11px 16px;
+      color: var(--text);
+    }
+    tbody td:first-child { font-weight: 600; color: #fff; }
+
+    .freq-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .freq-very-high { background: #e05c7a33; color: #e05c7a; }
+    .freq-high      { background: #f0a05033; color: #f0c070; }
+    .freq-medium    { background: #7c6df033; color: #a99af8; }
+    .diff-high      { background: #e05c7a22; color: #e05c7a; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .diff-medium    { background: #f0a05022; color: #f0c070; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .diff-low       { background: #5bc8af22; color: #5bc8af; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+
+    /* ── 프레임워크 카드 ── */
+    .frameworks {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .fw-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .fw-card .fw-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 6px;
+    }
+    .fw-card p { font-size: 13px; color: var(--text-muted); }
+    .fw-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .fw-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--text-muted);
+    }
+
+    /* ── 디버깅 워크플로우 ── */
+    .workflow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .workflow-step {
+      display: flex;
+      gap: 16px;
+      position: relative;
+    }
+    .workflow-step:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .step-num {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .step-content {
+      padding: 8px 0 28px;
+    }
+    .step-content h4 { font-size: 0.95rem; color: #fff; margin-bottom: 4px; }
+    .step-content p  { font-size: 13px; color: var(--text-muted); }
+
+    /* ── 권장사항 ── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .tip-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .tip-card .tip-icon { font-size: 22px; margin-bottom: 10px; }
+    .tip-card h4 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .tip-card ul {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      padding-left: 16px;
+    }
+    .tip-card ul li { margin-bottom: 4px; }
+
+    /* ── Key Takeaways ── */
+    .takeaways {
+      background: linear-gradient(135deg, #7c6df015, #5bc8af10);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+    }
+    .takeaways h3 { color: var(--accent); margin-bottom: 16px; }
+    .takeaway-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .takeaway-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .takeaway-item .step-circle {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .takeaway-item p { font-size: 13.5px; color: var(--text); }
+
+    /* ── 반응형 ── */
+    @media (max-width: 720px) {
+      .pipeline, .metrics-grid, .frameworks, .tips-grid, .takeaway-list {
+        grid-template-columns: 1fr;
+      }
+      .detail-row { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ── 히어로 ── -->
+  <header class="hero">
+    <div class="badge">LLM / RAG</div>
+    <h1>RAG 품질 평가와 실패 패턴 분석</h1>
+    <p>검색 증강 생성(RAG) 시스템을 체계적으로 평가하고, 6가지 핵심 실패 패턴을 진단·개선하기 위한 실전 가이드</p>
+    <div class="meta">
+      원본 출처: <a href="https://www.youngju.dev/split/llm/2026-03-07-llm-rag-quality-evaluation-failure-patterns" target="_blank">youngju.dev</a>
+      &nbsp;·&nbsp; 2026-03-07
+    </div>
+  </header>
+
+  <!-- ── 1. RAG 파이프라인 ── -->
+  <section>
+    <div class="section-label">Architecture</div>
+    <h2>RAG 파이프라인 3대 구성요소</h2>
+    <div class="pipeline">
+      <div class="pipe-card retriever">
+        <div class="pipe-icon">🔍</div>
+        <h3>Retriever</h3>
+        <p>벡터 데이터베이스에서 쿼리와 유사한 문서 청크를 검색합니다.</p>
+        <span class="pipe-tag">Dense / Sparse / Hybrid</span>
+      </div>
+      <div class="pipe-card reranker">
+        <div class="pipe-icon">🎯</div>
+        <h3>Reranker</h3>
+        <p>Cross-encoder 모델로 초기 검색 결과의 순위를 정밀하게 재조정합니다.</p>
+        <span class="pipe-tag">Cross-Encoder</span>
+      </div>
+      <div class="pipe-card generator">
+        <div class="pipe-icon">✨</div>
+        <h3>Generator</h3>
+        <p>검색된 컨텍스트를 기반으로 LLM이 최종 답변을 생성합니다.</p>
+        <span class="pipe-tag">LLM + Context</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. 검색 지표 ── -->
+  <section>
+    <div class="section-label">Retrieval Metrics</div>
+    <h2>검색 성능 지표</h2>
+    <div class="metrics-grid">
+
+      <div class="metric-card">
+        <div class="metric-name">📊 Recall@K</div>
+        <div class="formula">검색된 정답 수 / 전체 정답 수</div>
+        <p>상위 K개 결과에 정답 문서가 포함된 비율. 필요한 정보를 놓치지 않는지 측정합니다.</p>
+        <pre><code><span class="kw">def</span> <span class="fn">recall_at_k</span>(retrieved_ids, relevant_ids, k):
+    retrieved_set = <span class="fn">set</span>(retrieved_ids[:k])
+    relevant_set  = <span class="fn">set</span>(relevant_ids)
+    <span class="kw">return</span> <span class="fn">len</span>(retrieved_set &amp; relevant_set) / <span class="fn">len</span>(relevant_set)</code></pre>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">🎯 Precision@K</div>
+        <div class="formula">정답 문서 수 / K</div>
+        <p>상위 K개 결과 중 실제 정답 문서의 비율. 노이즈 문서가 얼마나 끼어드는지 진단합니다.</p>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">🏅 MRR (Mean Reciprocal Rank)</div>
+        <div class="formula">1 / rank of first correct answer</div>
+        <p>첫 번째 정답 문서의 순위 역수 평균. 정답이 얼마나 상위에 있는지를 측정합니다.</p>
+        <pre><code><span class="kw">def</span> <span class="fn">mrr</span>(retrieved_ids, relevant_ids):
+    <span class="kw">for</span> i, doc_id <span class="kw">in</span> <span class="fn">enumerate</span>(retrieved_ids):
+        <span class="kw">if</span> doc_id <span class="kw">in</span> relevant_ids:
+            <span class="kw">return</span> <span class="nu">1.0</span> / (i + <span class="nu">1</span>)
+    <span class="kw">return</span> <span class="nu">0.0</span></code></pre>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">📈 NDCG &amp; Hit Rate</div>
+        <div class="formula">DCG / Ideal DCG &nbsp;|&nbsp; 성공 쿼리 / 전체 쿼리</div>
+        <p><strong>NDCG</strong>: 순위를 고려한 검색 품질 점수. 높은 순위 정답에 더 큰 가중치를 줍니다.<br/>
+        <strong>Hit Rate</strong>: 정답 문서가 하나라도 포함된 쿼리의 비율. 가장 단순한 성공 지표.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 3. 생성 지표 ── -->
+  <section>
+    <div class="section-label">Generation Metrics</div>
+    <h2>생성 품질 지표</h2>
+    <div class="metrics-grid">
+
+      <div class="metric-card">
+        <div class="metric-name">✅ Faithfulness (충실도)</div>
+        <p>답변이 컨텍스트에 근거하는 정도. LLM-as-Judge로 각 문장의 출처를 검증합니다.</p>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">💬 Answer Relevancy (답변 관련성)</div>
+        <p>답변이 질문에 적절한 정도. 답변에서 역으로 질문을 생성한 뒤 원래 질문과 유사도를 비교합니다.</p>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">📄 Context Relevancy (컨텍스트 관련성)</div>
+        <p>검색된 컨텍스트가 질문에 관련된 정도. 컨텍스트 내 관련 문장의 비율로 측정합니다.</p>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-name">👻 Hallucination Rate (환각률)</div>
+        <p>컨텍스트에 없는 정보를 생성한 비율. 답변 내 비근거 정보를 탐지하여 산출합니다.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 4. 실패 패턴 6가지 ── -->
+  <section>
+    <div class="section-label">Failure Patterns</div>
+    <h2>주요 실패 패턴 6가지</h2>
+
+    <!-- 패턴 1 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">1</div>
+        <h3>잘못된 청크 검색 (Retrieval Failure)</h3>
+        <span class="severity-badge sev-critical">심각도: 매우 높음</span>
+      </div>
+      <div class="failure-body">
+        <div class="example-box">
+          <strong>증상 예시</strong> — "2024년 4분기 매출"을 질문했는데 2023년 데이터가 반환됨
+        </div>
+        <div class="detail-row">
+          <div class="detail-box">
+            <div class="label">원인</div>
+            <ul>
+              <li>고정 길이 청킹으로 문맥 분리</li>
+              <li>임베딩 모델의 도메인 불일치</li>
+              <li>메타데이터 필터링 부재</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <div class="label">해결 방향</div>
+            <ul>
+              <li>메타데이터 필터(연도, 분기) 적용</li>
+              <li>Semantic Chunker 도입</li>
+              <li>도메인 전용 임베딩 모델 사용</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code><span class="cm"># 메타데이터 필터를 활용한 검색</span>
+results = vectorstore.<span class="fn">similarity_search</span>(
+    query=<span class="st">"4분기 매출"</span>,
+    filter={<span class="st">"year"</span>: <span class="nu">2024</span>, <span class="st">"quarter"</span>: <span class="st">"Q4"</span>},
+    k=<span class="nu">5</span>
+)
+
+<span class="cm"># Semantic Chunking 적용</span>
+<span class="kw">from</span> langchain.text_splitter <span class="kw">import</span> SemanticChunker
+splitter = <span class="fn">SemanticChunker</span>(
+    embeddings=embeddings,
+    breakpoint_threshold_type=<span class="st">"percentile"</span>,
+    breakpoint_threshold_amount=<span class="nu">90</span>,
+)
+chunks = splitter.<span class="fn">split_documents</span>(documents)</code></pre>
+      </div>
+    </div>
+
+    <!-- 패턴 2 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">2</div>
+        <h3>컨텍스트 윈도우 오버플로우</h3>
+        <span class="severity-badge sev-high">심각도: 높음</span>
+      </div>
+      <div class="failure-body">
+        <div class="detail-row">
+          <div class="detail-box">
+            <div class="label">너무 많이 검색 시</div>
+            <ul>
+              <li>토큰 제한 초과로 컨텍스트 잘림</li>
+              <li>노이즈 문서가 LLM 주의 분산</li>
+              <li>API 비용 증가</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <div class="label">너무 적게 검색 시</div>
+            <ul>
+              <li>답변 필요 정보 부족</li>
+              <li>불완전하거나 오류 있는 답변</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code><span class="kw">def</span> <span class="fn">adaptive_retrieval</span>(query, retriever, min_k=<span class="nu">3</span>, max_k=<span class="nu">10</span>, threshold=<span class="nu">0.7</span>):
+    <span class="cm">"""유사도 임계값 기반으로 동적 K 조절"""</span>
+    results = retriever.<span class="fn">similarity_search_with_score</span>(query, k=max_k)
+
+    filtered = [
+        (doc, score) <span class="kw">for</span> doc, score <span class="kw">in</span> results
+        <span class="kw">if</span> score &gt;= threshold
+    ]
+
+    <span class="kw">if</span> <span class="fn">len</span>(filtered) &lt; min_k:
+        <span class="kw">return</span> [doc <span class="kw">for</span> doc, _ <span class="kw">in</span> results[:min_k]]
+
+    <span class="kw">return</span> [doc <span class="kw">for</span> doc, _ <span class="kw">in</span> filtered]</code></pre>
+      </div>
+    </div>
+
+    <!-- 패턴 3 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">3</div>
+        <h3>올바른 검색에도 불구한 환각 (Hallucination)</h3>
+        <span class="severity-badge sev-critical">심각도: 매우 높음</span>
+      </div>
+      <div class="failure-body">
+        <div class="detail-row">
+          <div class="detail-box">
+            <div class="label">원인</div>
+            <ul>
+              <li>LLM 사전 학습 지식이 컨텍스트와 충돌</li>
+              <li>프롬프트에 "컨텍스트만 사용" 지시 불충분</li>
+              <li>부분 정보에서 LLM이 나머지를 추측하여 채움</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <div class="label">해결 방향</div>
+            <ul>
+              <li>엄격한 출처 표시 프롬프트 적용</li>
+              <li>Faithfulness 지표로 자동 탐지</li>
+              <li>"모르면 모른다고" 답변 규칙 명시</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code>ANTI_HALLUCINATION_PROMPT = <span class="st">"""당신은 주어진 컨텍스트만을 기반으로 답변하는 어시스턴트입니다.
+
+규칙:
+1. 반드시 컨텍스트에 있는 정보만 사용하세요.
+2. 컨텍스트에 없는 정보는 "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답하세요.
+3. 추측하거나 사전 지식을 사용하지 마세요.
+4. 답변의 각 문장 끝에 [출처: 문서N]을 표시하세요.
+
+컨텍스트:
+{context}
+
+질문: {question}
+
+답변:"""</span></code></pre>
+      </div>
+    </div>
+
+    <!-- 패턴 4 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">4</div>
+        <h3>Lost-in-the-Middle 문제</h3>
+        <span class="severity-badge sev-medium">심각도: 중간</span>
+      </div>
+      <div class="failure-body">
+        <div class="example-box">
+          <strong>증상</strong> — LLM이 긴 컨텍스트의 <strong>중간</strong>에 위치한 정보를 효과적으로 활용하지 못함. 검색 문서가 많을수록 심화됨.
+        </div>
+        <div class="detail-row">
+          <div class="detail-box">
+            <div class="label">원인</div>
+            <ul>
+              <li>컨텍스트 시작·끝은 잘 활용</li>
+              <li>중간 정보는 무시되거나 놓침</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <div class="label">해결 방향</div>
+            <ul>
+              <li>중요 문서를 시작·끝에 재배치</li>
+              <li>검색 수(K) 최소화</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code><span class="kw">def</span> <span class="fn">reorder_for_lost_in_middle</span>(documents, scores):
+    <span class="cm">"""가장 관련성 높은 문서를 시작과 끝에 배치"""</span>
+    sorted_docs = <span class="fn">sorted</span>(
+        <span class="fn">zip</span>(documents, scores), key=<span class="kw">lambda</span> x: x[<span class="nu">1</span>], reverse=<span class="kw">True</span>
+    )
+    reordered = []
+    <span class="kw">for</span> i, (doc, score) <span class="kw">in</span> <span class="fn">enumerate</span>(sorted_docs):
+        <span class="kw">if</span> i % <span class="nu">2</span> == <span class="nu">0</span>:
+            reordered.<span class="fn">insert</span>(<span class="nu">0</span>, doc)  <span class="cm"># 앞에 삽입</span>
+        <span class="kw">else</span>:
+            reordered.<span class="fn">append</span>(doc)       <span class="cm"># 뒤에 삽입</span>
+    <span class="kw">return</span> reordered</code></pre>
+      </div>
+    </div>
+
+    <!-- 패턴 5 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">5</div>
+        <h3>임베딩 모델 미스매치</h3>
+        <span class="severity-badge sev-medium">심각도: 중간</span>
+      </div>
+      <div class="failure-body">
+        <div class="detail-row">
+          <div class="detail-box">
+            <div class="label">원인</div>
+            <ul>
+              <li>일반 목적 임베딩으로 전문 도메인 처리</li>
+              <li>쿼리(짧은 질문) vs 문서(긴 설명문) 스타일 차이</li>
+              <li>다국어 문서에 영어 전용 모델 사용</li>
+            </ul>
+          </div>
+          <div class="detail-box">
+            <div class="label">해결 방향</div>
+            <ul>
+              <li>Instructor 임베딩으로 역할 분리</li>
+              <li>도메인 파인튜닝 또는 전문 모델 사용</li>
+              <li>다국어 지원 모델 채택</li>
+            </ul>
+          </div>
+        </div>
+        <pre><code><span class="kw">from</span> InstructorEmbedding <span class="kw">import</span> INSTRUCTOR
+
+model = <span class="fn">INSTRUCTOR</span>(<span class="st">"hkunlp/instructor-xl"</span>)
+
+<span class="cm"># 쿼리용 임베딩 (역할 명시)</span>
+query_embedding = model.<span class="fn">encode</span>(
+    [[<span class="st">"Represent the question for retrieving supporting documents:"</span>, query]]
+)
+
+<span class="cm"># 문서용 임베딩 (역할 명시)</span>
+doc_embedding = model.<span class="fn">encode</span>(
+    [[<span class="st">"Represent the technical document for retrieval:"</span>, document]]
+)</code></pre>
+      </div>
+    </div>
+
+    <!-- 패턴 6 -->
+    <div class="failure-card">
+      <div class="failure-header">
+        <div class="failure-num">6</div>
+        <h3>오래된 지식 베이스 (Stale Knowledge Base)</h3>
+        <span class="severity-badge sev-high">심각도: 높음</span>
+      </div>
+      <div class="failure-body">
+        <div class="example-box">
+          <strong>증상</strong> — 지식 베이스 문서가 최신 정보를 반영하지 못해 사용자에게 구식 답변 제공
+        </div>
+        <pre><code><span class="kw">class</span> <span class="fn">KnowledgeBaseFreshnessManager</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vectorstore, max_age_days=<span class="nu">30</span>):
+        self.vectorstore = vectorstore
+        self.max_age_days = max_age_days
+
+    <span class="kw">def</span> <span class="fn">check_staleness</span>(self):
+        <span class="cm">"""오래된 문서 탐지"""</span>
+        cutoff = datetime.<span class="fn">now</span>() - <span class="fn">timedelta</span>(days=self.max_age_days)
+        <span class="kw">return</span> self.vectorstore.<span class="fn">query</span>(
+            filter={<span class="st">"updated_at"</span>: {<span class="st">"$lt"</span>: cutoff.<span class="fn">isoformat</span>()}}
+        )
+
+    <span class="kw">def</span> <span class="fn">add_temporal_boost</span>(self, results, recency_weight=<span class="nu">0.1</span>):
+        <span class="cm">"""최신 문서에 가산점 부여"""</span>
+        now = datetime.<span class="fn">now</span>()
+        boosted = []
+        <span class="kw">for</span> doc, score <span class="kw">in</span> results:
+            age_days = (now - doc.metadata[<span class="st">"updated_at"</span>]).days
+            recency_score = <span class="fn">max</span>(<span class="nu">0</span>, <span class="nu">1</span> - age_days / <span class="nu">365</span>)
+            final_score = score + recency_weight * recency_score
+            boosted.<span class="fn">append</span>((doc, final_score))
+        <span class="kw">return</span> <span class="fn">sorted</span>(boosted, key=<span class="kw">lambda</span> x: x[<span class="nu">1</span>], reverse=<span class="kw">True</span>)</code></pre>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── 5. 비교표 ── -->
+  <section>
+    <div class="section-label">Overview Table</div>
+    <h2>실패 패턴 심각도 비교</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>실패 패턴</th>
+            <th>발생 빈도</th>
+            <th>사용자 영향</th>
+            <th>진단 난이도</th>
+            <th>수정 난이도</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>잘못된 청크 검색</td>
+            <td><span class="freq-badge freq-very-high">매우 높음</span></td>
+            <td><span class="freq-badge freq-high">높음</span></td>
+            <td><span class="diff-medium">중간</span></td>
+            <td><span class="diff-medium">중간</span></td>
+          </tr>
+          <tr>
+            <td>컨텍스트 오버플로우</td>
+            <td><span class="freq-badge freq-high">높음</span></td>
+            <td><span class="freq-badge freq-medium">중간</span></td>
+            <td><span class="diff-low">낮음</span></td>
+            <td><span class="diff-low">낮음</span></td>
+          </tr>
+          <tr>
+            <td>정상 검색 + 환각</td>
+            <td><span class="freq-badge freq-medium">중간</span></td>
+            <td><span class="freq-badge freq-very-high">매우 높음</span></td>
+            <td><span class="diff-high">높음</span></td>
+            <td><span class="diff-high">높음</span></td>
+          </tr>
+          <tr>
+            <td>Lost-in-the-Middle</td>
+            <td><span class="freq-badge freq-medium">중간</span></td>
+            <td><span class="freq-badge freq-medium">중간</span></td>
+            <td><span class="diff-high">높음</span></td>
+            <td><span class="diff-medium">중간</span></td>
+          </tr>
+          <tr>
+            <td>임베딩 미스매치</td>
+            <td><span class="freq-badge freq-medium">중간</span></td>
+            <td><span class="freq-badge freq-high">높음</span></td>
+            <td><span class="diff-high">높음</span></td>
+            <td><span class="diff-high">높음</span></td>
+          </tr>
+          <tr>
+            <td>오래된 지식 베이스</td>
+            <td><span class="freq-badge freq-high">높음</span></td>
+            <td><span class="freq-badge freq-high">높음</span></td>
+            <td><span class="diff-low">낮음</span></td>
+            <td><span class="diff-medium">중간</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 6. 평가 프레임워크 ── -->
+  <section>
+    <div class="section-label">Evaluation Frameworks</div>
+    <h2>평가 프레임워크 비교</h2>
+    <div class="frameworks">
+      <div class="fw-card">
+        <div class="fw-name">RAGAS</div>
+        <p>오픈소스 RAG 평가 라이브러리. 6개 이상의 지표를 제공하며 LLM 비용이 필요합니다.</p>
+        <div class="fw-tags">
+          <span class="fw-tag">오픈소스</span>
+          <span class="fw-tag">6개+ 지표</span>
+          <span class="fw-tag">LLM 비용 필요</span>
+        </div>
+      </div>
+      <div class="fw-card">
+        <div class="fw-name">DeepEval</div>
+        <p>Pytest 스타일의 테스트 프레임워크. CI/CD 파이프라인 통합이 우수합니다.</p>
+        <div class="fw-tags">
+          <span class="fw-tag">Pytest 스타일</span>
+          <span class="fw-tag">CI/CD 통합</span>
+        </div>
+      </div>
+      <div class="fw-card">
+        <div class="fw-name">LlamaIndex Evaluator</div>
+        <p>LlamaIndex RAG 파이프라인과 긴밀하게 통합된 평가 도구.</p>
+        <div class="fw-tags">
+          <span class="fw-tag">LlamaIndex 통합</span>
+          <span class="fw-tag">파이프라인 친화적</span>
+        </div>
+      </div>
+      <div class="fw-card">
+        <div class="fw-name">Custom LLM-as-Judge</div>
+        <p>직접 구현하는 LLM 기반 평가자. 무제한 커스터마이징이 가능합니다.</p>
+        <div class="fw-tags">
+          <span class="fw-tag">완전 커스텀</span>
+          <span class="fw-tag">도메인 특화</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. 디버깅 워크플로우 ── -->
+  <section>
+    <div class="section-label">Debugging Workflow</div>
+    <h2>디버깅 워크플로우</h2>
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>문제 분류</h4>
+          <p>검색 품질 → 컨텍스트 관련성 → 충실도 → 정확도 순으로 단계별 문제를 분류합니다.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>컴포넌트별 심층 분석</h4>
+          <p>Retriever, Reranker, Generator 각 단계의 상세 로그를 검토하여 병목 지점을 특정합니다.</p>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>A/B 테스트 및 반복 개선</h4>
+          <p>청크 크기, K값, 임계값 등 설정을 비교하는 A/B 테스트로 최적 구성을 찾습니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8. 실전 권장사항 ── -->
+  <section>
+    <div class="section-label">Best Practices</div>
+    <h2>실전 권장사항</h2>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <div class="tip-icon">✂️</div>
+        <h4>청킹 전략</h4>
+        <ul>
+          <li>기술 문서: 256–512 토큰</li>
+          <li>법률 문서: 조항 단위 분리</li>
+          <li>학술 논문: 섹션 기반 청킹</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">📡</div>
+        <h4>프로덕션 모니터링</h4>
+        <ul>
+          <li>일일: 히트율 확인</li>
+          <li>주간: 사용자 피드백 분석</li>
+          <li>월간: 전체 지표 종합 평가</li>
+        </ul>
+      </div>
+      <div class="tip-card">
+        <div class="tip-icon">🔑</div>
+        <h4>평가 설계</h4>
+        <ul>
+          <li>Ground Truth는 점진적으로 구축</li>
+          <li>평가 LLM은 별도 모델로 편향 방지</li>
+          <li>Retrieval 먼저 최적화 (상한선 결정)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 9. 핵심 3가지 ── -->
+  <section>
+    <div class="takeaways">
+      <h3>🎯 핵심 3가지 실천사항</h3>
+      <div class="takeaway-list">
+        <div class="takeaway-item">
+          <div class="step-circle">1</div>
+          <p><strong>평가 데이터셋 구축</strong> — 대표 질문과 정답 문서 쌍을 점진적으로 확보합니다.</p>
+        </div>
+        <div class="takeaway-item">
+          <div class="step-circle">2</div>
+          <p><strong>Retrieval 우선 최적화</strong> — 검색 품질이 생성 품질의 상한선을 결정합니다.</p>
+        </div>
+        <div class="takeaway-item">
+          <div class="step-circle">3</div>
+          <p><strong>CI/CD 자동화 통합</strong> — 평가 파이프라인을 배포 프로세스에 연결합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
