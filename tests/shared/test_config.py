@@ -56,3 +56,15 @@ def test_load_config_qdrant_from_env(monkeypatch):
     assert config.qdrant_url == "https://xyz.qdrant.io:6333"
     assert config.qdrant_api_key == "test-api-key"
     assert config.qdrant_collection == "my-collection"
+
+
+def test_cors_origins_defaults_to_localhost_vite(monkeypatch):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
+    config = load_config()
+    assert config.cors_origins == ["http://localhost:5173"]
+
+
+def test_cors_origins_parsed_from_env(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGINS", "https://a.example,https://b.example")
+    config = load_config()
+    assert config.cors_origins == ["https://a.example", "https://b.example"]

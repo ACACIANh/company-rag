@@ -5,6 +5,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _parse_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS")
+    if not raw:
+        return ["http://localhost:5173"]
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 @dataclass
 class Config:
     llm_provider: str
@@ -21,6 +28,7 @@ class Config:
     jwt_secret: str
     jwt_expire_minutes: int
     rate_limit_per_minute: int
+    cors_origins: list[str]
 
 
 def load_config() -> Config:
@@ -41,4 +49,5 @@ def load_config() -> Config:
         jwt_secret=os.getenv("JWT_SECRET", "dev-secret-change-in-prod"),
         jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
         rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),
+        cors_origins=_parse_cors_origins(),
     )
