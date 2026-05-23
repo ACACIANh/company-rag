@@ -7,6 +7,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from shared.llm.base import LLMClient
 from shared.models import Answer
+from shared.reranker.base import Reranker
 from shared.retriever.base import Retriever
 from app.graph.edges import (
     route_after_confirm,
@@ -33,14 +34,22 @@ def build_graph(
     retriever: Retriever,
     llm: LLMClient,
     web_search_retriever: Retriever | None = None,
-    retrieve_top_k: int = 5,
+    reranker: Reranker | None = None,
+    retrieve_top_k: int = 20,
+    top_k: int = 5,
 ) -> CompiledStateGraph:
     g = StateGraph(AgentState)
 
     g.add_node("load_memory", load_memory_node)
     g.add_node("rewrite_query", partial(rewrite_query_node, llm=llm))
     g.add_node("router", partial(router_node, llm=llm))
-    g.add_node("retrieve", partial(retrieve_node, retriever=retriever, retrieve_top_k=retrieve_top_k))
+    g.add_node("retrieve", partial(
+        retrieve_node,
+        retriever=retriever,
+        reranker=reranker,
+        retrieve_top_k=retrieve_top_k,
+        top_k=top_k,
+    ))
     g.add_node("grade_documents", partial(grade_documents_node, llm=llm))
     g.add_node("increment_retry", increment_retry_node)
     g.add_node("web_search", partial(web_search_node, retriever=web_search_retriever))
