@@ -1,1 +1,3 @@
-/* Tailwind directives are added in Task 4 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,3 +1,7 @@
 export default function App() {
-  return <div>Bootstrapping…</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <p className="text-slate-700">Tailwind OK</p>
+    </div>
+  );
 }
