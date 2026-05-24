@@ -234,10 +234,21 @@ class AgentState(TypedDict):
 - LLMReranker (OpenAI 호환 HTTP, listwise), RRFReranker (Rank Fusion), NoOpReranker 3종 구현
 - retrieve_top_k=20 → reranker → top_k=5 파이프라인 연결
 - MRR + recall@[1,3,5] eval 지표 추가 (`shared/observability/eval/`)
-- **eval 결과 (doc_search 5개 기준, 2026-05-23):**
-  - baseline (top-5, NoRerank): recall@1=0.80 / MRR=0.84
-  - reranker (top-20, LLMRerank): recall@1=1.00 / MRR=1.00
-  - 온보딩 질문: 5위 → 1위로 상승 (가장 큰 개선)
+- config 기반 팩토리 (`shared/reranker/factory.py`), 환경 변수로 사내 LLM 전환 가능
+
+#### Reranker 실험 결과 — 2026-05-24 (doc_search 10개 기준)
+
+`OPENAI_API_KEY` + `gpt-4o-mini` 사용, `tests/eval/compare_reranker.py` 실행
+
+| 지표 | baseline (NoRerank, top_k=5) | LLMReranker (top_k=20→5) | 개선 |
+|------|-----------------------------|--------------------------|----|
+| recall@1 | 0.800 | **0.900** | +12.5% |
+| recall@3 | 0.800 | **1.000** | +25.0% |
+| recall@5 | 1.000 | 1.000 | — |
+| MRR | 0.840 | **0.950** | +13.1% |
+
+- 온보딩 질문: recall@1 0→1, MRR 0.20→1.00 (baseline 5위권 밖 → 1위)
+- 사내 API 권한 질문: recall@3 0→1, MRR 0.20→0.50 (부분 개선, 1위는 미달)
 
 ---
 

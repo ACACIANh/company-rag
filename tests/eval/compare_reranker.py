@@ -40,8 +40,8 @@ def main() -> None:
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
 
-    # doc_search 질문만 필터
-    questions = [q for q in load_questions(_DOC_SEARCH_YAML) if q.get("expected_route") == "doc_search"]
+    # expected_source 있는 질문만 필터 (recall 측정 가능 = doc_search 대상)
+    questions = [q for q in load_questions(_DOC_SEARCH_YAML) if q.get("expected_source")]
     if not questions:
         print("doc_search 질문이 없습니다.")
         sys.exit(1)
