@@ -52,16 +52,21 @@ questions:
   # doc_search 추가 유형
   - question: "출장 비용 처리 절차가 어떻게 돼?"
     expected_keywords: ["출장", "비용"]
+    expected_source: "expense-policy.md"
     expected_route: "doc_search"
   - question: "재택근무 신청은 어떻게 해?"
     expected_keywords: ["재택", "신청"]
+    expected_source: "remote-work-policy.md"
     expected_route: "doc_search"
   - question: "인시던트 발생 시 대응 절차는?"
     expected_keywords: ["인시던트", "대응"]
+    expected_source: "incident-response.md"
     expected_route: "doc_search"
   - question: "사내 API 접근 권한 받는 방법이 뭐야?"
     expected_keywords: ["권한", "API"]
+    expected_source: "tools-and-access.md"
     expected_route: "doc_search"
   - question: "성과 평가 주기와 기준이 어떻게 돼?"
     expected_keywords: ["성과", "평가"]
+    expected_source: "performance-review.md"
     expected_route: "doc_search"
