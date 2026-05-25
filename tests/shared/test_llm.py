@@ -54,6 +54,8 @@ def test_factory_creates_openai_by_default(monkeypatch, mocker):
         reranker_base_url="",
         reranker_model="",
         reranker_api_key="",
+        session_store_type="memory",
+        postgres_dsn="",
     )
     llm = create_llm(config)
     assert isinstance(llm, OpenAIClient)
@@ -75,6 +77,8 @@ def test_factory_creates_anthropic(mocker):
         reranker_base_url="",
         reranker_model="",
         reranker_api_key="",
+        session_store_type="memory",
+        postgres_dsn="",
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)

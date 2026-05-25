@@ -180,6 +180,8 @@ def test_factory_creates_qdrant_store(mock_qdrant_client):
         reranker_base_url="",
         reranker_model="",
         reranker_api_key="",
+        session_store_type="memory",
+        postgres_dsn="",
     )
 
     store = create_vector_store(config)
@@ -210,6 +212,8 @@ def test_factory_creates_chroma_store_by_default(tmp_path):
         reranker_base_url="",
         reranker_model="",
         reranker_api_key="",
+        session_store_type="memory",
+        postgres_dsn="",
     )
 
     store = create_vector_store(config)
