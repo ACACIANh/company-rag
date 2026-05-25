@@ -14,8 +14,12 @@ type DateGroup = "오늘" | "어제" | "이번 주" | "더 이전";
 const DATE_GROUP_ORDER: DateGroup[] = ["오늘", "어제", "이번 주", "더 이전"];
 
 function getDateGroup(isoDate: string): DateGroup {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const date = new Date(isoDate);
+  if (isNaN(date.getTime())) return "더 이전";
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const sessionDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((today.getTime() - sessionDay.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return "오늘";
   if (diffDays === 1) return "어제";
   if (diffDays <= 7) return "이번 주";
