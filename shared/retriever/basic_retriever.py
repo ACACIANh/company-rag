@@ -10,7 +10,7 @@ class BasicRetriever(Retriever):
         self._embedder = embedder
 
     def retrieve(
-        self, query: str, top_k: int = 5, filter_doc_ids: list[str] | None = None
+        self, query: str, top_k: int = 5, where_filter: dict | None = None
     ) -> list[SearchResult]:
         embedding = self._embedder.embed(query)
-        return self._store.search(embedding, top_k=top_k, filter_doc_ids=filter_doc_ids)
+        return self._store.search(embedding, top_k=top_k, where_filter=where_filter)

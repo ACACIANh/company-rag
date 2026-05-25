@@ -12,7 +12,7 @@ class VectorStore(ABC):
         self,
         query_embedding: list[float],
         top_k: int = 5,
-        filter_doc_ids: list[str] | None = None,
+        where_filter: dict | None = None,
     ) -> list[SearchResult]:
         ...
 

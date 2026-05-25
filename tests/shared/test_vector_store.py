@@ -182,6 +182,11 @@ def test_factory_creates_qdrant_store(mock_qdrant_client):
         reranker_api_key="",
         session_store_type="memory",
         postgres_dsn="",
+        fga_api_url="http://localhost:8080",
+        fga_store_id="",
+        fga_api_key="",
+        fga_cache_backend="memory",
+        fga_cache_ttl_seconds=60,
     )
 
     store = create_vector_store(config)
@@ -214,6 +219,11 @@ def test_factory_creates_chroma_store_by_default(tmp_path):
         reranker_api_key="",
         session_store_type="memory",
         postgres_dsn="",
+        fga_api_url="http://localhost:8080",
+        fga_store_id="",
+        fga_api_key="",
+        fga_cache_backend="memory",
+        fga_cache_ttl_seconds=60,
     )
 
     store = create_vector_store(config)
