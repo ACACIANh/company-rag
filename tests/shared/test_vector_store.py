@@ -176,6 +176,10 @@ def test_factory_creates_qdrant_store(mock_qdrant_client):
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,
         cors_origins=["http://localhost:5173"],
+        reranker_type="none",
+        reranker_base_url="",
+        reranker_model="",
+        reranker_api_key="",
     )
 
     store = create_vector_store(config)
@@ -202,6 +206,10 @@ def test_factory_creates_chroma_store_by_default(tmp_path):
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,
         cors_origins=["http://localhost:5173"],
+        reranker_type="none",
+        reranker_base_url="",
+        reranker_model="",
+        reranker_api_key="",
     )
 
     store = create_vector_store(config)
