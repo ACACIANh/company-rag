@@ -1,19 +1,30 @@
 import json
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 
 import psycopg2
 import psycopg2.extras
+from psycopg2 import pool
 
 from shared.fga.base import PermissionCacheBackend
 from shared.fga.models import UserPermission
 
 
 class PostgresCacheBackend(PermissionCacheBackend):
-    def __init__(self, dsn: str) -> None:
-        self._dsn = dsn
+    def __init__(self, dsn: str, min_conn: int = 1, max_conn: int = 5) -> None:
+        self._pool = pool.ThreadedConnectionPool(min_conn, max_conn, dsn)
 
+    @contextmanager
     def _conn(self):
-        return psycopg2.connect(self._dsn)
+        conn = self._pool.getconn()
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            self._pool.putconn(conn)
 
     def _ensure_table(self) -> None:
         with self._conn() as conn, conn.cursor() as cur:
@@ -58,7 +69,7 @@ class PostgresCacheBackend(PermissionCacheBackend):
                     personal_docs = EXCLUDED.personal_docs,
                     expires_at = EXCLUDED.expires_at,
                     updated_at = now()
-            """, (user_id, json.dumps(perm.teams), json.dumps(perm.personal_docs), expires_at))
+            """, (user_id, psycopg2.extras.Json(perm.teams), psycopg2.extras.Json(perm.personal_docs), expires_at))
 
     def invalidate(self, user_id: str) -> None:
         with self._conn() as conn, conn.cursor() as cur:
