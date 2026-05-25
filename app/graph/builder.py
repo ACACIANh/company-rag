@@ -5,6 +5,9 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.fga.client import FGAClient
+from shared.fga.models import FGAConfig
 from shared.llm.base import LLMClient
 from shared.models import Answer
 from shared.reranker.base import Reranker
@@ -21,6 +24,7 @@ from app.graph.nodes.generate import generate_node
 from app.graph.nodes.grade_documents import grade_documents_node
 from app.graph.nodes.increment_retry import increment_retry_node
 from app.graph.nodes.load_memory import load_memory_node
+from app.graph.nodes.permission import permission_node
 from app.graph.nodes.retrieve import retrieve_node
 from app.graph.nodes.rewrite_query import rewrite_query_node
 from app.graph.nodes.router import router_node
@@ -30,22 +34,32 @@ from app.graph.nodes.web_search import web_search_node
 from app.graph.state import AgentState
 
 
+def _default_fga_client() -> FGAClient:
+    """FGA 미설정 환경(테스트/로컬)용 — 모든 문서를 public으로 취급."""
+    config = FGAConfig(api_url="http://localhost:8080", store_id="")
+    return FGAClient(config=config, cache=InMemoryCacheBackend())
+
+
 def build_graph(
     retriever: Retriever,
     llm: LLMClient,
     web_search_retriever: Retriever | None = None,
     reranker: Reranker | None = None,
+    fga_client: FGAClient | None = None,
     retrieve_top_k: int = 20,
     top_k: int = 5,
 ) -> CompiledStateGraph:
+    _fga = fga_client or _default_fga_client()
     g = StateGraph(AgentState)
 
     g.add_node("load_memory", load_memory_node)
     g.add_node("rewrite_query", partial(rewrite_query_node, llm=llm))
     g.add_node("router", partial(router_node, llm=llm))
+    g.add_node("permission", partial(permission_node, fga_client=_fga))
     g.add_node("retrieve", partial(
         retrieve_node,
         retriever=retriever,
+        fga_client=_fga,
         reranker=reranker,
         retrieve_top_k=retrieve_top_k,
         top_k=top_k,
@@ -59,19 +73,18 @@ def build_graph(
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
     g.add_node("save_memory", save_memory_node)
 
-    # 공통 진입: START → load_memory → rewrite_query → router
     g.add_edge(START, "load_memory")
     g.add_edge("load_memory", "rewrite_query")
     g.add_edge("rewrite_query", "router")
 
-    # 라우터 → 세 경로 분기
     g.add_conditional_edges(
         "router",
         route_after_router,
-        {"doc_search": "retrieve", "web_search": "web_search", "tool_call": "confirm"},
+        {"doc_search": "permission", "web_search": "web_search", "tool_call": "confirm"},
     )
 
-    # doc_search 경로 (Self-RAG 루프)
+    # doc_search: permission → retrieve → grade
+    g.add_edge("permission", "retrieve")
     g.add_edge("retrieve", "grade_documents")
     g.add_edge("increment_retry", "rewrite_query")
     g.add_conditional_edges(
@@ -80,18 +93,14 @@ def build_graph(
         {"generate": "generate", "rewrite_retry": "increment_retry"},
     )
 
-    # tool_call 경로
     g.add_conditional_edges(
         "confirm",
         route_after_confirm,
         {"tool_executor": "tool_executor", "end": END},
     )
     g.add_edge("tool_executor", "generate")
-
-    # web_search 경로
     g.add_edge("web_search", "generate")
 
-    # 공통 꼬리: generate → check_hallucination → save_memory → END
     g.add_edge("generate", "check_hallucination")
     g.add_conditional_edges(
         "check_hallucination",
@@ -139,6 +148,8 @@ def answer_question(
         "tool_input": "",
         "user_id": user_id,
         "allowed_doc_ids": allowed_doc_ids or [],
+        "user_teams": [],
+        "personal_doc_ids": [],
     }
     final = graph.invoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])

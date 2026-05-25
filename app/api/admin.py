@@ -7,6 +7,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from shared.auth.base import AuthUser
 from shared.config import load_config
+from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.fga.client import FGAClient
+from shared.fga.models import FGAConfig
 from shared.vector_store.factory import create_vector_store
 from app.api.deps import require_admin
 from app.ingestion.indexer import build_index
@@ -98,3 +101,57 @@ def update_user_docs(
             path.write_text(yaml.dump(data, allow_unicode=True))
             return {"user_id": user_id, "allowed_doc_ids": allowed_doc_ids}
     raise HTTPException(status_code=404, detail="User not found")
+
+
+def _get_fga_client() -> FGAClient:
+    fga_config = FGAConfig(
+        api_url=_config.fga_api_url,
+        store_id=_config.fga_store_id,
+        api_key=_config.fga_api_key,
+        cache_ttl_seconds=_config.fga_cache_ttl_seconds,
+    )
+    return FGAClient(config=fga_config, cache=InMemoryCacheBackend())
+
+
+@router.post("/users/{user_id}/teams/{team_id}", status_code=204)
+def add_user_to_team(
+    user_id: str,
+    team_id: str,
+    _: AuthUser = Depends(require_admin),
+) -> None:
+    _get_fga_client().add_team_member(user_id, team_id)
+
+
+@router.delete("/users/{user_id}/teams/{team_id}", status_code=204)
+def remove_user_from_team(
+    user_id: str,
+    team_id: str,
+    _: AuthUser = Depends(require_admin),
+) -> None:
+    _get_fga_client().remove_team_member(user_id, team_id)
+
+
+@router.delete("/users/{user_id}", status_code=204)
+def offboard_user(
+    user_id: str,
+    _: AuthUser = Depends(require_admin),
+) -> None:
+    _get_fga_client().delete_user_tuples(user_id)
+
+
+@router.post("/documents/{doc_id}/viewers/{user_id}", status_code=204)
+def grant_doc_viewer(
+    doc_id: str,
+    user_id: str,
+    _: AuthUser = Depends(require_admin),
+) -> None:
+    _get_fga_client().grant_doc_access(user_id, f"doc:{doc_id}")
+
+
+@router.delete("/documents/{doc_id}/viewers/{user_id}", status_code=204)
+def revoke_doc_viewer(
+    doc_id: str,
+    user_id: str,
+    _: AuthUser = Depends(require_admin),
+) -> None:
+    _get_fga_client().revoke_doc_access(user_id, f"doc:{doc_id}")

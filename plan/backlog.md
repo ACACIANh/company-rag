@@ -6,7 +6,6 @@
 
 ## High
 
-- `#infra` **접근 권한 제어 (OpenFGA + Chroma Pre-filter)** — ABAC/RBAC 혼합 모델 구현. 상세 설계: [`plan/access-control.md`](access-control.md), 결정 사항: [`docs/superpowers/decisions/2026-05-23-openfga-hosting.md`](../docs/superpowers/decisions/2026-05-23-openfga-hosting.md) 외 3개 ADR
 - `#perf` Hybrid Search (C-9) — 현재 Vector Only, BM25 결합으로 recall 향상 / Qdrant sparse vector 또는 별도 BM25 인덱스 검토
 
 <!-- 빠르게 처리해야 하는 개선사항 -->
@@ -18,6 +17,8 @@
 - `#feat` 대화 세션 목록 사이드바 — 좌측 세션 리스트(신규/이전 대화 전환), `GET /sessions` 엔드포인트 + 세션 제목 자동 생성(첫 질문 앞 20자), 세션 히스토리 DB 영속화(로그아웃 후 재로그인 시 복원), 프론트 상태 관리 포함
 - `#feat` 열람 가능 문서 목록 표시 — `GET /docs` 엔드포인트(JWT 기반 필터링) + 프론트 사이드바/첫 화면 칩 표시
 - `#feat` 첫 질문창 진입 시 추천 질문 3개 제안 (빈 채팅 화면에 샘플 질문 버튼 표시)
+- `#feat` **어시스턴트 기능 안내 응답** — 사용자가 "뭘 할 수 있어?", "기능이 뭐야?" 등 기능 문의 시 할 수 있는 작업 목록(문서 검색, 웹 검색, Q&A 등)을 안내하는 응답 추가
+- `#feat` **OpenFGA 권한 확인 응답** — OpenFGA 연동 후, 사용자가 접근 불가 문서를 조회하거나 권한 오류 발생 시 "해당 문서에 접근 권한이 없습니다" 형태의 명확한 안내 메시지 추가
 
 <!-- 다음 Phase 계획 시 고려할 항목 -->
 

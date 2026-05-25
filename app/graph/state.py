@@ -16,5 +16,7 @@ class AgentState(TypedDict):
     hallucination_passed: bool
     confirmed: bool
     tool_input: str
-    user_id: str           # 추가
-    allowed_doc_ids: list[str]  # 추가 — 빈 리스트 = 전체 허용
+    user_id: str
+    allowed_doc_ids: list[str]   # deprecated — FGA 미연동 테스트 stub용
+    user_teams: list[str]        # permission_node가 채움
+    personal_doc_ids: list[str]  # permission_node가 채움

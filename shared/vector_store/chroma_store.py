@@ -17,28 +17,35 @@ class ChromaStore(VectorStore):
             self._client = chromadb.PersistentClient(path=path)
         self._collection = self._client.get_or_create_collection("documents")
 
-    def add(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:
+    def add(
+        self,
+        chunks: list[Chunk],
+        embeddings: list[list[float]],
+        extra_metadata: list[dict] | None = None,
+    ) -> None:
+        metadatas = []
+        for i, c in enumerate(chunks):
+            meta = {"source": c.source}
+            if extra_metadata and i < len(extra_metadata):
+                meta.update(extra_metadata[i])
+            metadatas.append(meta)
         self._collection.add(
             ids=[c.chunk_id for c in chunks],
             documents=[c.text for c in chunks],
             embeddings=embeddings,
-            metadatas=[{"source": c.source} for c in chunks],
+            metadatas=metadatas,
         )
 
     def search(
         self,
         query_embedding: list[float],
         top_k: int = 5,
-        filter_doc_ids: list[str] | None = None,
+        where_filter: dict | None = None,
     ) -> list[SearchResult]:
-        where = None
-        if filter_doc_ids:
-            where = {"source": {"$in": filter_doc_ids}}
-
         results = self._collection.query(
             query_embeddings=[query_embedding],
             n_results=min(top_k, max(self._collection.count(), 1)),
-            where=where,
+            where=where_filter,
         )
         output = []
         for i, doc in enumerate(results["documents"][0]):

@@ -32,7 +32,10 @@ class QdrantStore(VectorStore):
         self._client.upsert(collection_name=self._collection, points=points)
 
     def search(
-        self, query_embedding: list[float], top_k: int = 5
+        self,
+        query_embedding: list[float],
+        top_k: int = 5,
+        where_filter: dict | None = None,
     ) -> list[SearchResult]:
         existing = [c.name for c in self._client.get_collections().collections]
         if self._collection not in existing:

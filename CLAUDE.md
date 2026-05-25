@@ -32,6 +32,8 @@ LangGraph 관련 설계/구현 질문이 생기면 **먼저 `docs/langgraph-guid
 | 라우터 | LLM 기반 `router_node` — `route` 필드로 doc_search/web_search/tool_call 세 경로 분기 | `app/graph/nodes/router.py` |
 | HITL | `interrupt()` — tool_call 경로에만 적용, `MemorySaver` checkpointer 필수 | `app/graph/nodes/confirm.py` |
 | 웹 검색 | `Retriever` ABC + Tavily/DuckDuckGo 어댑터 — 주입 방식으로 교체 가능 | `shared/retriever/adapters/` |
+| FGA Pre-filter | 2-tier: team_id+sensitivity 메타데이터 필터 + personal_doc_ids. listObjects 전체 목록 미사용 | `docs/superpowers/specs/2026-05-25-access-control-design.md` |
+| FGA 캐시 | PostgreSQL TTL 캐시 (Redis 미사용 — 기존 PG 재사용) | `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md` |
 
 ## 결정 기록 규칙 (Decision Log)
 
