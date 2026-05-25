@@ -68,3 +68,15 @@ def test_cors_origins_parsed_from_env(monkeypatch):
     monkeypatch.setenv("CORS_ORIGINS", "https://a.example,https://b.example")
     config = load_config()
     assert config.cors_origins == ["https://a.example", "https://b.example"]
+
+
+def test_config_fga_defaults(monkeypatch):
+    for key in ["FGA_API_URL", "FGA_STORE_ID", "FGA_API_KEY",
+                "FGA_CACHE_BACKEND", "FGA_CACHE_TTL_SECONDS"]:
+        monkeypatch.delenv(key, raising=False)
+    config = load_config()
+    assert config.fga_api_url == "http://localhost:8080"
+    assert config.fga_store_id == ""
+    assert config.fga_api_key == ""
+    assert config.fga_cache_backend == "memory"
+    assert config.fga_cache_ttl_seconds == 60
