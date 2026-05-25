@@ -1,4 +1,4 @@
-import { ApiError } from "../types";
+import { ApiError, Session, SessionMessage } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -69,4 +69,16 @@ async function safeMessage(response: Response): Promise<string> {
   } catch {
     return response.statusText || `HTTP ${response.status}`;
   }
+}
+
+export async function getSessions(): Promise<Session[]> {
+  return apiFetch<Session[]>("/sessions");
+}
+
+export async function getSessionMessages(sessionId: string): Promise<SessionMessage[]> {
+  return apiFetch<SessionMessage[]>(`/sessions/${sessionId}/messages`);
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  return apiFetch<void>(`/sessions/${sessionId}`, { method: "DELETE" });
 }

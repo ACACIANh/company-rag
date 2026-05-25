@@ -1,3 +1,4 @@
+import logging
 import uuid
 from functools import lru_cache
 
@@ -17,7 +18,8 @@ from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
-from app.api.deps import check_rate_limit, get_current_user
+from app.api.deps import check_rate_limit, get_current_user, get_session_store
+from app.api.sessions import router as sessions_router
 
 init_tracker([FileSink("logs")])
 
@@ -33,6 +35,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(sessions_router)
 
 
 class ChatRequest(BaseModel):
@@ -63,6 +66,7 @@ async def chat(
     current_user: AuthUser = Depends(get_current_user),
     _: None = Depends(check_rate_limit),
 ) -> ChatResponse:
+    is_new_session = req.session_id is None
     thread_id = req.session_id or str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
     result = answer_question(
@@ -72,4 +76,14 @@ async def chat(
         user_id=current_user["user_id"],
         allowed_doc_ids=current_user["allowed_doc_ids"],
     )
+
+    store = get_session_store()
+    try:
+        if is_new_session:
+            store.create_session(thread_id, current_user["user_id"], req.question[:20])
+        store.add_message(thread_id, "user", req.question, [])
+        store.add_message(thread_id, "assistant", result.text, result.sources)
+    except Exception:
+        logging.exception("session store write failed for thread_id=%s", thread_id)
+
     return ChatResponse(answer=result.text, sources=result.sources, session_id=thread_id)

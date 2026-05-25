@@ -5,6 +5,8 @@ from shared.auth.base import AuthUser
 from shared.auth.jwt_handler import decode_token
 from shared.config import load_config
 from shared.rate_limiter.in_memory import InMemoryRateLimiter
+from shared.session.base import SessionStore
+from shared.session.factory import create_session_store
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -13,6 +15,11 @@ _rate_limiter = InMemoryRateLimiter(
     rules={"/chat": _config.rate_limit_per_minute},
     default_limit=_config.rate_limit_per_minute,
 )
+_session_store: SessionStore = create_session_store(_config)
+
+
+def get_session_store() -> SessionStore:
+    return _session_store
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:

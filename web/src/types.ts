@@ -43,3 +43,15 @@ export class ApiError extends Error {
     this.retryAfter = retryAfter;
   }
 }
+
+export interface Session {
+  thread_id: string;
+  title: string;
+  created_at: string; // ISO8601
+}
+
+export interface SessionMessage {
+  role: ChatRole;
+  content: string;
+  sources?: string[];
+}
