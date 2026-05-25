@@ -56,6 +56,11 @@ def test_factory_creates_openai_by_default(monkeypatch, mocker):
         reranker_api_key="",
         session_store_type="memory",
         postgres_dsn="",
+        fga_api_url="http://localhost:8080",
+        fga_store_id="",
+        fga_api_key="",
+        fga_cache_backend="memory",
+        fga_cache_ttl_seconds=60,
     )
     llm = create_llm(config)
     assert isinstance(llm, OpenAIClient)
@@ -79,6 +84,11 @@ def test_factory_creates_anthropic(mocker):
         reranker_api_key="",
         session_store_type="memory",
         postgres_dsn="",
+        fga_api_url="http://localhost:8080",
+        fga_store_id="",
+        fga_api_key="",
+        fga_cache_backend="memory",
+        fga_cache_ttl_seconds=60,
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)
