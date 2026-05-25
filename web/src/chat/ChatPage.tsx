@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch, getSessions, getSessionMessages, deleteSession } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../types";
@@ -18,6 +18,7 @@ export function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const selectingSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (sessionId) localStorage.setItem("session_id", sessionId);
@@ -62,10 +63,12 @@ export function ChatPage() {
 
   const handleSelectSession = async (id: string) => {
     if (id === sessionId) return;
+    selectingSessionRef.current = id;
     setLoadingHistory(true);
     setError(null);
     try {
       const history = await getSessionMessages(id);
+      if (selectingSessionRef.current !== id) return;
       setMessages(
         history.map((m) => ({
           role: m.role,
@@ -76,9 +79,13 @@ export function ChatPage() {
       setSessionId(id);
       localStorage.setItem("session_id", id);
     } catch {
-      setError("세션을 불러오는 중 오류가 발생했습니다.");
+      if (selectingSessionRef.current === id) {
+        setError("세션을 불러오는 중 오류가 발생했습니다.");
+      }
     } finally {
-      setLoadingHistory(false);
+      if (selectingSessionRef.current === id) {
+        setLoadingHistory(false);
+      }
     }
   };
 
