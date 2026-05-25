@@ -74,6 +74,24 @@ describe("SessionSidebar", () => {
     expect(onNew).toHaveBeenCalled();
   });
 
+  it("삭제 버튼 클릭 시 onDelete가 호출되고 onSelect는 호출되지 않는다", () => {
+    const onDelete = vi.fn();
+    const onSelect = vi.fn();
+    render(
+      <SessionSidebar
+        isOpen={true}
+        sessions={sessions}
+        activeSessionId={null}
+        onNew={vi.fn()}
+        onSelect={onSelect}
+        onDelete={onDelete}
+      />
+    );
+    fireEvent.click(screen.getAllByLabelText("세션 삭제")[0]);
+    expect(onDelete).toHaveBeenCalledWith("t1");
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it("날짜 그룹 레이블이 렌더링된다", () => {
     render(
       <SessionSidebar

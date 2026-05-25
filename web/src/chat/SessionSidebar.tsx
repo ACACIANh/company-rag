@@ -98,7 +98,7 @@ function SessionItem({
   return (
     <div
       className={`group flex items-center justify-between rounded-md px-2 py-1.5 mb-0.5 cursor-pointer ${
-        isActive ? "bg-primary-muted" : "hover:bg-canvas-soft"
+        isActive ? "bg-[#f0efff]" : "hover:bg-canvas-soft"
       }`}
       onClick={() => onSelect(session.thread_id)}
     >
