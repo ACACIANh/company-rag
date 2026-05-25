@@ -223,7 +223,7 @@ class AgentState(TypedDict):
 **Definition of Done**
 - [x] 동시 50명 부하 테스트 통과 — Locust 스크립트 구현 (`tests/load/locustfile.py`, 2026-05-23), 실제 부하 실행 결과 미기록
 - [x] 비인가 문서 노출 0건 — `allowed_doc_ids` ACL 필터링 구현 및 테스트 통과 (2026-05-23)
-- [ ] 일일 비용 리포트 자동화 — `CostTracker` + `FileSink` 구현됨, 스케줄 자동화 미구현
+- [x] 일일 비용 리포트 자동화 — `scripts/cost_report.py` 구현 (2026-05-25). 날짜 필터·모델·유저별 집계. 포트폴리오 환경 특성상 상시 스케줄러 대신 CLI 실행 방식 채택.
 
 ---
 
