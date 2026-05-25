@@ -37,7 +37,7 @@ export function LoginPage() {
           className="text-[32px] font-light text-ink tracking-[-0.64px]"
           style={{ fontFeatureSettings: '"ss01"' }}
         >
-          Company RAG
+          Friday
         </h1>
         <p className="mt-1 text-[15px] text-ink-mute font-light">
           사내 문서 AI 어시스턴트

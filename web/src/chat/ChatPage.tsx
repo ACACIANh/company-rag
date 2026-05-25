@@ -137,7 +137,8 @@ export function ChatPage() {
             className="text-[20px] font-light text-ink tracking-[-0.2px]"
             style={{ fontFeatureSettings: '"ss01"' }}
           >
-            Company RAG
+            Friday
+            <span className="text-[14px] font-light text-ink-mute ml-1">, Organization Assistant</span>
           </h1>
         </div>
         <div className="flex items-center gap-4">
