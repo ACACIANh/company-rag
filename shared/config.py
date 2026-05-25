@@ -33,6 +33,8 @@ class Config:
     reranker_base_url: str    # 사내 LLM URL; "" = OpenAI 기본값
     reranker_model: str
     reranker_api_key: str     # "" → openai_api_key fallback
+    session_store_type: str   # "memory" | "postgres"
+    postgres_dsn: str         # prod: postgresql://user:pass@host/db
 
 
 def load_config() -> Config:
@@ -58,4 +60,6 @@ def load_config() -> Config:
         reranker_base_url=os.getenv("RERANKER_BASE_URL", ""),
         reranker_model=os.getenv("RERANKER_MODEL", "gpt-4o-mini"),
         reranker_api_key=os.getenv("RERANKER_API_KEY", ""),
+        session_store_type=os.getenv("SESSION_STORE_TYPE", "memory"),
+        postgres_dsn=os.getenv("POSTGRES_DSN", ""),
     )
