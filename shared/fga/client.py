@@ -178,7 +178,7 @@ class FGAClient:
 
     def delete_user_tuples(self, user_id: str) -> None:
         """퇴사 처리 — 해당 유저의 모든 tuple 삭제. 캐시 무효화."""
-        docs = self._list_fga_objects(f"user:{user_id}", "can_view", "document")
+        docs = self._list_fga_objects(f"user:{user_id}", "viewer", "document")
         teams = self._list_fga_objects(f"user:{user_id}", "member", "team")
         tuples_to_delete = (
             [{"user": f"user:{user_id}", "relation": "viewer", "object": d} for d in docs]
