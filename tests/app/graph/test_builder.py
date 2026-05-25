@@ -1,9 +1,17 @@
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from shared.fga.models import UserPermission
 from shared.models import Answer, Chunk, SearchResult
 from app.graph.builder import answer_question, build_graph
+
+
+def _mock_fga_client():
+    mock_fga = MagicMock()
+    mock_fga.get_permission.return_value = UserPermission(user_id="anonymous", teams=[], personal_docs=[])
+    mock_fga.build_chroma_filter.return_value = {"sensitivity": "public"}
+    return mock_fga
 
 
 def _make_retriever(text: str = "문서", source: str = "doc.md"):
@@ -39,7 +47,9 @@ def test_build_graph_returns_compiled_graph():
     assert isinstance(graph, CompiledStateGraph)
 
 
-def test_answer_question_doc_search_happy_path():
+@patch("app.graph.builder._default_fga_client")
+def test_answer_question_doc_search_happy_path(mock_fga_factory):
+    mock_fga_factory.return_value = _mock_fga_client()
     retriever = _make_retriever(text="연차는 15일입니다.", source="vacation.md")
     llm = MagicMock()
     llm.complete.side_effect = [
@@ -74,7 +84,9 @@ def test_answer_question_web_search_path():
     assert "https://langchain.com" in result.sources
 
 
-def test_answer_question_doc_search_retry_on_low_grade():
+@patch("app.graph.builder._default_fga_client")
+def test_answer_question_doc_search_retry_on_low_grade(mock_fga_factory):
+    mock_fga_factory.return_value = _mock_fga_client()
     retriever = _make_retriever(text="내용", source="doc.md")
     llm = MagicMock()
     llm.complete.side_effect = [
@@ -150,8 +162,10 @@ def test_tool_call_ends_when_user_denies():
     assert final["answer"] == ""
 
 
-def test_answer_question_multi_turn_accumulates_chat_history():
+@patch("app.graph.builder._default_fga_client")
+def test_answer_question_multi_turn_accumulates_chat_history(mock_fga_factory):
     """2턴 대화 시 chat_history가 누적되고 2턴 rewrite_query 프롬프트에 1턴 질문이 포함된다."""
+    mock_fga_factory.return_value = _mock_fga_client()
     retriever = _make_retriever(text="연차는 15일", source="vacation.md")
     llm = MagicMock()
     llm.complete.side_effect = [
@@ -182,8 +196,10 @@ def test_answer_question_multi_turn_accumulates_chat_history():
     assert "연차 어떻게 써?" in rewrite_prompt_turn2
 
 
-def test_answer_question_new_session_starts_with_empty_history():
+@patch("app.graph.builder._default_fga_client")
+def test_answer_question_new_session_starts_with_empty_history(mock_fga_factory):
     """다른 thread_id는 이전 대화에 접근할 수 없다."""
+    mock_fga_factory.return_value = _mock_fga_client()
     retriever = _make_retriever(text="문서", source="doc.md")
     llm = MagicMock()
     llm.complete.side_effect = [
