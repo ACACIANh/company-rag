@@ -12,15 +12,6 @@ def _token(client: TestClient) -> str:
     return res.json()["access_token"]
 
 
-def _patches(store: InMemorySessionStore):
-    mock_answer = Answer(text="답변", sources=["doc.md"])
-    return (
-        patch("app.api.chat.answer_question", return_value=mock_answer),
-        patch("app.api.chat.get_graph", return_value=MagicMock()),
-        patch("app.api.deps._session_store", store),
-    )
-
-
 def test_list_sessions_empty():
     store = InMemorySessionStore()
     with (

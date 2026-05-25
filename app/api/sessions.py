@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from shared.auth.base import AuthUser
+from shared.session.base import SessionStore
 from app.api.deps import get_current_user, get_session_store
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -20,8 +21,10 @@ class MessageOut(BaseModel):
 
 
 @router.get("", response_model=list[SessionOut])
-def list_sessions(user: AuthUser = Depends(get_current_user)):
-    store = get_session_store()
+def list_sessions(
+    user: AuthUser = Depends(get_current_user),
+    store: SessionStore = Depends(get_session_store),
+):
     return [
         SessionOut(thread_id=s.thread_id, title=s.title, created_at=s.created_at)
         for s in store.list_sessions(user["user_id"])
@@ -32,8 +35,8 @@ def list_sessions(user: AuthUser = Depends(get_current_user)):
 def get_session_messages(
     session_id: str,
     user: AuthUser = Depends(get_current_user),
+    store: SessionStore = Depends(get_session_store),
 ):
-    store = get_session_store()
     owned = {s.thread_id for s in store.list_sessions(user["user_id"])}
     if session_id not in owned:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -47,8 +50,8 @@ def get_session_messages(
 def delete_session(
     session_id: str,
     user: AuthUser = Depends(get_current_user),
+    store: SessionStore = Depends(get_session_store),
 ):
-    store = get_session_store()
     owned = {s.thread_id for s in store.list_sessions(user["user_id"])}
     if session_id not in owned:
         raise HTTPException(status_code=404, detail="Session not found")
