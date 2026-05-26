@@ -6,5 +6,7 @@ from shared.session.adapters.postgres import PostgresSessionStore
 
 def create_session_store(config: Config) -> SessionStore:
     if config.session_store_type == "postgres":
+        if not config.postgres_dsn:
+            raise ValueError("POSTGRES_DSN must be set when SESSION_STORE_TYPE=postgres")
         return PostgresSessionStore(dsn=config.postgres_dsn)
     return InMemorySessionStore()

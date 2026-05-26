@@ -97,7 +97,8 @@ def test_chat_uses_provided_session_id():
 def test_chat_generates_new_session_id_when_not_provided():
     mock_answer = Answer(text="답변", sources=[])
     with patch("app.api.chat.answer_question", return_value=mock_answer), \
-         patch("app.api.chat.get_graph", return_value=MagicMock()):
+         patch("app.api.chat.get_graph", return_value=MagicMock()), \
+         patch("app.api.chat.get_session_store", return_value=MagicMock()):
         from app.api.chat import app
         client = TestClient(app)
         token = _get_token(client)
