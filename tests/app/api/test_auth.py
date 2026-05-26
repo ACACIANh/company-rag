@@ -26,3 +26,22 @@ def test_me_with_valid_token():
 def test_chat_without_token_returns_401():
     res = TestClient(app).post("/chat", json={"question": "테스트"})
     assert res.status_code == 401
+
+
+def test_me_returns_teams_for_alice():
+    client = TestClient(app)
+    token = client.post("/auth/token", json={"username": "alice", "password": "alice123"}).json()["access_token"]
+    res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "teams" in data
+    assert data["teams"] == ["general"]
+
+
+def test_me_returns_empty_teams_for_admin():
+    client = TestClient(app)
+    token = client.post("/auth/token", json={"username": "admin", "password": "admin123"}).json()["access_token"]
+    res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["teams"] == []
