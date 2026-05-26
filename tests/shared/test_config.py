@@ -1,25 +1,18 @@
-import os
-import pytest
 from shared.config import Config, load_config
 
 
 def test_load_config_defaults(monkeypatch):
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
-    monkeypatch.delenv("LLM_MODEL", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("VECTOR_STORE", raising=False)
-    monkeypatch.delenv("CHROMA_MODE", raising=False)
-    monkeypatch.delenv("CHROMA_PATH", raising=False)
-    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
+    for key in ["LLM_PROVIDER", "LLM_MODEL", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                "EMBEDDING_MODEL"]:
+        monkeypatch.delenv(key, raising=False)
 
     config = load_config()
 
     assert config.llm_provider == "openai"
     assert config.llm_model == "gpt-4o-mini"
-    assert config.vector_store == "chroma"
-    assert config.chroma_mode == "embedded"
-    assert config.chroma_path == "./.chroma"
+    assert not hasattr(config, "chroma_mode")
+    assert not hasattr(config, "chroma_path")
+    assert not hasattr(config, "vector_store")
 
 
 def test_load_config_from_env(monkeypatch):
