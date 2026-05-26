@@ -10,6 +10,8 @@ from shared.session.base import SessionMeta, SessionStore, StoredMessage
 
 
 def _to_source_ref(item) -> SourceRef:
+    if isinstance(item, SourceRef):
+        return item
     if isinstance(item, str):
         return SourceRef(source=item)
     return SourceRef(**item)
