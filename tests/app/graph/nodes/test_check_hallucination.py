@@ -66,3 +66,17 @@ def test_check_hallucination_includes_answer_and_context_in_prompt():
     prompt = mock_llm.complete.call_args[0][0]
     assert "검증 대상 답변" in prompt
     assert "참조 문서" in prompt
+
+
+def test_check_hallucination_skips_llm_when_no_documents():
+    mock_llm = MagicMock()
+
+    state = {
+        "answer": "일반 지식 기반 답변",
+        "documents": [],
+        "retry_count": 0,
+    }
+    result = check_hallucination_node(state, llm=mock_llm)
+
+    assert result == {"hallucination_passed": True}
+    mock_llm.complete.assert_not_called()
