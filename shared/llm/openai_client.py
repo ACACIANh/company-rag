@@ -1,4 +1,7 @@
+from collections.abc import AsyncIterator
+
 from openai import OpenAI
+
 from shared.llm.base import LLMClient
 
 
@@ -13,3 +16,7 @@ class OpenAIClient(LLMClient):
             messages=[{"role": "user", "content": prompt}],
         )
         return response.choices[0].message.content
+
+    async def stream(self, prompt: str) -> AsyncIterator[str]:
+        raise NotImplementedError  # Task 2에서 구현 예정
+        yield  # AsyncIterator[str] 타입을 위한 async generator 선언

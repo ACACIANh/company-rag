@@ -1,5 +1,7 @@
+import asyncio
+
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from shared.config import Config
 from shared.llm.base import LLMClient
 from shared.llm.openai_client import OpenAIClient
@@ -88,3 +90,35 @@ def test_factory_creates_anthropic(mocker):
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)
+
+
+def test_llm_abstract_requires_stream():
+    """stream()을 구현하지 않은 서브클래스는 인스턴스화 불가."""
+    class NoStream(LLMClient):
+        def complete(self, prompt: str) -> str:
+            return ""
+    with pytest.raises(TypeError):
+        NoStream()
+
+
+async def test_anthropic_client_stream(mocker):
+    """stream()이 토큰 시퀀스를 yield한다."""
+    mock_stream_ctx = MagicMock()
+    mock_stream_ctx.__aenter__ = AsyncMock(return_value=mock_stream_ctx)
+    mock_stream_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    async def _text_stream():
+        for t in ["안", "녕", "하", "세요"]:
+            yield t
+
+    mock_stream_ctx.text_stream = _text_stream()
+    mocker.patch("shared.llm.anthropic_client.anthropic.AsyncAnthropic")
+
+    client = AnthropicClient(model="claude-3-haiku-20240307", api_key="test-key")
+    client._async_client.messages.stream.return_value = mock_stream_ctx
+
+    tokens = []
+    async for token in client.stream("테스트"):
+        tokens.append(token)
+
+    assert tokens == ["안", "녕", "하", "세요"]
