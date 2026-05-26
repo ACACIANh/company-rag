@@ -42,6 +42,21 @@ class FGAClient:
             return clauses[0]
         return {"$or": clauses}
 
+    def filter_sources(self, sources: list, user_id: str) -> list:
+        if not sources:
+            return []
+        perm = self.get_permission(user_id)
+        return [s for s in sources if self._is_accessible(s, perm)]
+
+    def _is_accessible(self, src, perm: UserPermission) -> bool:
+        if src.sensitivity == "public":
+            return True
+        if src.sensitivity == "internal":
+            return src.team_id in perm.teams
+        if src.sensitivity == "secret":
+            return src.document_id in perm.personal_docs
+        return False
+
     # ── 캐시 + FGA 연동 ───────────────────────────────────────
     def get_permission(self, user_id: str) -> UserPermission:
         cached = self._cache.get(user_id)

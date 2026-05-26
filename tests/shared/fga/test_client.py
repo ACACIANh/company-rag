@@ -102,3 +102,80 @@ def test_write_tuples_invalidates_cache():
         client.write_tuples("doc:x", "owner1", "team:dev", "internal")
 
     assert cache.get("owner1") is None
+
+
+def test_filter_sources_public_always_accessible():
+    """public 문서는 팀/개인문서 없이도 항상 접근 가능."""
+    from shared.models import SourceRef
+    from unittest.mock import patch
+
+    client = _client()
+    perm = UserPermission(user_id="u1", teams=[], personal_docs=[])
+    src = SourceRef(source="pub.md", sensitivity="public")
+
+    with patch.object(client, "get_permission", return_value=perm):
+        result = client.filter_sources([src], "u1")
+
+    assert result == [src]
+
+
+def test_filter_sources_internal_requires_team():
+    """internal 문서는 팀 멤버만 접근 가능."""
+    from shared.models import SourceRef
+    from unittest.mock import patch
+
+    client = _client()
+    perm_member = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
+    perm_non_member = UserPermission(user_id="u2", teams=[], personal_docs=[])
+    src = SourceRef(source="int.md", sensitivity="internal", team_id="team:dev")
+
+    with patch.object(client, "get_permission", return_value=perm_member):
+        assert client.filter_sources([src], "u1") == [src]
+
+    with patch.object(client, "get_permission", return_value=perm_non_member):
+        assert client.filter_sources([src], "u2") == []
+
+
+def test_filter_sources_secret_requires_personal_doc():
+    """secret 문서는 개인 허용 목록에 있는 경우만 접근 가능."""
+    from shared.models import SourceRef
+    from unittest.mock import patch
+
+    client = _client()
+    perm_allowed = UserPermission(user_id="u1", teams=[], personal_docs=["doc:salary"])
+    perm_denied = UserPermission(user_id="u2", teams=[], personal_docs=[])
+    src = SourceRef(source="sec.md", sensitivity="secret", document_id="doc:salary")
+
+    with patch.object(client, "get_permission", return_value=perm_allowed):
+        assert client.filter_sources([src], "u1") == [src]
+
+    with patch.object(client, "get_permission", return_value=perm_denied):
+        assert client.filter_sources([src], "u2") == []
+
+
+def test_filter_sources_unknown_sensitivity_blocked():
+    """알 수 없는 sensitivity는 접근 불가로 처리."""
+    from shared.models import SourceRef
+    from unittest.mock import patch
+
+    client = _client()
+    perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=["doc:x"])
+    src = SourceRef(source="unknown.md", sensitivity="classified")
+
+    with patch.object(client, "get_permission", return_value=perm):
+        result = client.filter_sources([src], "u1")
+
+    assert result == []
+
+
+def test_filter_sources_empty_list():
+    """빈 목록 입력 시 FGA 조회 없이 빈 목록 반환."""
+    from unittest.mock import patch
+
+    client = _client()
+
+    with patch.object(client, "get_permission") as mock_perm:
+        result = client.filter_sources([], "u1")
+
+    mock_perm.assert_not_called()
+    assert result == []
