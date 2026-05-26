@@ -29,7 +29,7 @@ class ChromaStore(VectorStore):
             if extra_metadata and i < len(extra_metadata):
                 meta.update(extra_metadata[i])
             metadatas.append(meta)
-        self._collection.add(
+        self._collection.upsert(
             ids=[c.chunk_id for c in chunks],
             documents=[c.text for c in chunks],
             embeddings=embeddings,

@@ -1,4 +1,4 @@
-import uuid
+import hashlib
 
 from shared.chunker.base import Chunker
 from shared.models import Chunk, Document
@@ -24,7 +24,7 @@ class FixedSizeChunker(Chunker):
                     Chunk(
                         text=piece,
                         source=doc.source,
-                        chunk_id=str(uuid.uuid4()),
+                        chunk_id=hashlib.md5(f"{doc.source}:{start}:{piece}".encode()).hexdigest(),
                         metadata=dict(doc.metadata),
                     )
                 )

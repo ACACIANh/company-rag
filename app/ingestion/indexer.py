@@ -1,5 +1,5 @@
 from shared.config import load_config
-from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
 from shared.fga.models import FGAConfig
 from shared.indexer.indexer import Indexer
@@ -23,9 +23,12 @@ def build_index(docs_path: str) -> None:
             store_id=config.fga_store_id,
             api_key=config.fga_api_key,
             cache_ttl_seconds=config.fga_cache_ttl_seconds,
+            pg_dsn=config.postgres_dsn,
         )
-        cache = InMemoryCacheBackend()
-        fga_client = FGAClient(config=fga_config, cache=cache)
+        fga_client = FGAClient(
+            config=fga_config,
+            cache=make_cache_backend(config.fga_cache_backend, config.postgres_dsn),
+        )
 
     Indexer(
         loader=loader,

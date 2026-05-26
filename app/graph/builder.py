@@ -5,7 +5,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.config import load_config
+from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
 from shared.fga.models import FGAConfig
 from shared.llm.base import LLMClient
@@ -35,9 +36,15 @@ from app.graph.state import AgentState
 
 
 def _default_fga_client() -> FGAClient:
-    """FGA 미설정 환경(테스트/로컬)용 — 모든 문서를 public으로 취급."""
-    config = FGAConfig(api_url="http://localhost:8080", store_id="")
-    return FGAClient(config=config, cache=InMemoryCacheBackend())
+    cfg = load_config()
+    fga_config = FGAConfig(
+        api_url=cfg.fga_api_url,
+        store_id=cfg.fga_store_id,
+        api_key=cfg.fga_api_key,
+        cache_ttl_seconds=cfg.fga_cache_ttl_seconds,
+        pg_dsn=cfg.postgres_dsn,
+    )
+    return FGAClient(config=fga_config, cache=make_cache_backend(cfg.fga_cache_backend, cfg.postgres_dsn))
 
 
 def build_graph(

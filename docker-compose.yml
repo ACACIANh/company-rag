@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fga
+      POSTGRES_PASSWORD: fga
+      POSTGRES_DB: fga        # OpenFGA 전용 DB
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./fga/pg-init:/docker-entrypoint-initdb.d  # 앱 DB 초기화 스크립트
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fga -d fga"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  openfga-migrate:
+    image: openfga/openfga:latest
+    command: migrate
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: "postgres://fga:fga@postgres:5432/fga?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  openfga:
+    image: openfga/openfga:latest
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: "postgres://fga:fga@postgres:5432/fga?sslmode=disable"
+      OPENFGA_HTTP_ADDR: "0.0.0.0:8080"
+      OPENFGA_GRPC_ADDR: "0.0.0.0:8081"
+      OPENFGA_PLAYGROUND_ENABLED: "true"
+      OPENFGA_LOG_FORMAT: text
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      openfga-migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

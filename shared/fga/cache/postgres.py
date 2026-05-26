@@ -13,6 +13,7 @@ from shared.fga.models import UserPermission
 class PostgresCacheBackend(PermissionCacheBackend):
     def __init__(self, dsn: str, min_conn: int = 1, max_conn: int = 5) -> None:
         self._pool = pool.ThreadedConnectionPool(min_conn, max_conn, dsn)
+        self._ensure_table()
 
     @contextmanager
     def _conn(self):

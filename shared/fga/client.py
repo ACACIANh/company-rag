@@ -1,6 +1,19 @@
 import asyncio
+import concurrent.futures
 from shared.fga.base import PermissionCacheBackend
 from shared.fga.models import FGAConfig, UserPermission
+
+
+def _run_async(coro):
+    """이벤트 루프 유무와 관계없이 코루틴을 동기적으로 실행."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
+def _is_idempotent_fga_error(exc: Exception) -> bool:
+    """이미 존재하는 tuple write / 없는 tuple delete → 무시해도 안전."""
+    msg = str(exc).lower()
+    return "already existed" in msg or "did not exist" in msg
 
 
 class FGAClient:
@@ -60,7 +73,7 @@ class FGAClient:
     def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         """OpenFGA listObjects 호출. 테스트에서 patch 대상."""
         from openfga_sdk import OpenFgaClient, ClientConfiguration
-        from openfga_sdk.models import ClientListObjectsRequest
+        from openfga_sdk.client.models import ClientListObjectsRequest
 
         async def _inner():
             cfg = ClientConfiguration(
@@ -79,12 +92,12 @@ class FGAClient:
                 )
                 return resp.objects or []
 
-        return asyncio.run(_inner())
+        return _run_async(_inner())
 
     def _write_fga_tuples(self, tuples: list[dict]) -> None:
         """OpenFGA write 호출. 테스트에서 patch 대상."""
         from openfga_sdk import OpenFgaClient, ClientConfiguration
-        from openfga_sdk.models import ClientWriteRequest, TupleKey
+        from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
 
         async def _inner():
             cfg = ClientConfiguration(
@@ -92,22 +105,27 @@ class FGAClient:
                 store_id=self._config.store_id,
             )
             async with OpenFgaClient(cfg) as client:
-                await client.write(ClientWriteRequest(
-                    writes=[TupleKey(**t) for t in tuples]
-                ))
+                try:
+                    await client.write(ClientWriteRequest(
+                        writes=[ClientTuple(**t) for t in tuples]
+                    ))
+                except Exception as e:
+                    if not _is_idempotent_fga_error(e):
+                        raise
 
-        asyncio.run(_inner())
+        _run_async(_inner())
 
     def write_tuples(
         self, doc_id: str, owner_id: str, team_id: str, sensitivity: str
     ) -> None:
-        tuples = [{"user": f"user:{owner_id}", "relation": "owner", "object": f"document:{doc_id}"}]
+        fga_obj = f"document:{doc_id.replace(':', '-')}"
+        tuples = [{"user": f"user:{owner_id}", "relation": "owner", "object": fga_obj}]
         if sensitivity == "public":
-            tuples.append({"user": "user:*", "relation": "viewer", "object": f"document:{doc_id}"})
+            tuples.append({"user": "user:*", "relation": "viewer", "object": fga_obj})
         elif sensitivity == "internal":
-            tuples.append({"user": f"{team_id}#member", "relation": "viewer", "object": f"document:{doc_id}"})
+            tuples.append({"user": f"{team_id}#member", "relation": "viewer", "object": fga_obj})
         elif sensitivity == "secret":
-            tuples.append({"user": f"user:{owner_id}", "relation": "viewer", "object": f"document:{doc_id}"})
+            tuples.append({"user": f"user:{owner_id}", "relation": "viewer", "object": fga_obj})
             self._insert_personal_doc(owner_id, doc_id)
         self._write_fga_tuples(tuples)
         self._cache.invalidate(owner_id)
@@ -146,13 +164,17 @@ class FGAClient:
     def remove_team_member(self, user_id: str, team_id: str) -> None:
         async def _inner():
             from openfga_sdk import OpenFgaClient, ClientConfiguration
-            from openfga_sdk.models import ClientWriteRequest, TupleKey
+            from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
             cfg = ClientConfiguration(api_url=self._config.api_url, store_id=self._config.store_id)
             async with OpenFgaClient(cfg) as client:
-                await client.write(ClientWriteRequest(
-                    deletes=[TupleKey(user=f"user:{user_id}", relation="member", object=f"team:{team_id}")]
-                ))
-        asyncio.run(_inner())
+                try:
+                    await client.write(ClientWriteRequest(
+                        deletes=[ClientTuple(user=f"user:{user_id}", relation="member", object=f"team:{team_id}")]
+                    ))
+                except Exception as e:
+                    if not _is_idempotent_fga_error(e):
+                        raise
+        _run_async(_inner())
         self._cache.invalidate(user_id)
 
     def grant_doc_access(self, user_id: str, doc_id: str) -> None:
@@ -163,16 +185,20 @@ class FGAClient:
     def revoke_doc_access(self, user_id: str, doc_id: str) -> None:
         async def _inner():
             from openfga_sdk import OpenFgaClient, ClientConfiguration
-            from openfga_sdk.models import ClientWriteRequest, TupleKey
+            from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
             cfg = ClientConfiguration(
                 api_url=self._config.api_url,
                 store_id=self._config.store_id,
             )
             async with OpenFgaClient(cfg) as client:
-                await client.write(ClientWriteRequest(
-                    deletes=[TupleKey(user=f"user:{user_id}", relation="viewer", object=f"document:{doc_id}")]
-                ))
-        asyncio.run(_inner())
+                try:
+                    await client.write(ClientWriteRequest(
+                        deletes=[ClientTuple(user=f"user:{user_id}", relation="viewer", object=f"document:{doc_id}")]
+                    ))
+                except Exception as e:
+                    if not _is_idempotent_fga_error(e):
+                        raise
+        _run_async(_inner())
         self._delete_personal_doc(user_id, doc_id)
         self._cache.invalidate(user_id)
 
@@ -187,14 +213,18 @@ class FGAClient:
         if tuples_to_delete:
             async def _inner():
                 from openfga_sdk import OpenFgaClient, ClientConfiguration
-                from openfga_sdk.models import ClientWriteRequest, TupleKey
+                from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
                 cfg = ClientConfiguration(
                     api_url=self._config.api_url,
                     store_id=self._config.store_id,
                 )
                 async with OpenFgaClient(cfg) as client:
-                    await client.write(ClientWriteRequest(
-                        deletes=[TupleKey(**t) for t in tuples_to_delete]
-                    ))
-            asyncio.run(_inner())
+                    try:
+                        await client.write(ClientWriteRequest(
+                            deletes=[ClientTuple(**t) for t in tuples_to_delete]
+                        ))
+                    except Exception as e:
+                        if not _is_idempotent_fga_error(e):
+                            raise
+            _run_async(_inner())
         self._cache.invalidate(user_id)

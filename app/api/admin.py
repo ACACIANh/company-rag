@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from shared.auth.base import AuthUser
 from shared.config import load_config
-from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
 from shared.fga.models import FGAConfig
 from shared.vector_store.factory import create_vector_store
@@ -109,8 +109,9 @@ def _get_fga_client() -> FGAClient:
         store_id=_config.fga_store_id,
         api_key=_config.fga_api_key,
         cache_ttl_seconds=_config.fga_cache_ttl_seconds,
+        pg_dsn=_config.postgres_dsn,
     )
-    return FGAClient(config=fga_config, cache=InMemoryCacheBackend())
+    return FGAClient(config=fga_config, cache=make_cache_backend(_config.fga_cache_backend, _config.postgres_dsn))
 
 
 @router.post("/users/{user_id}/teams/{team_id}", status_code=204)

@@ -14,7 +14,7 @@ class Indexer:
         store: VectorStore,
         fga_client=None,   # FGAClient | None — 순환 import 방지로 타입 미지정
         default_team_id: str = "team:general",
-        default_owner_id: str = "user:system",
+        default_owner_id: str = "system",
     ) -> None:
         self._loader = loader
         self._chunker = chunker

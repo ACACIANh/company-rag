@@ -12,6 +12,8 @@ users:
     roles:
       - user
     allowed_doc_ids: []
+    teams:
+      - general
   - username: restricted
     password: restricted123
     user_id: user-restricted
