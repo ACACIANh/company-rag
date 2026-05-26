@@ -81,6 +81,7 @@ class FGAClient:
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
         from openfga_sdk.client.models import ClientListObjectsRequest
+        from openfga_sdk.exceptions import ValidationException
         cfg = ClientConfiguration(
             api_url=self._config.api_url,
             store_id=self._config.store_id,
@@ -91,11 +92,22 @@ class FGAClient:
                 method=CredentialMethod.API_TOKEN,
                 configuration=CredentialConfiguration(api_token=self._config.api_key),
             )
-        async with OpenFgaClient(cfg) as client:
-            resp = await client.list_objects(
-                ClientListObjectsRequest(user=user, relation=relation, type=type_)
-            )
-            return resp.objects or []
+        try:
+            async with OpenFgaClient(cfg) as client:
+                resp = await client.list_objects(
+                    ClientListObjectsRequest(user=user, relation=relation, type=type_)
+                )
+                return resp.objects or []
+        except ValidationException as exc:
+            if "latest_authorization_model_not_found" in str(exc):
+                import logging
+                logging.getLogger(__name__).warning(
+                    "FGA authorization model not found for store %s — "
+                    "run scripts/fga_init.sh to initialize. Returning empty permissions.",
+                    self._config.store_id,
+                )
+                return []
+            raise
 
     async def _write_fga_tuples(self, tuples: list[dict]) -> None:
         from openfga_sdk import OpenFgaClient, ClientConfiguration

@@ -125,7 +125,7 @@ class AgentState(TypedDict):
 2. ✅ State 스키마 정의 (`app/graph/state.py`) — `AgentState(TypedDict)` 완성
 3. ✅ 2개 노드 구현 (`app/graph/nodes/`) — `retrieve_node` → `generate_node`
 4. ✅ FastAPI `/chat` 엔드포인트 (`app/api/chat.py`) — 스트리밍 미구현 (Phase 2에서 추가 예정)
-5. ⬜ **평가셋 20~30개 구축** — 현재 5개 (`tests/eval/questions.yaml`), 보충 필요
+5. ✅ **평가셋 구축** — 41개 (`tests/eval/questions.yaml`): doc_search 29 + web_search 6 + tool_call 6 (2026-05-26)
 
 **Definition of Done**
 - [x] ~~임의의 사내 문서 100건 인덱싱 완료~~ → 15개 사내 문서 81 청크 인덱싱 완료 (`docs/company/`)
@@ -249,6 +249,30 @@ class AgentState(TypedDict):
 
 - 온보딩 질문: recall@1 0→1, MRR 0.20→1.00 (baseline 5위권 밖 → 1위)
 - 사내 API 권한 질문: recall@3 0→1, MRR 0.20→0.50 (부분 개선, 1위는 미달)
+
+#### FGA PostgreSQL 캐시 — 2026-05-25 완료
+
+- `PermissionCacheBackend` ABC 구현체 2종: `InMemoryCacheBackend`, `PostgresCacheBackend`
+- `shared/fga/cache/__init__.py` 팩토리 (`backend=` 환경 변수로 전환)
+- ADR: `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md`
+
+#### FGA ValidationException 핸들링 — 2026-05-26 완료
+
+- `shared/fga/client.py` `_list_fga_objects`: OpenFGA 스토어 미초기화 시 `ValidationException` 잡아 빈 권한 반환 + 경고 로그
+- 커밋 필요 (현재 uncommitted)
+
+---
+
+### 백로그 (예정)
+
+| 우선순위 | 항목 | 설명 |
+|---------|------|------|
+| ✅ | ~~`shared/fga/client.py` 커밋~~ | ba07aa5 (2026-05-26) |
+| ✅ | ~~eval web_search AttributeError 픽스~~ | `web_search_node` retriever=None 가드 추가, 24b08ea (2026-05-26) |
+| P2 | **SSE 스트리밍** | FastAPI `astream` + `StreamingResponse` + 프론트엔드 `EventSource` 일괄 도입 (ADR: `2026-05-23-frontend-architecture.md`) |
+| P2 | **CI 파이프라인** | `tests/eval/runner.py` 자동 실행, 점수 하락 시 알림 (plan 7.3) |
+| P3 | **실제 부하 테스트 실행** | `tests/load/locustfile.py` 실행 후 결과 기록 (Phase 5 DoD 미기록 상태) |
+| P3 | **관리자 대시보드** | 인덱스 관리, 평가셋 운영 UI (`/admin/*` 백엔드 존재) |
 
 ---
 
