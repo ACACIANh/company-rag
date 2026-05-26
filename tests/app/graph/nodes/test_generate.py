@@ -1,5 +1,5 @@
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -290,7 +290,9 @@ async def test_generate_node_streams_notice_prefix_when_no_docs():
 
     result = await generate_node(state, config=config, llm=mock_llm)
 
-    tokens = [q["content"] for q in list(queue._queue)]
+    tokens = []
+    while not queue.empty():
+        tokens.append(queue.get_nowait()["content"])
     assert tokens[0].startswith("⚠️")   # notice prefix가 첫 토큰
     assert "일반 답변" in "".join(tokens)
     assert result["answer"].startswith("⚠️")
