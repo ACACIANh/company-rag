@@ -1,5 +1,6 @@
 import hashlib
 from collections import OrderedDict
+from collections.abc import AsyncIterator
 from typing import Any
 
 from shared.embedder.base import Embedder
@@ -81,3 +82,7 @@ class CachedLLM(LLMClient):
         v = self._inner.complete(prompt)
         self._cache.set(k, v)
         return v
+
+    async def stream(self, prompt: str) -> AsyncIterator[str]:
+        async for token in self._inner.stream(prompt):
+            yield token
