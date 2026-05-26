@@ -101,6 +101,34 @@ def test_llm_abstract_requires_stream():
         NoStream()
 
 
+async def test_openai_client_stream(mocker):
+    """OpenAIClient.stream()이 delta.content 토큰을 yield한다."""
+    def _make_chunk(text):
+        chunk = MagicMock()
+        chunk.choices[0].delta.content = text
+        return chunk
+
+    mock_aiter = MagicMock()
+    mock_aiter.__aiter__ = MagicMock(return_value=mock_aiter)
+    mock_aiter.__anext__ = AsyncMock(side_effect=[
+        _make_chunk("Hello"),
+        _make_chunk(" world"),
+        StopAsyncIteration,
+    ])
+
+    mocker.patch("shared.llm.openai_client.OpenAI")
+    mocker.patch("shared.llm.openai_client.AsyncOpenAI")
+
+    client = OpenAIClient(model="gpt-4o-mini", api_key="test-key")
+    client._async_client.chat.completions.create = AsyncMock(return_value=mock_aiter)
+
+    tokens = []
+    async for token in client.stream("테스트"):
+        tokens.append(token)
+
+    assert tokens == ["Hello", " world"]
+
+
 async def test_anthropic_client_stream(mocker):
     """stream()이 토큰 시퀀스를 yield한다."""
     mock_stream_ctx = MagicMock()
