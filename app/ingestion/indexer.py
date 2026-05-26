@@ -1,3 +1,6 @@
+import asyncpg
+from pgvector.asyncpg import register_vector
+
 from shared.config import load_config
 from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
@@ -9,12 +12,17 @@ from app.ingestion.chunker import get_chunker
 from app.ingestion.embedder import get_embedder
 
 
-def build_index(docs_path: str) -> None:
+async def build_index(docs_path: str) -> None:
     config = load_config()
     loader = MarkdownLoader()
     chunker = get_chunker()
     embedder = get_embedder(config.embedding_model)
-    store = create_vector_store(config)
+
+    async def _init_conn(conn):
+        await register_vector(conn)
+
+    pool = await asyncpg.create_pool(config.postgres_dsn, init=_init_conn)
+    store = create_vector_store(config, pool)
 
     fga_client = None
     if config.fga_store_id:
@@ -23,17 +31,19 @@ def build_index(docs_path: str) -> None:
             store_id=config.fga_store_id,
             api_key=config.fga_api_key,
             cache_ttl_seconds=config.fga_cache_ttl_seconds,
-            pg_dsn=config.postgres_dsn,
         )
         fga_client = FGAClient(
             config=fga_config,
-            cache=make_cache_backend(config.fga_cache_backend, config.postgres_dsn),
+            cache=make_cache_backend(config.fga_cache_backend, pool),
+            pg_pool=pool,
         )
 
-    Indexer(
+    await Indexer(
         loader=loader,
         chunker=chunker,
         embedder=embedder,
         store=store,
         fga_client=fga_client,
     ).index(docs_path)
+
+    await pool.close()
