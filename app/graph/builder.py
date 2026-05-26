@@ -5,14 +5,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from shared.config import load_config
-from shared.fga.cache import make_cache_backend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
 from shared.llm.base import LLMClient
 from shared.models import Answer
 from shared.reranker.base import Reranker
 from shared.retriever.base import Retriever
+from shared.fga.client import FGAClient
 from app.graph.edges import (
     route_after_confirm,
     route_after_grade,
@@ -35,18 +32,6 @@ from app.graph.nodes.web_search import web_search_node
 from app.graph.state import AgentState
 
 
-def _default_fga_client() -> FGAClient:
-    cfg = load_config()
-    fga_config = FGAConfig(
-        api_url=cfg.fga_api_url,
-        store_id=cfg.fga_store_id,
-        api_key=cfg.fga_api_key,
-        cache_ttl_seconds=cfg.fga_cache_ttl_seconds,
-        pg_dsn=cfg.postgres_dsn,
-    )
-    return FGAClient(config=fga_config, cache=make_cache_backend(cfg.fga_cache_backend, cfg.postgres_dsn))
-
-
 def build_graph(
     retriever: Retriever,
     llm: LLMClient,
@@ -56,17 +41,18 @@ def build_graph(
     retrieve_top_k: int = 20,
     top_k: int = 5,
 ) -> CompiledStateGraph:
-    _fga = fga_client or _default_fga_client()
+    if fga_client is None:
+        raise ValueError("fga_client is required")
     g = StateGraph(AgentState)
 
     g.add_node("load_memory", load_memory_node)
     g.add_node("rewrite_query", partial(rewrite_query_node, llm=llm))
     g.add_node("router", partial(router_node, llm=llm))
-    g.add_node("permission", partial(permission_node, fga_client=_fga))
+    g.add_node("permission", partial(permission_node, fga_client=fga_client))
     g.add_node("retrieve", partial(
         retrieve_node,
         retriever=retriever,
-        fga_client=_fga,
+        fga_client=fga_client,
         reranker=reranker,
         retrieve_top_k=retrieve_top_k,
         top_k=top_k,
@@ -90,7 +76,6 @@ def build_graph(
         {"doc_search": "permission", "web_search": "web_search", "tool_call": "confirm"},
     )
 
-    # doc_search: permission → retrieve → grade
     g.add_edge("permission", "retrieve")
     g.add_edge("retrieve", "grade_documents")
     g.add_edge("increment_retry", "rewrite_query")
@@ -129,7 +114,7 @@ def _ensure_thread_id(config: dict | None) -> dict:
     return config
 
 
-def answer_question(
+async def answer_question(
     graph: CompiledStateGraph,
     question: str,
     config: dict | None = None,
@@ -158,5 +143,5 @@ def answer_question(
         "user_teams": [],
         "personal_doc_ids": [],
     }
-    final = graph.invoke(initial, config=config)
+    final = await graph.ainvoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])

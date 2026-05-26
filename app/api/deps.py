@@ -1,17 +1,12 @@
-from functools import lru_cache
-
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from shared.auth.base import AuthUser
 from shared.auth.jwt_handler import decode_token
 from shared.config import load_config
-from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
 from shared.rate_limiter.in_memory import InMemoryRateLimiter
 from shared.session.base import SessionStore
-from shared.session.factory import create_session_store
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -20,27 +15,14 @@ _rate_limiter = InMemoryRateLimiter(
     rules={"/chat": _config.rate_limit_per_minute},
     default_limit=_config.rate_limit_per_minute,
 )
-_session_store: SessionStore = create_session_store(_config)
 
 
-@lru_cache(maxsize=1)
-def _make_fga_client() -> FGAClient:
-    fga_config = FGAConfig(
-        api_url=_config.fga_api_url,
-        store_id=_config.fga_store_id,
-        api_key=_config.fga_api_key,
-        cache_ttl_seconds=_config.fga_cache_ttl_seconds,
-        pg_dsn=_config.postgres_dsn,
-    )
-    return FGAClient(config=fga_config, cache=make_cache_backend(_config.fga_cache_backend, _config.postgres_dsn))
+def get_fga_client(request: Request) -> FGAClient:
+    return request.app.state.fga_client
 
 
-def get_fga_client() -> FGAClient:
-    return _make_fga_client()
-
-
-def get_session_store() -> SessionStore:
-    return _session_store
+def get_session_store(request: Request) -> SessionStore:
+    return request.app.state.session_store
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:

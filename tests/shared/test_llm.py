@@ -38,13 +38,12 @@ def test_anthropic_client_complete(mocker):
     assert result == "테스트 답변"
 
 
-def test_factory_creates_openai_by_default(monkeypatch, mocker):
+def test_factory_creates_openai_by_default(mocker):
     mocker.patch("shared.llm.openai_client.OpenAI")
     config = Config(
         llm_provider="openai", llm_model="gpt-4o-mini",
         openai_api_key="sk-test", anthropic_api_key="",
-        vector_store="chroma", chroma_mode="embedded",
-        chroma_path=".chroma", embedding_model="test-model",
+        embedding_model="test-model",
         jwt_secret="test-secret",
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,
@@ -70,8 +69,7 @@ def test_factory_creates_anthropic(mocker):
     config = Config(
         llm_provider="anthropic", llm_model="claude-3-haiku-20240307",
         openai_api_key="", anthropic_api_key="sk-ant-test",
-        vector_store="chroma", chroma_mode="embedded",
-        chroma_path=".chroma", embedding_model="test-model",
+        embedding_model="test-model",
         jwt_secret="test-secret",
         jwt_expire_minutes=60,
         rate_limit_per_minute=20,

@@ -1,19 +1,25 @@
 import logging
 import uuid
-from functools import lru_cache
+from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException
+import asyncpg
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pgvector.asyncpg import register_vector
 from pydantic import BaseModel
 
 from shared.auth.base import AuthUser
 from shared.config import load_config
 from shared.embedder import SentenceTransformerEmbedder
+from shared.fga.cache import make_cache_backend
+from shared.fga.client import FGAClient
+from shared.fga.models import FGAConfig
 from shared.llm.factory import create_llm
 from shared.observability.cost_tracker import init_tracker
 from shared.observability.sinks.file_sink import FileSink
 from shared.reranker.factory import create_reranker
 from shared.retriever import BasicRetriever
+from shared.session.factory import create_session_store
 from shared.vector_store.factory import create_vector_store
 from app.graph.builder import answer_question, build_graph
 from app.api.auth import router as auth_router
@@ -23,11 +29,62 @@ from app.api.sessions import router as sessions_router
 
 init_tracker([FileSink("logs")])
 
-app = FastAPI()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    config = load_config()
+
+    async def _init_conn(conn):
+        await register_vector(conn)
+
+    pool = await asyncpg.create_pool(
+        config.postgres_dsn, init=_init_conn, min_size=2, max_size=10
+    )
+
+    embedder = SentenceTransformerEmbedder(config.embedding_model)
+    store = create_vector_store(config, pool)
+    await store.ensure_table()
+
+    cache_backend = make_cache_backend(config.fga_cache_backend, pool)
+    if hasattr(cache_backend, "ensure_table"):
+        await cache_backend.ensure_table()
+
+    fga_config = FGAConfig(
+        api_url=config.fga_api_url,
+        store_id=config.fga_store_id,
+        api_key=config.fga_api_key,
+        cache_ttl_seconds=config.fga_cache_ttl_seconds,
+    )
+    fga_client = FGAClient(config=fga_config, cache=cache_backend, pg_pool=pool)
+
+    session_store = create_session_store(config, pool)
+    if hasattr(session_store, "ensure_tables"):
+        await session_store.ensure_tables()
+
+    retriever = BasicRetriever(store=store, embedder=embedder)
+    llm = create_llm(config)
+    reranker = create_reranker(config)
+    graph = build_graph(
+        retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client
+    )
+
+    app.state.pool = pool
+    app.state.store = store
+    app.state.fga_client = fga_client
+    app.state.session_store = session_store
+    app.state.graph = graph
+
+    yield
+
+    await pool.close()
+
+
+app = FastAPI(lifespan=lifespan)
+
+_config = load_config()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=load_config().cors_origins,
+    allow_origins=_config.cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,36 +106,26 @@ class ChatResponse(BaseModel):
     session_id: str
 
 
-@lru_cache(maxsize=1)
-def get_graph():
-    config = load_config()
-    embedder = SentenceTransformerEmbedder(config.embedding_model)
-    store = create_vector_store(config)
-    retriever = BasicRetriever(store=store, embedder=embedder)
-    llm = create_llm(config)
-    reranker = create_reranker(config)
-    return build_graph(retriever=retriever, llm=llm, reranker=reranker)
-
-
 @app.post("/chat", response_model=ChatResponse)
 async def chat(
     req: ChatRequest,
+    request: Request,
     current_user: AuthUser = Depends(get_current_user),
     _: None = Depends(check_rate_limit),
 ) -> ChatResponse:
     session_id = req.session_id or str(uuid.uuid4())
     is_new_session = req.session_id is None
-    store = get_session_store()
+    store = request.app.state.session_store
 
     if not is_new_session:
-        owned = {s.thread_id for s in store.list_sessions(current_user["user_id"])}
+        owned = {s.thread_id for s in await store.list_sessions(current_user["user_id"])}
         if session_id not in owned:
             raise HTTPException(status_code=403, detail="Session not found")
 
     thread_id = f"{current_user['user_id']}:{session_id}"
     config = {"configurable": {"thread_id": thread_id}}
-    result = answer_question(
-        get_graph(),
+    result = await answer_question(
+        request.app.state.graph,
         req.question,
         config=config,
         user_id=current_user["user_id"],
@@ -87,9 +134,9 @@ async def chat(
 
     try:
         if is_new_session:
-            store.create_session(session_id, current_user["user_id"], req.question[:20])
-        store.add_message(session_id, "user", req.question, [])
-        store.add_message(session_id, "assistant", result.text, result.sources)
+            await store.create_session(session_id, current_user["user_id"], req.question[:20])
+        await store.add_message(session_id, "user", req.question, [])
+        await store.add_message(session_id, "assistant", result.text, result.sources)
     except Exception:
         logging.exception("session store write failed for session_id=%s", session_id)
 

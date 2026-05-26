@@ -1,38 +1,40 @@
 """
 API 테스트용 공통 픽스처.
-FGA 클라이언트를 passthrough mock으로 대체해 기존 테스트가
-OpenFGA 서버 없이 동작하도록 한다.
+app.state를 mock으로 초기화해 lifespan/DB 없이 API 테스트가 동작하도록 한다.
 """
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from shared.models import SourceRef
 
 
-def _passthrough_filter(sources, uid):
-    """sources를 그대로 통과시키되 SourceRef가 아닌 항목은 변환한다."""
-    result = []
-    for s in sources:
-        if isinstance(s, SourceRef):
-            result.append(s)
-        else:
-            result.append(SourceRef(source=str(s)))
-    return result
+async def _passthrough_filter(sources, uid):
+    return [s if isinstance(s, SourceRef) else SourceRef(source=str(s)) for s in sources]
 
 
 @pytest.fixture(autouse=True)
-def passthrough_fga():
-    """_make_fga_client를 passthrough mock으로 교체.
-
-    filter_sources는 입력 sources를 그대로 반환한다 (SourceRef 변환 포함).
-    개별 테스트에서 patch("app.api.deps._make_fga_client")를 사용하면
-    해당 with 블록이 우선 적용된다.
-    """
-    from app.api.deps import _make_fga_client as _orig
-    _orig.cache_clear()
+def setup_app_state():
+    """모든 API 테스트에서 app.state를 mock으로 초기화."""
+    from app.api.chat import app
 
     mock_fga = MagicMock()
-    mock_fga.filter_sources.side_effect = _passthrough_filter
+    mock_fga.filter_sources = AsyncMock(side_effect=_passthrough_filter)
+    mock_fga.build_pg_filter = MagicMock(return_value=("sensitivity = 'public'", []))
 
-    with patch("app.api.deps._make_fga_client", return_value=mock_fga):
-        yield mock_fga
+    mock_session = AsyncMock()
+    mock_session.list_sessions = AsyncMock(return_value=[])
+    mock_session.create_session = AsyncMock()
+    mock_session.add_message = AsyncMock()
+    mock_session.get_messages = AsyncMock(return_value=[])
+    mock_session.delete_session = AsyncMock()
+
+    mock_store = AsyncMock()
+    mock_store.count = AsyncMock(return_value=0)
+
+    app.state.fga_client = mock_fga
+    app.state.session_store = mock_session
+    app.state.store = mock_store
+    app.state.graph = MagicMock()
+    app.state.pool = None
+
+    yield mock_fga
