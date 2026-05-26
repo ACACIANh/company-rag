@@ -48,7 +48,7 @@ class FGAClient:
         perm = self.get_permission(user_id)
         return [s for s in sources if self._is_accessible(s, perm)]
 
-    def _is_accessible(self, src, perm: UserPermission) -> bool:
+    def _is_accessible(self, src: "SourceRef", perm: UserPermission) -> bool:
         if src.sensitivity == "public":
             return True
         if src.sensitivity == "internal":

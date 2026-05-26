@@ -3,6 +3,7 @@ from unittest.mock import patch
 from shared.fga.client import FGAClient
 from shared.fga.models import FGAConfig, UserPermission
 from shared.fga.cache.memory import InMemoryCacheBackend
+from shared.models import SourceRef
 
 
 def _client() -> FGAClient:
@@ -106,9 +107,6 @@ def test_write_tuples_invalidates_cache():
 
 def test_filter_sources_public_always_accessible():
     """public 문서는 팀/개인문서 없이도 항상 접근 가능."""
-    from shared.models import SourceRef
-    from unittest.mock import patch
-
     client = _client()
     perm = UserPermission(user_id="u1", teams=[], personal_docs=[])
     src = SourceRef(source="pub.md", sensitivity="public")
@@ -121,9 +119,6 @@ def test_filter_sources_public_always_accessible():
 
 def test_filter_sources_internal_requires_team():
     """internal 문서는 팀 멤버만 접근 가능."""
-    from shared.models import SourceRef
-    from unittest.mock import patch
-
     client = _client()
     perm_member = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
     perm_non_member = UserPermission(user_id="u2", teams=[], personal_docs=[])
@@ -138,9 +133,6 @@ def test_filter_sources_internal_requires_team():
 
 def test_filter_sources_secret_requires_personal_doc():
     """secret 문서는 개인 허용 목록에 있는 경우만 접근 가능."""
-    from shared.models import SourceRef
-    from unittest.mock import patch
-
     client = _client()
     perm_allowed = UserPermission(user_id="u1", teams=[], personal_docs=["doc:salary"])
     perm_denied = UserPermission(user_id="u2", teams=[], personal_docs=[])
@@ -155,9 +147,6 @@ def test_filter_sources_secret_requires_personal_doc():
 
 def test_filter_sources_unknown_sensitivity_blocked():
     """알 수 없는 sensitivity는 접근 불가로 처리."""
-    from shared.models import SourceRef
-    from unittest.mock import patch
-
     client = _client()
     perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=["doc:x"])
     src = SourceRef(source="unknown.md", sensitivity="classified")
