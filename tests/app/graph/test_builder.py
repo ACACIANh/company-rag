@@ -131,7 +131,7 @@ def test_tool_call_triggers_interrupt():
     assert len(result["__interrupt__"]) > 0
 
 
-def test_tool_call_completes_after_user_approves():
+async def test_tool_call_completes_after_user_approves():
     doc_retriever = _make_retriever()
     web_retriever = _make_retriever()
     llm = MagicMock()
@@ -147,10 +147,10 @@ def test_tool_call_completes_after_user_approves():
     )
     config = {"configurable": {"thread_id": "test-interrupt-2"}}
 
-    result = graph.invoke(_make_initial_state("회의실 예약해줘"), config=config)
+    result = await graph.ainvoke(_make_initial_state("회의실 예약해줘"), config=config)
     assert "__interrupt__" in result
 
-    final = graph.invoke(Command(resume=True), config=config)
+    final = await graph.ainvoke(Command(resume=True), config=config)
     assert final["answer"] == "Mock 실행 결과 답변"
 
 
