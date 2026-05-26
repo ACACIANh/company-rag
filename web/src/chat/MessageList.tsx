@@ -1,5 +1,22 @@
+import { useCallback } from "react";
 import type { ChatMessage } from "../types";
 import { SourceBadge } from "./SourceBadge";
+import { MarkdownRenderer } from "./MarkdownRenderer";
+
+function CopyMessageButton({ content }: { content: string }) {
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(content);
+  }, [content]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="mt-1 px-2 py-0.5 text-xs rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors self-end"
+    >
+      Copy
+    </button>
+  );
+}
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
   return (
@@ -27,11 +44,16 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
               fontFeatureSettings: '"ss01"',
             }}
           >
-            <p className="whitespace-pre-wrap leading-[1.6]">{msg.content}</p>
+            {msg.role === "assistant" ? (
+              <MarkdownRenderer content={msg.content} />
+            ) : (
+              <p className="whitespace-pre-wrap leading-[1.6]">{msg.content}</p>
+            )}
           </div>
-          {msg.role === "assistant" && msg.sources !== undefined && (
-            <div className="mt-2 px-1">
-              <SourceBadge sources={msg.sources} />
+          {msg.role === "assistant" && (
+            <div className="flex items-center justify-between mt-1 px-1">
+              {msg.sources !== undefined && <SourceBadge sources={msg.sources} />}
+              <CopyMessageButton content={msg.content} />
             </div>
           )}
         </div>
