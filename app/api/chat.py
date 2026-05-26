@@ -69,7 +69,10 @@ async def lifespan(app: FastAPI):
     llm = create_llm(config)
     reranker = create_reranker(config)
 
-    async with AsyncPostgresSaver.from_conn_string(config.postgres_dsn) as checkpointer:
+    async with AsyncPostgresSaver.from_conn_string(
+        config.postgres_dsn,
+        allowed_msgpack_modules=[("shared.models", "Chunk"), ("shared.models", "SearchResult")],
+    ) as checkpointer:
         await checkpointer.setup()
         graph = build_graph(
             retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client,
