@@ -267,8 +267,8 @@ class AgentState(TypedDict):
 
 | 우선순위 | 항목 | 설명 |
 |---------|------|------|
-| P1 | **`shared/fga/client.py` 커밋** | ValidationException 핸들링 변경사항 커밋 |
-| P1 | **eval web_search AttributeError 픽스** | `tests/eval/runner.py` — `web_search_retriever=None` 환경에서 `AttributeError` 발생, 회귀 테스트 완전성 저해 |
+| ✅ | ~~`shared/fga/client.py` 커밋~~ | ba07aa5 (2026-05-26) |
+| ✅ | ~~eval web_search AttributeError 픽스~~ | `web_search_node` retriever=None 가드 추가, 24b08ea (2026-05-26) |
 | P2 | **SSE 스트리밍** | FastAPI `astream` + `StreamingResponse` + 프론트엔드 `EventSource` 일괄 도입 (ADR: `2026-05-23-frontend-architecture.md`) |
 | P2 | **CI 파이프라인** | `tests/eval/runner.py` 자동 실행, 점수 하락 시 알림 (plan 7.3) |
 | P3 | **실제 부하 테스트 실행** | `tests/load/locustfile.py` 실행 후 결과 기록 (Phase 5 DoD 미기록 상태) |
