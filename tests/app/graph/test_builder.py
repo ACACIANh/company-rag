@@ -1,10 +1,13 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 from unittest.mock import AsyncMock, MagicMock
 
 from shared.fga.models import UserPermission
-from shared.models import Answer, Chunk, SearchResult
+from shared.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
 
 
@@ -220,3 +223,107 @@ async def test_answer_question_new_session_starts_with_empty_history():
 
     rewrite_prompt = llm.complete.call_args_list[0][0][0]
     assert "없음" in rewrite_prompt
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_puts_tokens_and_done_in_queue():
+    """stream_answer가 토큰→sources→done 순서로 큐에 넣는다."""
+    from app.graph.builder import stream_answer
+
+    mock_final = {
+        "answer": "안녕하세요",
+        "citations": [SourceRef(source="doc.md")],
+    }
+    mock_graph = MagicMock()
+    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.ainvoke = AsyncMock(return_value=mock_final)
+
+    mock_store = AsyncMock()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=mock_graph,
+        question="질문",
+        config={"configurable": {"thread_id": "t1"}},
+        user_id="alice",
+        allowed_doc_ids=[],
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-1",
+        is_new_session=True,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    types = [e["type"] for e in events]
+    assert "sources" in types
+    assert types[-1] == "done"
+    done_event = events[-1]
+    assert done_event["session_id"] == "sess-1"
+
+    sources_event = next(e for e in events if e["type"] == "sources")
+    assert sources_event["sources"] == ["doc.md"]
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_puts_error_then_done_on_exception():
+    """graph.ainvoke 예외 시 error→done 순서로 큐에 넣는다."""
+    from app.graph.builder import stream_answer
+
+    mock_graph = MagicMock()
+    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.ainvoke = AsyncMock(side_effect=RuntimeError("LLM 오류"))
+
+    mock_store = AsyncMock()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=mock_graph,
+        question="질문",
+        config={"configurable": {"thread_id": "t1"}},
+        user_id="alice",
+        allowed_doc_ids=[],
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-1",
+        is_new_session=False,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    assert events[0]["type"] == "error"
+    assert "LLM 오류" in events[0]["message"]
+    assert events[1]["type"] == "done"
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_saves_session():
+    """완료 후 session_store에 user/assistant 메시지를 기록한다."""
+    from app.graph.builder import stream_answer
+
+    mock_final = {"answer": "답변", "citations": []}
+    mock_graph = MagicMock()
+    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.ainvoke = AsyncMock(return_value=mock_final)
+
+    mock_store = AsyncMock()
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=mock_graph,
+        question="안녕",
+        config={"configurable": {"thread_id": "t1"}},
+        user_id="alice",
+        allowed_doc_ids=[],
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-2",
+        is_new_session=True,
+    )
+
+    mock_store.create_session.assert_called_once_with("sess-2", "alice", "안녕")
+    assert mock_store.add_message.call_count == 2

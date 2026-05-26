@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 from functools import partial
 
@@ -145,3 +147,57 @@ async def answer_question(
     }
     final = await graph.ainvoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])
+
+
+async def stream_answer(
+    graph: CompiledStateGraph,
+    question: str,
+    config: dict,
+    user_id: str,
+    allowed_doc_ids: list[str],
+    token_queue: asyncio.Queue,
+    session_store,
+    session_id: str,
+    is_new_session: bool,
+) -> None:
+    config = _ensure_thread_id(config)
+    config["configurable"]["token_queue"] = token_queue
+    existing = graph.get_state(config)
+    chat_history = (existing.values or {}).get("chat_history", [])
+
+    initial: AgentState = {
+        "question": question,
+        "rewritten_question": "",
+        "chat_history": chat_history,
+        "route": "doc_search",
+        "documents": [],
+        "relevance_score": 0.0,
+        "retry_count": 0,
+        "answer": "",
+        "citations": [],
+        "hallucination_passed": False,
+        "confirmed": False,
+        "tool_input": "",
+        "user_id": user_id,
+        "allowed_doc_ids": allowed_doc_ids or [],
+        "user_teams": [],
+        "personal_doc_ids": [],
+    }
+
+    try:
+        final = await graph.ainvoke(initial, config=config)
+        await token_queue.put({
+            "type": "sources",
+            "sources": [s.source for s in final["citations"]],
+        })
+        await token_queue.put({"type": "done", "session_id": session_id})
+        try:
+            if is_new_session:
+                await session_store.create_session(session_id, user_id, question[:20])
+            await session_store.add_message(session_id, "user", question, [])
+            await session_store.add_message(session_id, "assistant", final["answer"], final["citations"])
+        except Exception:
+            logging.exception("session store write failed for session_id=%s", session_id)
+    except Exception as exc:
+        await token_queue.put({"type": "error", "message": str(exc)})
+        await token_queue.put({"type": "done", "session_id": session_id})
