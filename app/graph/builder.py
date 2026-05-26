@@ -123,10 +123,13 @@ async def answer_question(
     config: dict | None = None,
     user_id: str = "anonymous",
     allowed_doc_ids: list[str] | None = None,
+    chat_history_fallback: list | None = None,
 ) -> Answer:
     config = _ensure_thread_id(config)
     existing = graph.get_state(config)
     chat_history = (existing.values or {}).get("chat_history", [])
+    if not chat_history and chat_history_fallback:
+        chat_history = chat_history_fallback
 
     initial: AgentState = {
         "question": question,
@@ -166,6 +169,9 @@ async def stream_answer(
         config = {**config, "configurable": {**config["configurable"], "token_queue": token_queue}}
         existing = graph.get_state(config)
         chat_history = (existing.values or {}).get("chat_history", [])
+        if not chat_history and not is_new_session:
+            stored = await session_store.get_messages(session_id)
+            chat_history = [{"role": m.role, "content": m.content} for m in stored]
 
         initial: AgentState = {
             "question": question,

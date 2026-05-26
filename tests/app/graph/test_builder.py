@@ -301,6 +301,104 @@ async def test_stream_answer_puts_error_then_done_on_exception():
 
 
 @pytest.mark.asyncio
+async def test_answer_question_uses_chat_history_fallback():
+    """checkpointer가 비어있어도 chat_history_fallback이 프롬프트에 사용된다."""
+    retriever = _make_retriever(text="연차는 15일", source="vacation.md")
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "연차 추가 질문",
+        "doc_search",
+        "0.9",
+        "추가 답변",
+        "YES",
+    ]
+    graph = build_graph(retriever=retriever, llm=llm, fga_client=_mock_fga_client())
+    config = {"configurable": {"thread_id": "fallback-test-unique-1"}}
+
+    fallback = [
+        {"role": "user", "content": "연차 어떻게 써?"},
+        {"role": "assistant", "content": "연차는 15일입니다."},
+    ]
+    result = await answer_question(
+        graph, "더 자세히 알려줘", config=config, chat_history_fallback=fallback
+    )
+    assert result.text == "추가 답변"
+    rewrite_prompt = llm.complete.call_args_list[0][0][0]
+    assert "연차 어떻게 써?" in rewrite_prompt
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_falls_back_to_session_store_history():
+    """checkpointer 비어있고 기존 세션이면 session_store 메시지를 chat_history로 사용한다."""
+    from app.graph.builder import stream_answer
+    from shared.session.base import StoredMessage
+
+    captured: dict = {}
+    mock_final = {"answer": "답변", "citations": []}
+    mock_graph = MagicMock()
+    mock_graph.get_state.return_value = MagicMock(values={})
+
+    async def capture_ainvoke(initial, config=None):
+        captured["chat_history"] = initial.get("chat_history", [])
+        return mock_final
+
+    mock_graph.ainvoke = capture_ainvoke
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[
+        StoredMessage(role="user", content="이전 질문", sources=[]),
+        StoredMessage(role="assistant", content="이전 답변", sources=[]),
+    ])
+
+    queue: asyncio.Queue = asyncio.Queue()
+    await stream_answer(
+        graph=mock_graph,
+        question="후속 질문",
+        config={"configurable": {"thread_id": "t-fallback"}},
+        user_id="alice",
+        allowed_doc_ids=[],
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-fallback",
+        is_new_session=False,
+    )
+
+    assert captured["chat_history"] == [
+        {"role": "user", "content": "이전 질문"},
+        {"role": "assistant", "content": "이전 답변"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_does_not_load_store_for_new_session():
+    """새 세션이면 session_store.get_messages를 호출하지 않는다."""
+    from app.graph.builder import stream_answer
+
+    mock_final = {"answer": "답변", "citations": []}
+    mock_graph = MagicMock()
+    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.ainvoke = AsyncMock(return_value=mock_final)
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+
+    queue: asyncio.Queue = asyncio.Queue()
+    await stream_answer(
+        graph=mock_graph,
+        question="첫 질문",
+        config={"configurable": {"thread_id": "t-new"}},
+        user_id="alice",
+        allowed_doc_ids=[],
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-new",
+        is_new_session=True,
+    )
+
+    mock_store.get_messages.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_stream_answer_saves_session():
     """완료 후 session_store에 user/assistant 메시지를 기록한다."""
     from app.graph.builder import stream_answer

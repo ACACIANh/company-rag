@@ -96,6 +96,40 @@ def test_chat_generates_new_session_id_when_not_provided():
     assert resp1["session_id"] != resp2["session_id"]
 
 
+def test_chat_passes_fallback_history_for_existing_session():
+    """기존 세션에 대해 session_store 메시지를 chat_history_fallback으로 answer_question에 전달한다."""
+    from app.api.chat import app
+    from shared.session.base import StoredMessage
+
+    mock_answer = Answer(text="답변", sources=[])
+    mock_session = AsyncMock()
+    mock_session.list_sessions = AsyncMock(
+        return_value=[MagicMock(thread_id="existing-session")]
+    )
+    mock_session.get_messages = AsyncMock(return_value=[
+        StoredMessage(role="user", content="이전 질문", sources=[]),
+        StoredMessage(role="assistant", content="이전 답변", sources=[]),
+    ])
+    mock_session.add_message = AsyncMock()
+    app.state.session_store = mock_session
+
+    with patch("app.api.chat.answer_question", AsyncMock(return_value=mock_answer)) as mock_aq:
+        client = TestClient(app)
+        token = _get_token(client)
+        client.post(
+            "/chat",
+            json={"question": "후속 질문", "session_id": "existing-session"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    call_kwargs = mock_aq.call_args[1]
+    fallback = call_kwargs.get("chat_history_fallback")
+    assert fallback == [
+        {"role": "user", "content": "이전 질문"},
+        {"role": "assistant", "content": "이전 답변"},
+    ]
+
+
 def test_chat_returns_403_for_unauthorized_session_id():
     from app.api.chat import app
     mock_session = AsyncMock()
