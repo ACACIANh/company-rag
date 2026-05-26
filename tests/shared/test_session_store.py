@@ -1,4 +1,9 @@
+import os
+
+import pytest
+
 from shared.session.adapters.memory import InMemorySessionStore
+from shared.session.adapters.postgres import PostgresSessionStore
 
 
 def _store() -> InMemorySessionStore:
@@ -61,10 +66,6 @@ def test_add_message_to_nonexistent_session_is_noop():
     store.add_message("ghost", "user", "내용", [])  # 오류 없이 무시
     assert store.get_messages("ghost") == []
 
-
-import os
-import pytest
-from shared.session.adapters.postgres import PostgresSessionStore
 
 
 @pytest.fixture
