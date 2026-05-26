@@ -56,3 +56,9 @@ export interface SessionMessage {
   content: string;
   sources?: string[];
 }
+
+export type SSEEvent =
+  | { type: "token";   content: string }
+  | { type: "sources"; sources: string[] }
+  | { type: "done";    session_id: string }
+  | { type: "error";   message: string };

@@ -1,4 +1,4 @@
-import { ApiError, Session, SessionMessage } from "../types";
+import { ApiError, Session, SessionMessage, SSEEvent } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -81,4 +81,45 @@ export async function getSessionMessages(sessionId: string): Promise<SessionMess
 
 export async function deleteSession(sessionId: string): Promise<void> {
   return apiFetch<void>(`/sessions/${sessionId}`, { method: "DELETE" });
+}
+
+export async function* streamChat(
+  question: string,
+  sessionId: string | null
+): AsyncGenerator<SSEEvent> {
+  const token = localStorage.getItem("token");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(`${BASE_URL}/chat/stream`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ question, session_id: sessionId }),
+  });
+
+  if (response.status === 401) {
+    if (onUnauthorized) onUnauthorized();
+    throw new ApiError(401, await safeMessage(response));
+  }
+  if (!response.ok) {
+    throw new ApiError(response.status, await safeMessage(response));
+  }
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const line = part.replace(/^data: /, "").trim();
+      if (line) yield JSON.parse(line) as SSEEvent;
+    }
+  }
 }
