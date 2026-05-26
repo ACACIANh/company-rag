@@ -201,7 +201,6 @@ async def stream_answer(
             "type": "sources",
             "sources": [s.source for s in final["citations"]],
         })
-        await token_queue.put({"type": "done", "session_id": session_id})
         try:
             if is_new_session:
                 await session_store.create_session(session_id, user_id, question[:20])
@@ -209,6 +208,7 @@ async def stream_answer(
             await session_store.add_message(session_id, "assistant", final["answer"], final["citations"])
         except Exception:
             logging.exception("session store write failed for session_id=%s", session_id)
+        await token_queue.put({"type": "done", "session_id": session_id})
     except Exception as exc:
         await token_queue.put({"type": "error", "message": str(exc)})
         await token_queue.put({"type": "done", "session_id": session_id})
