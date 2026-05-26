@@ -1,38 +1,56 @@
-import os
+import json
+from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+
 from shared.fga.cache.postgres import PostgresCacheBackend
 from shared.fga.models import UserPermission
 
 
-@pytest.fixture
-def pg_cache():
-    dsn = os.environ.get("POSTGRES_DSN", "")
-    if not dsn:
-        pytest.skip("POSTGRES_DSN not set")
-    cache = PostgresCacheBackend(dsn=dsn)
-    cache._ensure_table()
-    cache.invalidate("test_u1")  # 이전 테스트 잔류 정리
-    yield cache
-    cache.invalidate("test_u1")
+def _make_pool(fetchrow_return=None):
+    conn = AsyncMock()
+    conn.fetchrow = AsyncMock(return_value=fetchrow_return)
+    conn.execute = AsyncMock()
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+    return pool, conn
 
 
-def test_pg_set_and_get(pg_cache):
-    perm = UserPermission(user_id="test_u1", teams=["team:dev"], personal_docs=["doc:x"])
-    pg_cache.set("test_u1", perm, ttl_seconds=60)
-    result = pg_cache.get("test_u1")
+@pytest.mark.asyncio
+async def test_get_returns_none_when_no_row():
+    pool, conn = _make_pool(fetchrow_return=None)
+    backend = PostgresCacheBackend(pool)
+    result = await backend.get("u1")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_get_returns_permission_when_row_found():
+    row = {"teams": json.dumps(["team:dev"]), "personal_docs": json.dumps(["doc:x"])}
+    pool, conn = _make_pool(fetchrow_return=row)
+    backend = PostgresCacheBackend(pool)
+    result = await backend.get("u1")
     assert result is not None
     assert result.teams == ["team:dev"]
     assert result.personal_docs == ["doc:x"]
 
 
-def test_pg_expired_returns_none(pg_cache):
-    perm = UserPermission(user_id="test_u1", teams=[], personal_docs=[])
-    pg_cache.set("test_u1", perm, ttl_seconds=-1)  # 이미 만료
-    assert pg_cache.get("test_u1") is None
+@pytest.mark.asyncio
+async def test_set_calls_execute():
+    pool, conn = _make_pool()
+    backend = PostgresCacheBackend(pool)
+    perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
+    await backend.set("u1", perm, ttl_seconds=60)
+    conn.execute.assert_called_once()
 
 
-def test_pg_invalidate(pg_cache):
-    perm = UserPermission(user_id="test_u1", teams=["team:ops"], personal_docs=[])
-    pg_cache.set("test_u1", perm, ttl_seconds=60)
-    pg_cache.invalidate("test_u1")
-    assert pg_cache.get("test_u1") is None
+@pytest.mark.asyncio
+async def test_invalidate_calls_execute():
+    pool, conn = _make_pool()
+    backend = PostgresCacheBackend(pool)
+    await backend.invalidate("u1")
+    conn.execute.assert_called_once()
