@@ -1,9 +1,7 @@
 import dataclasses
-from contextlib import contextmanager
+import json
 
-import psycopg2
-import psycopg2.extras
-from psycopg2 import pool
+import asyncpg
 
 from shared.models import SourceRef
 from shared.session.base import SessionMeta, SessionStore, StoredMessage
@@ -18,25 +16,12 @@ def _to_source_ref(item) -> SourceRef:
 
 
 class PostgresSessionStore(SessionStore):
-    def __init__(self, dsn: str, min_conn: int = 1, max_conn: int = 5) -> None:
-        self._pool = pool.ThreadedConnectionPool(min_conn, max_conn, dsn)
-        self._ensure_tables()
+    def __init__(self, pool: asyncpg.Pool) -> None:
+        self._pool = pool
 
-    @contextmanager
-    def _conn(self):
-        conn = self._pool.getconn()
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            self._pool.putconn(conn)
-
-    def _ensure_tables(self) -> None:
-        with self._conn() as conn, conn.cursor() as cur:
-            cur.execute("""
+    async def ensure_tables(self) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute("""
                 CREATE TABLE IF NOT EXISTS chat_sessions (
                     thread_id   TEXT        PRIMARY KEY,
                     user_id     TEXT        NOT NULL,
@@ -44,84 +29,84 @@ class PostgresSessionStore(SessionStore):
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             """)
-            cur.execute("""
+            await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user
                 ON chat_sessions(user_id)
             """)
-            cur.execute("""
+            await conn.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     id          BIGSERIAL   PRIMARY KEY,
                     thread_id   TEXT        NOT NULL
                                     REFERENCES chat_sessions(thread_id) ON DELETE CASCADE,
                     role        TEXT        NOT NULL,
                     content     TEXT        NOT NULL,
-                    sources     JSONB       NOT NULL DEFAULT '[]',
+                    sources     TEXT        NOT NULL DEFAULT '[]',
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             """)
-            cur.execute("""
+            await conn.execute("""
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_thread
                 ON chat_messages(thread_id, created_at)
             """)
 
-    def create_session(self, thread_id: str, user_id: str, title: str) -> None:
-        with self._conn() as conn, conn.cursor() as cur:
-            cur.execute("""
+    async def create_session(self, thread_id: str, user_id: str, title: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute("""
                 INSERT INTO chat_sessions (thread_id, user_id, title)
-                VALUES (%s, %s, %s)
+                VALUES ($1, $2, $3)
                 ON CONFLICT (thread_id) DO NOTHING
-            """, (thread_id, user_id, title))
+            """, thread_id, user_id, title)
 
-    def list_sessions(self, user_id: str) -> list[SessionMeta]:
-        with self._conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""
+    async def list_sessions(self, user_id: str) -> list[SessionMeta]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("""
                 SELECT thread_id, title, created_at
                 FROM chat_sessions
-                WHERE user_id = %s
+                WHERE user_id = $1
                 ORDER BY created_at DESC
-            """, (user_id,))
+            """, user_id)
             return [
                 SessionMeta(
                     thread_id=row["thread_id"],
                     title=row["title"],
                     created_at=row["created_at"].isoformat(),
                 )
-                for row in cur.fetchall()
+                for row in rows
             ]
 
-    def get_messages(self, thread_id: str) -> list[StoredMessage]:
-        with self._conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""
+    async def get_messages(self, thread_id: str) -> list[StoredMessage]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch("""
                 SELECT role, content, sources
                 FROM chat_messages
-                WHERE thread_id = %s
+                WHERE thread_id = $1
                 ORDER BY created_at ASC
-            """, (thread_id,))
+            """, thread_id)
             return [
                 StoredMessage(
                     role=row["role"],
                     content=row["content"],
-                    sources=[_to_source_ref(item) for item in row["sources"]],
+                    sources=[_to_source_ref(item) for item in json.loads(row["sources"])],
                 )
-                for row in cur.fetchall()
+                for row in rows
             ]
 
-    def add_message(
+    async def add_message(
         self, thread_id: str, role: str, content: str, sources: list[SourceRef]
     ) -> None:
-        try:
-            with self._conn() as conn, conn.cursor() as cur:
-                cur.execute("""
+        async with self._pool.acquire() as conn:
+            try:
+                await conn.execute("""
                     INSERT INTO chat_messages (thread_id, role, content, sources)
-                    VALUES (%s, %s, %s, %s)
-                """, (thread_id, role, content,
-                      psycopg2.extras.Json([dataclasses.asdict(s) for s in sources])))
-        except psycopg2.errors.ForeignKeyViolation:
-            pass
+                    VALUES ($1, $2, $3, $4)
+                """, thread_id, role, content,
+                    json.dumps([dataclasses.asdict(s) for s in sources]))
+            except asyncpg.ForeignKeyViolationError:
+                pass
 
-    def delete_session(self, thread_id: str, user_id: str) -> None:
-        with self._conn() as conn, conn.cursor() as cur:
-            cur.execute("""
+    async def delete_session(self, thread_id: str, user_id: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute("""
                 DELETE FROM chat_sessions
-                WHERE thread_id = %s AND user_id = %s
-            """, (thread_id, user_id))
+                WHERE thread_id = $1 AND user_id = $2
+            """, thread_id, user_id)

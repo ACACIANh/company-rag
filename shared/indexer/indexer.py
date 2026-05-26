@@ -12,7 +12,7 @@ class Indexer:
         chunker: Chunker,
         embedder: Embedder,
         store: VectorStore,
-        fga_client=None,   # FGAClient | None — 순환 import 방지로 타입 미지정
+        fga_client=None,
         default_team_id: str = "team:general",
         default_owner_id: str = "system",
     ) -> None:
@@ -24,7 +24,7 @@ class Indexer:
         self._default_team_id = default_team_id
         self._default_owner_id = default_owner_id
 
-    def index(self, path: str) -> int:
+    async def index(self, path: str) -> int:
         docs = self._loader.load(path)
         chunks = [c for d in docs for c in self._chunker.chunk(d)]
         if not chunks:
@@ -43,11 +43,11 @@ class Indexer:
                 }
 
         extra_metadata = [doc_metadata[c.source] for c in chunks]
-        self._store.add(chunks, embeddings, extra_metadata=extra_metadata)
+        await self._store.add(chunks, embeddings, extra_metadata=extra_metadata)
 
         if self._fga_client:
             for source, meta in doc_metadata.items():
-                self._fga_client.write_tuples(
+                await self._fga_client.write_tuples(
                     doc_id=meta["document_id"],
                     owner_id=self._default_owner_id,
                     team_id=meta["team_id"],

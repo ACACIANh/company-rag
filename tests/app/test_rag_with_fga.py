@@ -1,8 +1,10 @@
 """
-FGA 권한별 Chroma 검색 통합 테스트.
-실제 Chroma (임베디드) + InMemoryCacheBackend + FGA API mock 사용.
+FGA 권한별 PostgreSQL 검색 통합 테스트.
+AsyncMock retriever + InMemoryCacheBackend + FGA API mock 사용.
 """
-from unittest.mock import MagicMock
+import time
+import pytest
+from unittest.mock import AsyncMock
 
 from shared.fga.cache.memory import InMemoryCacheBackend
 from shared.fga.client import FGAClient
@@ -12,64 +14,52 @@ from shared.models import Chunk, SearchResult
 
 def _make_fga_client(teams=None, personal_docs=None) -> FGAClient:
     config = FGAConfig(api_url="http://localhost", store_id="test")
-    client = FGAClient(config=config, cache=InMemoryCacheBackend())
+    cache = InMemoryCacheBackend()
     perm = UserPermission(user_id="u1", teams=teams or [], personal_docs=personal_docs or [])
-    client._cache.set("u1", perm, ttl_seconds=60)
-    return client
+    # InMemoryCacheBackend는 내부적으로 dict를 사용 — 직접 seeding
+    cache._store["u1"] = (perm, time.time() + 3600)
+    return FGAClient(config=config, cache=cache)
 
 
-def _mock_retriever(chunks: list[dict]) -> MagicMock:
+def _mock_retriever(chunks: list[dict]):
     """
-    chunks: list of dicts with keys:
-        text, source, sensitivity, team_id (optional), document_id (optional)
-    document_id defaults to f"doc:{source}" if not provided.
-    team_id defaults to "" if not provided.
+    pg filter 기반 retriever mock.
+    where_clause / params 로 sensitivity 필터링을 직접 시뮬레이션.
     """
-    mock = MagicMock()
+    mock = AsyncMock()
 
-    def fake_retrieve(query, top_k=5, where_filter=None):
+    async def fake_retrieve(query, top_k=5, where_clause="", params=None):
+        params = params or []
         results = []
-        for chunk_def in chunks:
-            text = chunk_def["text"]
-            source = chunk_def["source"]
-            sensitivity = chunk_def["sensitivity"]
-            meta = {
-                "sensitivity": sensitivity,
-                "source": source,
-                "document_id": chunk_def.get("document_id", f"doc:{source}"),
-                "team_id": chunk_def.get("team_id", ""),
-            }
-            if where_filter is None:
-                results.append(SearchResult(
-                    chunk=Chunk(text=text, source=source, chunk_id=source), score=0.9
-                ))
+        for c in chunks:
+            sensitivity = c["sensitivity"]
+            team_id = c.get("team_id", "")
+            doc_id = c.get("doc_id", f"doc:{c['source']}")
+
+            if sensitivity == "public":
+                pass
+            elif sensitivity == "internal":
+                allowed_teams = params[0] if len(params) >= 1 else []
+                if team_id not in allowed_teams:
+                    continue
+            elif sensitivity == "secret":
+                allowed_docs = params[-1] if params else []
+                if doc_id not in allowed_docs:
+                    continue
             else:
-                if _matches_filter(meta, where_filter):
-                    results.append(SearchResult(
-                        chunk=Chunk(text=text, source=source, chunk_id=source), score=0.9
-                    ))
+                continue
+
+            results.append(SearchResult(
+                chunk=Chunk(text=c["text"], source=c["source"], chunk_id=c["source"]),
+                score=0.9,
+            ))
         return results[:top_k]
 
-    mock.retrieve.side_effect = fake_retrieve
+    mock.retrieve = fake_retrieve
     return mock
 
 
-def _matches_filter(meta: dict, f: dict) -> bool:
-    if "$or" in f:
-        return any(_matches_filter(meta, c) for c in f["$or"])
-    if "$and" in f:
-        return all(_matches_filter(meta, c) for c in f["$and"])
-    for key, cond in f.items():
-        if isinstance(cond, dict) and "$in" in cond:
-            if meta.get(key) not in cond["$in"]:
-                return False
-        else:
-            if meta.get(key) != cond:
-                return False
-    return True
-
-
-def test_public_doc_accessible_to_all():
+async def test_public_doc_accessible_to_all():
     fga = _make_fga_client(teams=[], personal_docs=[])
     retriever = _mock_retriever([
         {"text": "공개 내용", "source": "public.md", "sensitivity": "public"},
@@ -79,15 +69,15 @@ def test_public_doc_accessible_to_all():
     from app.graph.nodes.retrieve import retrieve_node
 
     state = {"user_id": "u1", "question": "공개 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = permission_node(state, fga_client=fga)
+    perm_result = await permission_node(state, fga_client=fga)
     state.update(perm_result)
-    result = retrieve_node(state, retriever=retriever, fga_client=fga)
+    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
 
     assert len(result["documents"]) == 1
     assert result["documents"][0].chunk.source == "public.md"
 
 
-def test_internal_doc_blocked_without_team():
+async def test_internal_doc_blocked_without_team():
     fga = _make_fga_client(teams=[], personal_docs=[])
     retriever = _mock_retriever([
         {"text": "내부 내용", "source": "internal.md", "sensitivity": "internal", "team_id": "team:dev"},
@@ -97,14 +87,14 @@ def test_internal_doc_blocked_without_team():
     from app.graph.nodes.retrieve import retrieve_node
 
     state = {"user_id": "u1", "question": "내부 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = permission_node(state, fga_client=fga)
+    perm_result = await permission_node(state, fga_client=fga)
     state.update(perm_result)
-    result = retrieve_node(state, retriever=retriever, fga_client=fga)
+    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
 
     assert len(result["documents"]) == 0
 
 
-def test_internal_doc_accessible_with_correct_team():
+async def test_internal_doc_accessible_with_correct_team():
     fga = _make_fga_client(teams=["team:dev"], personal_docs=[])
     retriever = _mock_retriever([
         {"text": "팀 내부", "source": "internal.md", "sensitivity": "internal", "team_id": "team:dev"},
@@ -115,45 +105,45 @@ def test_internal_doc_accessible_with_correct_team():
     from app.graph.nodes.retrieve import retrieve_node
 
     state = {"user_id": "u1", "question": "팀 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = permission_node(state, fga_client=fga)
+    perm_result = await permission_node(state, fga_client=fga)
     state.update(perm_result)
-    result = retrieve_node(state, retriever=retriever, fga_client=fga)
+    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
 
     sources = [r.chunk.source for r in result["documents"]]
     assert "internal.md" in sources
     assert "public.md" in sources
 
 
-def test_secret_doc_accessible_only_with_personal_doc_id():
+async def test_secret_doc_accessible_only_with_personal_doc_id():
     fga = _make_fga_client(teams=[], personal_docs=["doc:salary.md"])
     retriever = _mock_retriever([
-        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret"},
+        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret", "doc_id": "doc:salary.md"},
     ])
 
     from app.graph.nodes.permission import permission_node
     from app.graph.nodes.retrieve import retrieve_node
 
     state = {"user_id": "u1", "question": "급여", "user_teams": [], "personal_doc_ids": []}
-    perm_result = permission_node(state, fga_client=fga)
+    perm_result = await permission_node(state, fga_client=fga)
     state.update(perm_result)
-    result = retrieve_node(state, retriever=retriever, fga_client=fga)
+    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
 
     assert len(result["documents"]) == 1
     assert result["documents"][0].chunk.source == "salary.md"
 
 
-def test_secret_doc_blocked_without_personal_doc_id():
+async def test_secret_doc_blocked_without_personal_doc_id():
     fga = _make_fga_client(teams=[], personal_docs=[])
     retriever = _mock_retriever([
-        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret"},
+        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret", "doc_id": "doc:salary.md"},
     ])
 
     from app.graph.nodes.permission import permission_node
     from app.graph.nodes.retrieve import retrieve_node
 
     state = {"user_id": "u1", "question": "급여", "user_teams": [], "personal_doc_ids": []}
-    perm_result = permission_node(state, fga_client=fga)
+    perm_result = await permission_node(state, fga_client=fga)
     state.update(perm_result)
-    result = retrieve_node(state, retriever=retriever, fga_client=fga)
+    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
 
     assert len(result["documents"]) == 0

@@ -7,7 +7,7 @@ class InMemoryCacheBackend(PermissionCacheBackend):
     def __init__(self) -> None:
         self._store: dict[str, tuple[UserPermission, float]] = {}
 
-    def get(self, user_id: str) -> UserPermission | None:
+    async def get(self, user_id: str) -> UserPermission | None:
         entry = self._store.get(user_id)
         if entry is None:
             return None
@@ -17,8 +17,8 @@ class InMemoryCacheBackend(PermissionCacheBackend):
             return None
         return perm
 
-    def set(self, user_id: str, perm: UserPermission, ttl_seconds: int) -> None:
+    async def set(self, user_id: str, perm: UserPermission, ttl_seconds: int) -> None:
         self._store[user_id] = (perm, time.time() + ttl_seconds)
 
-    def invalidate(self, user_id: str) -> None:
+    async def invalidate(self, user_id: str) -> None:
         self._store.pop(user_id, None)

@@ -1,4 +1,5 @@
 import time
+
 from shared.fga.cache.memory import InMemoryCacheBackend
 from shared.fga.models import UserPermission
 
@@ -7,35 +8,35 @@ def _perm(user_id="u1") -> UserPermission:
     return UserPermission(user_id=user_id, teams=["team:dev"], personal_docs=["doc:secret"])
 
 
-def test_set_and_get_returns_permission():
+async def test_set_and_get_returns_permission():
     cache = InMemoryCacheBackend()
     perm = _perm()
-    cache.set("u1", perm, ttl_seconds=60)
-    result = cache.get("u1")
+    await cache.set("u1", perm, ttl_seconds=60)
+    result = await cache.get("u1")
     assert result is not None
     assert result.teams == ["team:dev"]
     assert result.personal_docs == ["doc:secret"]
 
 
-def test_get_returns_none_for_unknown_user():
+async def test_get_returns_none_for_unknown_user():
     cache = InMemoryCacheBackend()
-    assert cache.get("unknown") is None
+    assert await cache.get("unknown") is None
 
 
-def test_ttl_expiry_returns_none():
+async def test_ttl_expiry_returns_none():
     cache = InMemoryCacheBackend()
-    cache.set("u1", _perm(), ttl_seconds=1)
+    await cache.set("u1", _perm(), ttl_seconds=1)
     time.sleep(1.1)
-    assert cache.get("u1") is None
+    assert await cache.get("u1") is None
 
 
-def test_invalidate_removes_entry():
+async def test_invalidate_removes_entry():
     cache = InMemoryCacheBackend()
-    cache.set("u1", _perm(), ttl_seconds=60)
-    cache.invalidate("u1")
-    assert cache.get("u1") is None
+    await cache.set("u1", _perm(), ttl_seconds=60)
+    await cache.invalidate("u1")
+    assert await cache.get("u1") is None
 
 
-def test_invalidate_nonexistent_is_noop():
+async def test_invalidate_nonexistent_is_noop():
     cache = InMemoryCacheBackend()
-    cache.invalidate("ghost")  # should not raise
+    await cache.invalidate("ghost")  # should not raise

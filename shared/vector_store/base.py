@@ -4,18 +4,21 @@ from shared.models import Chunk, SearchResult
 
 class VectorStore(ABC):
     @abstractmethod
-    def add(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:
-        ...
+    async def add(
+        self,
+        chunks: list[Chunk],
+        embeddings: list[list[float]],
+        extra_metadata: list[dict] | None = None,
+    ) -> None: ...
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         query_embedding: list[float],
         top_k: int = 5,
-        where_filter: dict | None = None,
-    ) -> list[SearchResult]:
-        ...
+        where_clause: str = "",
+        params: list | None = None,
+    ) -> list[SearchResult]: ...
 
     @abstractmethod
-    def count(self) -> int:
-        ...
+    async def count(self) -> int: ...

@@ -9,8 +9,14 @@ class BasicRetriever(Retriever):
         self._store = store
         self._embedder = embedder
 
-    def retrieve(
-        self, query: str, top_k: int = 5, where_filter: dict | None = None
+    async def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        where_clause: str = "",
+        params: list | None = None,
     ) -> list[SearchResult]:
         embedding = self._embedder.embed(query)
-        return self._store.search(embedding, top_k=top_k, where_filter=where_filter)
+        return await self._store.search(
+            embedding, top_k=top_k, where_clause=where_clause, params=params
+        )

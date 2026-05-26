@@ -14,4 +14,3 @@ class FGAConfig:
     store_id: str
     api_key: str = ""
     cache_ttl_seconds: int = 60
-    pg_dsn: str = ""   # 설정 시 personal_docs를 user_doc_grants 테이블에서 조회

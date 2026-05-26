@@ -3,26 +3,19 @@ from datetime import date
 from pathlib import Path
 
 import yaml
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from shared.auth.base import AuthUser
-from shared.config import load_config
-from shared.fga.cache import make_cache_backend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
-from shared.vector_store.factory import create_vector_store
-from app.api.deps import require_admin
+from app.api.deps import get_fga_client, require_admin
 from app.ingestion.indexer import build_index
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-_config = load_config()
-
 
 @router.get("/index/status")
-def index_status(_: AuthUser = Depends(require_admin)) -> dict:
-    store = create_vector_store(_config)
-    return {"chunk_count": store.count()}
+async def index_status(request: Request, _: AuthUser = Depends(require_admin)) -> dict:
+    count = await request.app.state.store.count()
+    return {"chunk_count": count}
 
 
 @router.post("/index/rebuild", status_code=202)
@@ -103,56 +96,50 @@ def update_user_docs(
     raise HTTPException(status_code=404, detail="User not found")
 
 
-def _get_fga_client() -> FGAClient:
-    fga_config = FGAConfig(
-        api_url=_config.fga_api_url,
-        store_id=_config.fga_store_id,
-        api_key=_config.fga_api_key,
-        cache_ttl_seconds=_config.fga_cache_ttl_seconds,
-        pg_dsn=_config.postgres_dsn,
-    )
-    return FGAClient(config=fga_config, cache=make_cache_backend(_config.fga_cache_backend, _config.postgres_dsn))
-
-
 @router.post("/users/{user_id}/teams/{team_id}", status_code=204)
-def add_user_to_team(
+async def add_user_to_team(
     user_id: str,
     team_id: str,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    _get_fga_client().add_team_member(user_id, team_id)
+    await request.app.state.fga_client.add_team_member(user_id, team_id)
 
 
 @router.delete("/users/{user_id}/teams/{team_id}", status_code=204)
-def remove_user_from_team(
+async def remove_user_from_team(
     user_id: str,
     team_id: str,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    _get_fga_client().remove_team_member(user_id, team_id)
+    await request.app.state.fga_client.remove_team_member(user_id, team_id)
 
 
 @router.delete("/users/{user_id}", status_code=204)
-def offboard_user(
+async def offboard_user(
     user_id: str,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    _get_fga_client().delete_user_tuples(user_id)
+    await request.app.state.fga_client.delete_user_tuples(user_id)
 
 
 @router.post("/documents/{doc_id}/viewers/{user_id}", status_code=204)
-def grant_doc_viewer(
+async def grant_doc_viewer(
     doc_id: str,
     user_id: str,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    _get_fga_client().grant_doc_access(user_id, f"doc:{doc_id}")
+    await request.app.state.fga_client.grant_doc_access(user_id, f"doc:{doc_id}")
 
 
 @router.delete("/documents/{doc_id}/viewers/{user_id}", status_code=204)
-def revoke_doc_viewer(
+async def revoke_doc_viewer(
     doc_id: str,
     user_id: str,
+    request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    _get_fga_client().revoke_doc_access(user_id, f"doc:{doc_id}")
+    await request.app.state.fga_client.revoke_doc_access(user_id, f"doc:{doc_id}")

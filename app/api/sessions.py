@@ -22,30 +22,30 @@ class MessageOut(BaseModel):
 
 
 @router.get("", response_model=list[SessionOut])
-def list_sessions(
+async def list_sessions(
     user: AuthUser = Depends(get_current_user),
     store: SessionStore = Depends(get_session_store),
 ):
     return [
         SessionOut(thread_id=s.thread_id, title=s.title, created_at=s.created_at)
-        for s in store.list_sessions(user["user_id"])
+        for s in await store.list_sessions(user["user_id"])
     ]
 
 
 @router.get("/{session_id}/messages", response_model=list[MessageOut])
-def get_session_messages(
+async def get_session_messages(
     session_id: str,
     user: AuthUser = Depends(get_current_user),
     store: SessionStore = Depends(get_session_store),
     fga_client: FGAClient = Depends(get_fga_client),
 ):
-    owned = {s.thread_id for s in store.list_sessions(user["user_id"])}
+    owned = {s.thread_id for s in await store.list_sessions(user["user_id"])}
     if session_id not in owned:
         raise HTTPException(status_code=404, detail="Session not found")
     result = []
-    for m in store.get_messages(session_id):
+    for m in await store.get_messages(session_id):
         if m.role == "assistant" and m.sources:
-            visible = fga_client.filter_sources(m.sources, user["user_id"])
+            visible = await fga_client.filter_sources(m.sources, user["user_id"])
         else:
             visible = m.sources
         result.append(MessageOut(
@@ -57,12 +57,12 @@ def get_session_messages(
 
 
 @router.delete("/{session_id}", status_code=204)
-def delete_session(
+async def delete_session(
     session_id: str,
     user: AuthUser = Depends(get_current_user),
     store: SessionStore = Depends(get_session_store),
 ):
-    owned = {s.thread_id for s in store.list_sessions(user["user_id"])}
+    owned = {s.thread_id for s in await store.list_sessions(user["user_id"])}
     if session_id not in owned:
         raise HTTPException(status_code=404, detail="Session not found")
-    store.delete_session(session_id, user["user_id"])
+    await store.delete_session(session_id, user["user_id"])
