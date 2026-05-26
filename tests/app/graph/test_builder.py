@@ -64,7 +64,7 @@ def test_answer_question_doc_search_happy_path(mock_fga_factory):
 
     assert isinstance(result, Answer)
     assert result.text == "정답"
-    assert "vacation.md" in result.sources
+    assert any(ref.source == "vacation.md" for ref in result.sources)
 
 
 def test_answer_question_web_search_path():
@@ -81,7 +81,7 @@ def test_answer_question_web_search_path():
     result = answer_question(graph, "LangGraph 최신 버전 알려줘")
 
     assert result.text == "웹 검색 기반 답변"
-    assert "https://langchain.com" in result.sources
+    assert any(ref.source == "https://langchain.com" for ref in result.sources)
 
 
 @patch("app.graph.builder._default_fga_client")

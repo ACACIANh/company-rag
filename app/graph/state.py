@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from shared.models import SearchResult
+from shared.models import SearchResult, SourceRef
 
 
 class AgentState(TypedDict):
@@ -12,7 +12,7 @@ class AgentState(TypedDict):
     relevance_score: float
     retry_count: int
     answer: str
-    citations: list[str]
+    citations: list[SourceRef]
     hallucination_passed: bool
     confirmed: bool
     tool_input: str
