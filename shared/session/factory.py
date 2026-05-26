@@ -1,12 +1,12 @@
 from shared.config import Config
 from shared.session.base import SessionStore
 from shared.session.adapters.memory import InMemorySessionStore
+from shared.session.adapters.postgres import PostgresSessionStore
 
 
 def create_session_store(config: Config) -> SessionStore:
     if config.session_store_type == "postgres":
-        raise NotImplementedError(
-            "PostgresSessionStore is not yet implemented. "
-            "Set SESSION_STORE_TYPE=memory for development."
-        )
+        if not config.postgres_dsn:
+            raise ValueError("POSTGRES_DSN must be set when SESSION_STORE_TYPE=postgres")
+        return PostgresSessionStore(dsn=config.postgres_dsn)
     return InMemorySessionStore()
