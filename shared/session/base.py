@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from shared.models import SourceRef
+
 
 @dataclass
 class SessionMeta:
@@ -13,7 +15,7 @@ class SessionMeta:
 class StoredMessage:
     role: str  # 'user' | 'assistant'
     content: str
-    sources: list[str] = field(default_factory=list)
+    sources: list[SourceRef] = field(default_factory=list)
 
 
 class SessionStore(ABC):
@@ -28,7 +30,7 @@ class SessionStore(ABC):
 
     @abstractmethod
     def add_message(
-        self, thread_id: str, role: str, content: str, sources: list[str]
+        self, thread_id: str, role: str, content: str, sources: list[SourceRef]
     ) -> None: ...
 
     @abstractmethod
