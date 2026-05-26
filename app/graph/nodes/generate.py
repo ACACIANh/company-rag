@@ -1,37 +1,60 @@
 from shared.llm.base import LLMClient
 from shared.models import SourceRef
 from shared.observability.cost_tracker import get_tracker
-from app.graph.prompts import RAG_GENERATE
+from app.graph.prompts import RAG_GENERATE, RAG_GENERATE_NO_DOCS
+
+_NO_DOC_NOTICE = (
+    "⚠️ 관련 사내 문서를 찾지 못했습니다.\n"
+    "일반 지식을 바탕으로 답변드립니다.\n\n---\n\n"
+)
+_RELEVANCE_THRESHOLD = 0.5
 
 
 def generate_node(state: dict, *, llm: LLMClient) -> dict:
     question = state.get("rewritten_question") or state["question"]
-    context = "\n\n".join(d.chunk.text for d in state["documents"])
     history = state.get("chat_history", [])
     history_text = "\n".join(
         f"{m['role']}: {m['content']}" for m in history
     ) if history else "없음"
-    prompt = RAG_GENERATE.format(context=context, question=question, chat_history=history_text)
-    text = llm.complete(prompt)
+
+    is_doc_search = state.get("route") == "doc_search"
+    no_relevant_docs = (
+        not state["documents"]
+        or state.get("relevance_score", 1.0) < _RELEVANCE_THRESHOLD
+    )
+
+    if is_doc_search and no_relevant_docs:
+        prompt = RAG_GENERATE_NO_DOCS.format(
+            chat_history=history_text,
+            question=question,
+        )
+        text = _NO_DOC_NOTICE + llm.complete(prompt)
+        citations = []
+    else:
+        context = "\n\n".join(d.chunk.text for d in state["documents"])
+        prompt = RAG_GENERATE.format(
+            context=context,
+            question=question,
+            chat_history=history_text,
+        )
+        text = llm.complete(prompt)
+        citations = [
+            SourceRef(
+                source=d.chunk.source,
+                document_id=d.chunk.metadata.get("document_id", ""),
+                sensitivity=d.chunk.metadata.get("sensitivity", "public"),
+                team_id=d.chunk.metadata.get("team_id", ""),
+            )
+            for d in state["documents"]
+        ]
 
     tracker = get_tracker()
     if tracker:
-        input_tokens = len(prompt) // 4
-        output_tokens = len(text) // 4
         tracker.track(
             user_id=state.get("user_id", "anonymous"),
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
+            input_tokens=len(prompt) // 4,
+            output_tokens=len(text) // 4,
             model="unknown",
         )
 
-    citations = [
-        SourceRef(
-            source=d.chunk.source,
-            document_id=d.chunk.metadata.get("document_id", ""),
-            sensitivity=d.chunk.metadata.get("sensitivity", "public"),
-            team_id=d.chunk.metadata.get("team_id", ""),
-        )
-        for d in state["documents"]
-    ]
     return {"answer": text, "citations": citations}

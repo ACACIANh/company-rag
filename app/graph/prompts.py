@@ -54,3 +54,10 @@ ROUTER_PROMPT = """\
 
 질문: {question}
 선택:"""
+
+RAG_GENERATE_NO_DOCS = """\
+이전 대화:
+{chat_history}
+
+질문: {question}
+사내 문서에서 관련 정보를 찾지 못했습니다. 일반 지식을 바탕으로 한국어로 답변하세요."""
