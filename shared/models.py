@@ -23,7 +23,15 @@ class SearchResult:
 
 
 @dataclass
+class SourceRef:
+    source: str
+    document_id: str = ""
+    sensitivity: str = "public"
+    team_id: str = ""
+
+
+@dataclass
 class Answer:
     text: str
-    sources: list[str]
+    sources: list[SourceRef]
     trace: list[dict] | None = None

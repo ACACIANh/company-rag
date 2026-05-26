@@ -1,4 +1,5 @@
 from shared.llm.base import LLMClient
+from shared.models import SourceRef
 from shared.observability.cost_tracker import get_tracker
 from app.graph.prompts import RAG_GENERATE
 
@@ -24,5 +25,13 @@ def generate_node(state: dict, *, llm: LLMClient) -> dict:
             model="unknown",
         )
 
-    citations = [d.chunk.source for d in state["documents"]]
+    citations = [
+        SourceRef(
+            source=d.chunk.source,
+            document_id=d.chunk.metadata.get("document_id", ""),
+            sensitivity=d.chunk.metadata.get("sensitivity", "public"),
+            team_id=d.chunk.metadata.get("team_id", ""),
+        )
+        for d in state["documents"]
+    ]
     return {"answer": text, "citations": citations}

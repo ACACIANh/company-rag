@@ -1,10 +1,20 @@
+import dataclasses
 from contextlib import contextmanager
 
 import psycopg2
 import psycopg2.extras
 from psycopg2 import pool
 
+from shared.models import SourceRef
 from shared.session.base import SessionMeta, SessionStore, StoredMessage
+
+
+def _to_source_ref(item) -> SourceRef:
+    if isinstance(item, SourceRef):
+        return item
+    if isinstance(item, str):
+        return SourceRef(source=item)
+    return SourceRef(**item)
 
 
 class PostgresSessionStore(SessionStore):
@@ -88,19 +98,24 @@ class PostgresSessionStore(SessionStore):
                 ORDER BY created_at ASC
             """, (thread_id,))
             return [
-                StoredMessage(role=row["role"], content=row["content"], sources=row["sources"])
+                StoredMessage(
+                    role=row["role"],
+                    content=row["content"],
+                    sources=[_to_source_ref(item) for item in row["sources"]],
+                )
                 for row in cur.fetchall()
             ]
 
     def add_message(
-        self, thread_id: str, role: str, content: str, sources: list[str]
+        self, thread_id: str, role: str, content: str, sources: list[SourceRef]
     ) -> None:
         try:
             with self._conn() as conn, conn.cursor() as cur:
                 cur.execute("""
                     INSERT INTO chat_messages (thread_id, role, content, sources)
                     VALUES (%s, %s, %s, %s)
-                """, (thread_id, role, content, psycopg2.extras.Json(sources)))
+                """, (thread_id, role, content,
+                      psycopg2.extras.Json([dataclasses.asdict(s) for s in sources])))
         except psycopg2.errors.ForeignKeyViolation:
             pass
 

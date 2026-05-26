@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from threading import Lock
 
+from shared.models import SourceRef
 from shared.session.base import SessionMeta, SessionStore, StoredMessage
 
 
@@ -36,7 +37,7 @@ class InMemorySessionStore(SessionStore):
             return list(self._messages.get(thread_id, []))
 
     def add_message(
-        self, thread_id: str, role: str, content: str, sources: list[str]
+        self, thread_id: str, role: str, content: str, sources: list[SourceRef]
     ) -> None:
         with self._lock:
             if thread_id not in self._messages:

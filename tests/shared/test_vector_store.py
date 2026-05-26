@@ -44,6 +44,19 @@ def test_chroma_store_search(chroma_store):
     assert results[0].score >= 0
 
 
+def test_chroma_store_search_populates_metadata(chroma_store):
+    chunks = [Chunk(text="내용", source="doc.md", chunk_id="c1")]
+    extra = [{"sensitivity": "internal", "team_id": "team:dev", "document_id": "doc:1"}]
+    chroma_store.add(chunks, [[0.1, 0.2, 0.3]], extra_metadata=extra)
+
+    results = chroma_store.search(query_embedding=[0.1, 0.2, 0.3], top_k=1)
+
+    assert results[0].chunk.metadata.get("sensitivity") == "internal"
+    assert results[0].chunk.metadata.get("team_id") == "team:dev"
+    assert results[0].chunk.metadata.get("document_id") == "doc:1"
+    assert results[0].chunk.metadata.get("source") == "doc.md"
+
+
 @pytest.fixture
 def mock_qdrant_client():
     with patch("shared.vector_store.qdrant_store.QdrantClient") as mock_cls:

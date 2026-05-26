@@ -1,4 +1,4 @@
-from shared.models import Answer, Chunk, Document, SearchResult
+from shared.models import Answer, Chunk, Document, SearchResult, SourceRef
 
 
 def test_chunk_fields():
@@ -16,15 +16,15 @@ def test_search_result_fields():
 
 
 def test_answer_defaults():
-    answer = Answer(text="답변", sources=["doc.md"])
+    answer = Answer(text="답변", sources=[SourceRef(source="doc.md")])
     assert answer.text == "답변"
-    assert answer.sources == ["doc.md"]
+    assert answer.sources[0].source == "doc.md"
     assert answer.trace is None
 
 
 def test_answer_with_trace():
     trace = [{"step": "retrieve", "count": 5}]
-    answer = Answer(text="답변", sources=["doc.md"], trace=trace)
+    answer = Answer(text="답변", sources=[SourceRef(source="doc.md")], trace=trace)
     assert answer.trace == trace
 
 
@@ -48,3 +48,28 @@ def test_chunk_has_metadata_default_empty():
 def test_chunk_with_metadata():
     c = Chunk(text="t", source="s", chunk_id="id1", metadata={"k": "v"})
     assert c.metadata == {"k": "v"}
+
+
+def test_source_ref_defaults():
+    from shared.models import SourceRef
+    ref = SourceRef(source="doc.md")
+    assert ref.source == "doc.md"
+    assert ref.document_id == ""
+    assert ref.sensitivity == "public"
+    assert ref.team_id == ""
+
+
+def test_source_ref_with_all_fields():
+    from shared.models import SourceRef
+    ref = SourceRef(source="salary.md", document_id="doc:123", sensitivity="secret", team_id="team:dev")
+    assert ref.document_id == "doc:123"
+    assert ref.sensitivity == "secret"
+    assert ref.team_id == "team:dev"
+
+
+def test_answer_sources_are_source_refs():
+    from shared.models import Answer, SourceRef
+    refs = [SourceRef(source="a.md"), SourceRef(source="b.md")]
+    answer = Answer(text="답변", sources=refs)
+    assert len(answer.sources) == 2
+    assert answer.sources[0].source == "a.md"

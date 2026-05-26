@@ -1,25 +1,59 @@
 from unittest.mock import MagicMock
 
-from shared.models import Chunk, SearchResult
+from shared.models import Chunk, SearchResult, SourceRef
 from app.graph.nodes.generate import generate_node
 
 
-def _make_result(text: str, source: str) -> SearchResult:
-    return SearchResult(chunk=Chunk(text=text, source=source, chunk_id="test_id"), score=0.9)
+def _make_result(text: str, source: str, sensitivity: str = "public",
+                 team_id: str = "", doc_id: str = "") -> SearchResult:
+    return SearchResult(
+        chunk=Chunk(
+            text=text,
+            source=source,
+            chunk_id="test_id",
+            metadata={"sensitivity": sensitivity, "team_id": team_id, "document_id": doc_id},
+        ),
+        score=0.9,
+    )
 
 
-def test_generate_node_returns_answer_and_citations():
+def test_generate_node_returns_source_refs():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "테스트 답변"
 
     state = {
         "question": "질문",
-        "documents": [_make_result("문서 내용", "source.md")],
+        "documents": [_make_result("내용", "doc.md", sensitivity="internal",
+                                   team_id="team:dev", doc_id="doc:1")],
     }
     result = generate_node(state, llm=mock_llm)
 
     assert result["answer"] == "테스트 답변"
-    assert result["citations"] == ["source.md"]
+    assert len(result["citations"]) == 1
+    ref = result["citations"][0]
+    assert isinstance(ref, SourceRef)
+    assert ref.source == "doc.md"
+    assert ref.sensitivity == "internal"
+    assert ref.team_id == "team:dev"
+    assert ref.document_id == "doc:1"
+
+
+def test_generate_node_defaults_to_public_when_no_metadata():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "답변"
+
+    state = {
+        "question": "질문",
+        "documents": [SearchResult(
+            chunk=Chunk(text="내용", source="doc.md", chunk_id="id"), score=0.9
+        )],
+    }
+    result = generate_node(state, llm=mock_llm)
+    ref = result["citations"][0]
+    assert isinstance(ref, SourceRef)
+    assert ref.sensitivity == "public"
+    assert ref.team_id == ""
+    assert ref.document_id == ""
 
 
 def test_generate_node_includes_context_in_prompt():
