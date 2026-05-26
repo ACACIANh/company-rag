@@ -235,7 +235,7 @@ async def test_stream_answer_puts_tokens_and_done_in_queue():
         "citations": [SourceRef(source="doc.md")],
     }
     mock_graph = MagicMock()
-    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
     mock_graph.ainvoke = AsyncMock(return_value=mock_final)
 
     mock_store = AsyncMock()
@@ -273,7 +273,7 @@ async def test_stream_answer_puts_error_then_done_on_exception():
     from app.graph.builder import stream_answer
 
     mock_graph = MagicMock()
-    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
     mock_graph.ainvoke = AsyncMock(side_effect=RuntimeError("LLM 오류"))
 
     mock_store = AsyncMock()
@@ -336,7 +336,7 @@ async def test_stream_answer_falls_back_to_session_store_history():
     captured: dict = {}
     mock_final = {"answer": "답변", "citations": []}
     mock_graph = MagicMock()
-    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
 
     async def capture_ainvoke(initial, config=None):
         captured["chat_history"] = initial.get("chat_history", [])
@@ -376,7 +376,7 @@ async def test_stream_answer_does_not_load_store_for_new_session():
 
     mock_final = {"answer": "답변", "citations": []}
     mock_graph = MagicMock()
-    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
     mock_graph.ainvoke = AsyncMock(return_value=mock_final)
 
     mock_store = AsyncMock()
@@ -405,7 +405,7 @@ async def test_stream_answer_saves_session():
 
     mock_final = {"answer": "답변", "citations": []}
     mock_graph = MagicMock()
-    mock_graph.get_state.return_value = MagicMock(values={})
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
     mock_graph.ainvoke = AsyncMock(return_value=mock_final)
 
     mock_store = AsyncMock()

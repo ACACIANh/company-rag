@@ -130,7 +130,7 @@ async def answer_question(
     chat_history_fallback: list | None = None,
 ) -> Answer:
     config = _ensure_thread_id(config)
-    existing = graph.get_state(config)
+    existing = await graph.aget_state(config)
     chat_history = (existing.values or {}).get("chat_history", [])
     if not chat_history and chat_history_fallback:
         chat_history = chat_history_fallback
@@ -171,7 +171,7 @@ async def stream_answer(
     try:
         config = _ensure_thread_id(config)
         config = {**config, "configurable": {**config["configurable"], "token_queue": token_queue}}
-        existing = graph.get_state(config)
+        existing = await graph.aget_state(config)
         chat_history = (existing.values or {}).get("chat_history", [])
         if not chat_history and not is_new_session:
             stored = await session_store.get_messages(session_id)
