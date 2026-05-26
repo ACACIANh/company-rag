@@ -54,3 +54,12 @@ async def test_web_search_node_returns_empty_list_when_no_results():
     )
 
     assert result["documents"] == []
+
+
+async def test_web_search_node_returns_empty_when_retriever_is_none():
+    result = await web_search_node(
+        {"rewritten_question": "질문", "question": "질문"},
+        retriever=None,
+    )
+
+    assert result == {"documents": []}
