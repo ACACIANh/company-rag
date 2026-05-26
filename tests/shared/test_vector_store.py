@@ -1,10 +1,19 @@
 import pytest
 import tempfile
+import inspect
 from shared.models import Chunk
 from shared.vector_store.base import VectorStore
 from shared.vector_store.chroma_store import ChromaStore
 from shared.vector_store.factory import create_vector_store
 from shared.config import Config
+
+
+def test_vector_store_add_is_coroutinefunction():
+    assert inspect.iscoroutinefunction(VectorStore.add)
+
+
+def test_vector_store_search_is_coroutinefunction():
+    assert inspect.iscoroutinefunction(VectorStore.search)
 
 
 def test_vector_store_is_abstract():
