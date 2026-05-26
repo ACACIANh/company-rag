@@ -6,7 +6,7 @@ from shared.reranker.noop_reranker import NoOpReranker
 from shared.retriever.base import Retriever
 
 
-def retrieve_node(
+async def retrieve_node(
     state: dict,
     *,
     retriever: Retriever,
@@ -21,9 +21,9 @@ def retrieve_node(
         teams=state.get("user_teams", []),
         personal_docs=state.get("personal_doc_ids", []),
     )
-    where_filter = fga_client.build_chroma_filter(perm)
-    results: list[SearchResult] = retriever.retrieve(
-        query, top_k=retrieve_top_k, where_filter=where_filter
+    where_clause, params = fga_client.build_pg_filter(perm)
+    results: list[SearchResult] = await retriever.retrieve(
+        query, top_k=retrieve_top_k, where_clause=where_clause, params=params
     )
     _reranker = reranker or NoOpReranker()
     reranked = _reranker.rerank(query, results, top_k=top_k)
