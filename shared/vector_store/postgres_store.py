@@ -19,7 +19,7 @@ class PostgresVectorStore(VectorStore):
                     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
                     chunk_id    TEXT        UNIQUE NOT NULL,
                     content     TEXT        NOT NULL,
-                    embedding   vector(1536),
+                    embedding   vector(384),
                     metadata    TEXT        NOT NULL DEFAULT '{}',
                     team_id     TEXT        NOT NULL DEFAULT '',
                     sensitivity TEXT        NOT NULL DEFAULT 'public',

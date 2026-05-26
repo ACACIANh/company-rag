@@ -32,6 +32,7 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: string[];
+  streaming?: boolean;
 }
 
 export class ApiError extends Error {

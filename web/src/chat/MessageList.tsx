@@ -50,7 +50,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
               <p className="whitespace-pre-wrap leading-[1.6]">{msg.content}</p>
             )}
           </div>
-          {msg.role === "assistant" && (
+          {msg.role === "assistant" && !msg.streaming && (
             <div className="flex items-center justify-between mt-1 px-1">
               {msg.sources !== undefined && <SourceBadge sources={msg.sources} />}
               <CopyMessageButton content={msg.content} />

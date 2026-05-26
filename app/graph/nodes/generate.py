@@ -31,7 +31,9 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
         (config or {}).get("configurable", {}).get("token_queue")
     )
 
-    if is_doc_search and no_relevant_docs:
+    skip_hallucination_check = is_doc_search and no_relevant_docs
+
+    if skip_hallucination_check:
         prompt = RAG_GENERATE_NO_DOCS.format(
             chat_history=history_text,
             question=question,
@@ -77,4 +79,7 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
             model="unknown",
         )
 
-    return {"answer": text, "citations": citations}
+    result: dict = {"answer": text, "citations": citations}
+    if skip_hallucination_check:
+        result["hallucination_passed"] = True
+    return result

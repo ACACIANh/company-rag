@@ -32,28 +32,43 @@ export function ChatPage() {
     const isNewSession = sessionId === null;
     setError(null);
     setPending(true);
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: question },
-      { role: "assistant", content: "", sources: [] },
-    ]);
+    setMessages((prev) => [...prev, { role: "user", content: question }]);
+
+    let assistantAdded = false;
 
     try {
       for await (const event of streamChat(question, sessionId)) {
         if (event.type === "token") {
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            next[next.length - 1] = { ...last, content: last.content + event.content };
-            return next;
-          });
+          if (!assistantAdded) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: event.content, sources: [], streaming: true },
+            ]);
+            assistantAdded = true;
+          } else {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              next[next.length - 1] = { ...last, content: last.content + event.content };
+              return next;
+            });
+          }
         } else if (event.type === "sources") {
-          setMessages((prev) => {
-            const next = [...prev];
-            next[next.length - 1] = { ...next[next.length - 1], sources: event.sources };
-            return next;
-          });
+          if (assistantAdded) {
+            setMessages((prev) => {
+              const next = [...prev];
+              next[next.length - 1] = { ...next[next.length - 1], sources: event.sources };
+              return next;
+            });
+          }
         } else if (event.type === "done") {
+          if (assistantAdded) {
+            setMessages((prev) => {
+              const next = [...prev];
+              next[next.length - 1] = { ...next[next.length - 1], streaming: false };
+              return next;
+            });
+          }
           setSessionId(event.session_id);
           if (isNewSession) {
             getSessions().then(setSessions).catch(() => {});

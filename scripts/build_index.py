@@ -4,6 +4,7 @@
     python -m scripts.build_index
 """
 
+import asyncio
 import os
 import sys
 
@@ -15,7 +16,7 @@ from app.ingestion.indexer import build_index
 
 def main() -> None:
     docs_path = os.path.join(_ROOT, "docs", "company")
-    build_index(docs_path)
+    asyncio.run(build_index(docs_path))
 
 
 if __name__ == "__main__":
