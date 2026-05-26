@@ -127,12 +127,22 @@ async def chat(
 
     thread_id = f"{current_user['user_id']}:{session_id}"
     config = {"configurable": {"thread_id": thread_id}}
+
+    chat_history_fallback = None
+    if not is_new_session:
+        try:
+            stored = await store.get_messages(session_id)
+            chat_history_fallback = [{"role": m.role, "content": m.content} for m in stored]
+        except Exception:
+            logging.exception("failed to load fallback history for session_id=%s", session_id)
+
     result = await answer_question(
         request.app.state.graph,
         req.question,
         config=config,
         user_id=current_user["user_id"],
         allowed_doc_ids=current_user["allowed_doc_ids"],
+        chat_history_fallback=chat_history_fallback,
     )
 
     try:

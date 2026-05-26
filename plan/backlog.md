@@ -6,7 +6,6 @@
 
 ## High
 
-- `#bug` 세션 유지 버그 수정 — 재접속 또는 페이지 새로고침 후 대화 세션이 유지되지 않는 문제; checkpointer/session_id 흐름 점검
 - `#perf` Hybrid Search (C-9) — 현재 Vector Only, BM25 결합으로 recall 향상 / 별도 BM25 인덱스 검토
 
 <!-- 빠르게 처리해야 하는 개선사항 -->

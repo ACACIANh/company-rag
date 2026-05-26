@@ -28,6 +28,24 @@ export function ChatPage() {
     getSessions().then(setSessions).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const id = localStorage.getItem("session_id");
+    if (!id) return;
+    setLoadingHistory(true);
+    getSessionMessages(id)
+      .then((history) =>
+        setMessages(
+          history.map((m) => ({ role: m.role, content: m.content, sources: m.sources }))
+        )
+      )
+      .catch(() => {
+        setSessionId(null);
+        localStorage.removeItem("session_id");
+      })
+      .finally(() => setLoadingHistory(false));
+  }, []); // mount only: sessionId 초기값(localStorage)으로 히스토리 복원
+
   const send = async (question: string) => {
     const isNewSession = sessionId === null;
     setError(null);
