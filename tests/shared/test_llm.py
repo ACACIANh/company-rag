@@ -101,6 +101,7 @@ def test_llm_abstract_requires_stream():
         NoStream()
 
 
+@pytest.mark.asyncio
 async def test_openai_client_stream(mocker):
     """OpenAIClient.stream()이 delta.content 토큰을 yield한다."""
     def _make_chunk(text):
@@ -129,6 +130,7 @@ async def test_openai_client_stream(mocker):
     assert tokens == ["Hello", " world"]
 
 
+@pytest.mark.asyncio
 async def test_anthropic_client_stream(mocker):
     """stream()이 토큰 시퀀스를 yield한다."""
     mock_stream_ctx = MagicMock()

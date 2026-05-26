@@ -133,6 +133,7 @@ def test_tool_call_triggers_interrupt():
     assert len(result["__interrupt__"]) > 0
 
 
+@pytest.mark.asyncio
 async def test_tool_call_completes_after_user_approves():
     doc_retriever = _make_retriever()
     web_retriever = _make_retriever()

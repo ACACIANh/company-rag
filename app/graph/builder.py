@@ -2,6 +2,7 @@ import asyncio
 import logging
 import uuid
 from functools import partial
+from typing import Any
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
@@ -156,35 +157,35 @@ async def stream_answer(
     user_id: str,
     allowed_doc_ids: list[str],
     token_queue: asyncio.Queue,
-    session_store,
+    session_store: Any,
     session_id: str,
     is_new_session: bool,
 ) -> None:
-    config = _ensure_thread_id(config)
-    config = {**config, "configurable": {**config["configurable"], "token_queue": token_queue}}
-    existing = graph.get_state(config)
-    chat_history = (existing.values or {}).get("chat_history", [])
-
-    initial: AgentState = {
-        "question": question,
-        "rewritten_question": "",
-        "chat_history": chat_history,
-        "route": "doc_search",
-        "documents": [],
-        "relevance_score": 0.0,
-        "retry_count": 0,
-        "answer": "",
-        "citations": [],
-        "hallucination_passed": False,
-        "confirmed": False,
-        "tool_input": "",
-        "user_id": user_id,
-        "allowed_doc_ids": allowed_doc_ids or [],
-        "user_teams": [],
-        "personal_doc_ids": [],
-    }
-
     try:
+        config = _ensure_thread_id(config)
+        config = {**config, "configurable": {**config["configurable"], "token_queue": token_queue}}
+        existing = graph.get_state(config)
+        chat_history = (existing.values or {}).get("chat_history", [])
+
+        initial: AgentState = {
+            "question": question,
+            "rewritten_question": "",
+            "chat_history": chat_history,
+            "route": "doc_search",
+            "documents": [],
+            "relevance_score": 0.0,
+            "retry_count": 0,
+            "answer": "",
+            "citations": [],
+            "hallucination_passed": False,
+            "confirmed": False,
+            "tool_input": "",
+            "user_id": user_id,
+            "allowed_doc_ids": allowed_doc_ids or [],
+            "user_teams": [],
+            "personal_doc_ids": [],
+        }
+
         final = await graph.ainvoke(initial, config=config)
         await token_queue.put({
             "type": "sources",
