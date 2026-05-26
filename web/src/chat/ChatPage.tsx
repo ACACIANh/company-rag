@@ -142,9 +142,37 @@ export function ChatPage() {
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-[13px] text-ink-mute font-normal tracking-[-0.39px]">
-            {user?.user_id ?? ""}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] text-ink-mute font-normal tracking-[-0.39px]">
+              {user?.user_id ?? ""}
+            </span>
+            {user && (
+              <>
+                <span className="text-[11px] text-ink-mute">role:</span>
+                {user.roles.map((r) => (
+                  <span
+                    key={r}
+                    className="bg-primary-muted text-primary-deep text-[10px] font-[400] tracking-[0.1px] rounded-pill px-2 py-[3px] uppercase"
+                  >
+                    {r}
+                  </span>
+                ))}
+                {user.teams.length > 0 && (
+                  <>
+                    <span className="text-[11px] text-ink-mute">team:</span>
+                    {user.teams.map((t) => (
+                      <span
+                        key={t}
+                        className="bg-primary-muted text-primary-deep text-[10px] font-[400] tracking-[0.1px] rounded-pill px-2 py-[3px] uppercase"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+          </div>
           <button
             onClick={handleLogout}
             className="text-[14px] font-normal text-primary hover:text-primary-deep transition-colors"
