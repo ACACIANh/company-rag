@@ -93,4 +93,4 @@ async def chat(
     except Exception:
         logging.exception("session store write failed for session_id=%s", session_id)
 
-    return ChatResponse(answer=result.text, sources=result.sources, session_id=session_id)
+    return ChatResponse(answer=result.text, sources=[s.source for s in result.sources], session_id=session_id)

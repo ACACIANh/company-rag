@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from shared.models import Answer
+from shared.models import Answer, SourceRef
 from shared.session.adapters.memory import InMemorySessionStore
 
 
@@ -15,7 +15,7 @@ def _token(client: TestClient) -> str:
 def test_list_sessions_empty():
     store = InMemorySessionStore()
     with (
-        patch("app.api.chat.answer_question", return_value=Answer(text="답변", sources=["doc.md"])),
+        patch("app.api.chat.answer_question", return_value=Answer(text="답변", sources=[SourceRef(source="doc.md")])),
         patch("app.api.chat.get_graph", return_value=MagicMock()),
         patch("app.api.deps._session_store", store),
     ):
@@ -29,7 +29,7 @@ def test_list_sessions_empty():
 
 def test_list_sessions_after_chat():
     store = InMemorySessionStore()
-    mock_answer = Answer(text="답변", sources=["doc.md"])
+    mock_answer = Answer(text="답변", sources=[SourceRef(source="doc.md")])
     with (
         patch("app.api.chat.answer_question", return_value=mock_answer),
         patch("app.api.chat.get_graph", return_value=MagicMock()),
@@ -46,7 +46,7 @@ def test_list_sessions_after_chat():
 
 def test_get_messages_returns_history():
     store = InMemorySessionStore()
-    mock_answer = Answer(text="답변", sources=["doc.md"])
+    mock_answer = Answer(text="답변", sources=[SourceRef(source="doc.md")])
     with (
         patch("app.api.chat.answer_question", return_value=mock_answer),
         patch("app.api.chat.get_graph", return_value=MagicMock()),
@@ -88,7 +88,7 @@ def test_get_messages_404_for_other_user():
 
 def test_delete_session():
     store = InMemorySessionStore()
-    mock_answer = Answer(text="답변", sources=["doc.md"])
+    mock_answer = Answer(text="답변", sources=[SourceRef(source="doc.md")])
     with (
         patch("app.api.chat.answer_question", return_value=mock_answer),
         patch("app.api.chat.get_graph", return_value=MagicMock()),
