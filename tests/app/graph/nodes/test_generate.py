@@ -117,3 +117,81 @@ def test_generate_node_includes_chat_history_in_prompt():
 
     prompt = mock_llm.complete.call_args[0][0]
     assert "이전 대화 내용" in prompt
+
+
+_NOTICE_PREFIX = "⚠️ 관련 사내 문서를 찾지 못했습니다."
+
+
+def test_generate_node_prepends_notice_when_no_documents():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "일반 답변"
+
+    state = {
+        "question": "질문",
+        "rewritten_question": "질문",
+        "documents": [],
+        "relevance_score": 0.0,
+        "route": "doc_search",
+        "chat_history": [],
+    }
+    result = generate_node(state, llm=mock_llm)
+
+    assert result["answer"].startswith(_NOTICE_PREFIX)
+    assert "일반 답변" in result["answer"]
+    assert result["citations"] == []
+
+
+def test_generate_node_prepends_notice_when_low_relevance():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "일반 답변"
+
+    state = {
+        "question": "질문",
+        "rewritten_question": "질문",
+        "documents": [_make_result("내용", "doc.md")],
+        "relevance_score": 0.3,
+        "route": "doc_search",
+        "chat_history": [],
+    }
+    result = generate_node(state, llm=mock_llm)
+
+    assert result["answer"].startswith(_NOTICE_PREFIX)
+    assert "일반 답변" in result["answer"]
+    assert result["citations"] == []
+
+
+def test_generate_node_no_notice_when_relevant_docs_exist():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "문서 기반 답변"
+
+    state = {
+        "question": "질문",
+        "rewritten_question": "질문",
+        "documents": [_make_result("내용", "doc.md")],
+        "relevance_score": 0.8,
+        "route": "doc_search",
+        "chat_history": [],
+    }
+    result = generate_node(state, llm=mock_llm)
+
+    assert not result["answer"].startswith(_NOTICE_PREFIX)
+    assert result["answer"] == "문서 기반 답변"
+    assert len(result["citations"]) == 1
+
+
+def test_generate_node_no_notice_for_web_search_route():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "웹 검색 답변"
+
+    state = {
+        "question": "질문",
+        "rewritten_question": "질문",
+        "documents": [],
+        "relevance_score": 0.0,
+        "route": "web_search",
+        "chat_history": [],
+    }
+    result = generate_node(state, llm=mock_llm)
+
+    assert not result["answer"].startswith(_NOTICE_PREFIX)
+    assert result["answer"] == "웹 검색 답변"
