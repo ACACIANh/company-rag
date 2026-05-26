@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from shared.auth.base import AuthUser
 from shared.config import load_config
-from shared.embedder import SentenceTransformerEmbedder
+from app.ingestion.embedder import get_embedder
 from shared.fga.cache import make_cache_backend
 from shared.fga.client import FGAClient
 from shared.fga.models import FGAConfig
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
         config.postgres_dsn, init=_init_conn, min_size=2, max_size=10
     )
 
-    embedder = SentenceTransformerEmbedder(config.embedding_model)
+    embedder = get_embedder(config.embedding_model)
     store = create_vector_store(config, pool)
     await store.ensure_table()
 

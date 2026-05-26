@@ -43,7 +43,7 @@ def load_config() -> Config:
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         embedding_model=os.getenv(
-            "EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2"
+            "EMBEDDING_MODEL", "text-embedding-3-small"
         ),
         jwt_secret=os.getenv("JWT_SECRET", "dev-secret-change-in-prod"),
         jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
