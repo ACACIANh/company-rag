@@ -52,8 +52,7 @@ class AgentState(TypedDict):
 
 ```
 shared/vector_store/base.py        # search() 시그니처에 filter_doc_ids 파라미터 추가
-shared/vector_store/chroma_store.py  # where={"doc_id": {"$in": allowed_doc_ids}}
-shared/vector_store/qdrant_store.py  # must 조건으로 doc_id filter 적용
+shared/vector_store/postgres_store.py  # WHERE doc_id = ANY($) 필터 적용
 ```
 
 ### AuthUser → AgentState 주입 경로

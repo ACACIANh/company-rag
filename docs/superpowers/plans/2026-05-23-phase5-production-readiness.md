@@ -141,9 +141,6 @@ class Config:
     chroma_mode: str
     chroma_path: str
     embedding_model: str
-    qdrant_url: str
-    qdrant_api_key: str
-    qdrant_collection: str
     jwt_secret: str          # 추가
     jwt_expire_minutes: int  # 추가
     rate_limit_per_minute: int  # 추가
@@ -164,9 +161,6 @@ def load_config() -> Config:
         embedding_model=os.getenv(
             "EMBEDDING_MODEL", "paraphrase-multilingual-MiniLM-L12-v2"
         ),
-        qdrant_url=os.getenv("QDRANT_URL", ""),
-        qdrant_api_key=os.getenv("QDRANT_API_KEY", ""),
-        qdrant_collection=os.getenv("QDRANT_COLLECTION", "documents"),
         jwt_secret=os.getenv("JWT_SECRET", "dev-secret-change-in-prod"),
         jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
         rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),

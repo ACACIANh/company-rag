@@ -39,7 +39,7 @@ app/
 
 shared/                   # ABC + 구현체 + Adapter만 유지
 ├── llm/                  # LLMClient ABC + Anthropic/OpenAI + LangChainAdapter
-├── vector_store/         # VectorStore ABC + Chroma/Qdrant + LangChainAdapter
+├── vector_store/         # VectorStore ABC + PostgreSQL + LangChainAdapter
 ├── embedder/             # Embedder ABC + 구현체
 ├── retriever/            # Retriever ABC + BasicRetriever (NoopReranker 주입)
 ├── reranker/             # Reranker ABC + NoopReranker

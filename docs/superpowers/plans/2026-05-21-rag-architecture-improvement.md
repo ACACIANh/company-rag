@@ -6,7 +6,7 @@
 
 **Architecture:** 기존 1~3번 워크플로우는 코드 전체 주석 처리로 보존. `shared/` 아래 `loader, chunker, embedder, retriever, reranker, indexer, orchestrator, observability` 컴포넌트를 ABC + 구현체로 분리. `Step + Pipeline + Context` 추상화 위에서 새 워크플로우를 조립한다.
 
-**Tech Stack:** Python 3.10+, sentence-transformers, chromadb/qdrant-client, openai/anthropic SDK, pytest, pyyaml. (요구사항 무변경.)
+**Tech Stack:** Python 3.10+, sentence-transformers, chromadb, openai/anthropic SDK, pytest, pyyaml. (요구사항 무변경.)
 
 **Spec:** `docs/superpowers/specs/2026-05-21-rag-architecture-improvement-design.md`
 

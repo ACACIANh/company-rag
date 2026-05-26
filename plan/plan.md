@@ -34,7 +34,7 @@
 | 오케스트레이션 | **LangGraph** (Python) | 그래프 기반 워크플로우 |
 | LLM | Claude Sonnet 4.5 / GPT-4o | 환경에 따라 선택 |
 | 임베딩 | OpenAI `text-embedding-3-small` 또는 `bge-m3` | 한국어면 bge-m3 권장 |
-| Vector DB | **Qdrant** 또는 PostgreSQL + `pgvector` | 운영 부담 적음 |
+| Vector DB | PostgreSQL + `pgvector` | 운영 부담 적음 |
 | 키워드 검색 | Elasticsearch / OpenSearch | Hybrid Search용 |
 | 캐시 | Redis | 쿼리 결과·세션 캐싱 |
 | 백엔드 API | FastAPI (Python) | LangGraph와 동일 런타임 |

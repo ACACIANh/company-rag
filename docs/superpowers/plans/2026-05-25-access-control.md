@@ -25,7 +25,6 @@
 | `shared/config.py` | 수정 | FGA 관련 필드 5개 추가 |
 | `shared/vector_store/base.py` | 수정 | `search()` — `filter_doc_ids` → `where_filter: dict\|None` |
 | `shared/vector_store/chroma_store.py` | 수정 | `where_filter` 직접 전달 + metadata에 `team_id`, `sensitivity`, `document_id` 지원 |
-| `shared/vector_store/qdrant_store.py` | 수정 | `search()` 시그니처 통일 (`where_filter` 추가, 현재 누락) |
 | `shared/retriever/base.py` | 수정 | `retrieve()` — `filter_doc_ids` → `where_filter: dict\|None` |
 | `shared/retriever/basic_retriever.py` | 수정 | `where_filter` 전달 |
 | `shared/indexer/indexer.py` | 수정 | `FGAClient` DI 추가, metadata에 `team_id`, `sensitivity`, `document_id` 포함 |
@@ -960,7 +959,6 @@ git commit -m "feat(fga): PostgresCacheBackend — TTL 캐시 PG 구현"
 **Files:**
 - Modify: `shared/vector_store/base.py`
 - Modify: `shared/vector_store/chroma_store.py`
-- Modify: `shared/vector_store/qdrant_store.py`
 - Modify: `shared/retriever/base.py`
 - Modify: `shared/retriever/basic_retriever.py`
 - Modify: `tests/shared/test_vector_store.py`
@@ -1058,38 +1056,6 @@ class ChromaStore(VectorStore):
 
     def count(self) -> int:
         return self._collection.count()
-```
-
-- [ ] **Step 3: `shared/vector_store/qdrant_store.py` 수정**
-
-`search()` 시그니처에 `where_filter` 추가 (현재 파라미터 없음). Qdrant는 별도 filter 문법이 있으므로 현재는 무시하고 시그니처만 맞춘다.
-
-```python
-    def search(
-        self,
-        query_embedding: list[float],
-        top_k: int = 5,
-        where_filter: dict | None = None,
-    ) -> list[SearchResult]:
-        existing = [c.name for c in self._client.get_collections().collections]
-        if self._collection not in existing:
-            return []
-        hits = self._client.query_points(
-            collection_name=self._collection,
-            query=query_embedding,
-            limit=top_k,
-        ).points
-        return [
-            SearchResult(
-                chunk=Chunk(
-                    text=h.payload["text"],
-                    source=h.payload["source"],
-                    chunk_id=h.payload["chunk_id"],
-                ),
-                score=h.score,
-            )
-            for h in hits
-        ]
 ```
 
 - [ ] **Step 4: `shared/retriever/base.py` 수정**

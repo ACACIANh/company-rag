@@ -19,7 +19,7 @@ company-rag/
 │   ├── loader/               # MarkdownLoader
 │   ├── chunker/              # FixedSizeChunker
 │   ├── embedder/             # SentenceTransformerEmbedder
-│   ├── vector_store/         # ChromaDB / Qdrant (ABC + Factory)
+│   ├── vector_store/         # PostgreSQL (ABC + Factory)
 │   ├── retriever/            # EmbeddingService + Retriever
 │   ├── reranker/             # Reranker
 │   ├── llm/                  # LLMClient ABC + OpenAI/Anthropic + LangChain 어댑터
@@ -64,22 +64,13 @@ OPENAI_API_KEY=sk-...
 EMBEDDING_MODEL=paraphrase-multilingual-MiniLM-L12-v2
 ```
 
-### `.env` Qdrant Cloud 사용 시
-
-```
-VECTOR_STORE=qdrant
-QDRANT_URL=https://xxx.qdrant.io:6333
-QDRANT_API_KEY=your-api-key
-QDRANT_COLLECTION=documents
-```
-
 ---
 
 ## 아키텍처
 
 ### `shared/` — 워크플로우 무관 공용 인프라
 
-ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic)와 벡터 저장소(ChromaDB/Qdrant)를 추상화합니다. 모든 워크플로우는 `shared/`를 재사용합니다.
+ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic)와 벡터 저장소(PostgreSQL)를 추상화합니다. 모든 워크플로우는 `shared/`를 재사용합니다.
 
 LangChain 통합을 위한 얇은 어댑터도 포함합니다:
 - `shared/llm/adapters/langchain_adapter.py` — `LLMClient` → `BaseLLM`
@@ -136,7 +127,7 @@ run_eval(run)
 
 - **LLM**: OpenAI GPT / Anthropic Claude
 - **임베딩**: sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`)
-- **벡터 저장소**: ChromaDB (로컬) / Qdrant Cloud
+- **벡터 저장소**: PostgreSQL (pgvector)
 - **오케스트레이션**: LangGraph (+ LangChain 어댑터)
 - **테스트**: pytest, pytest-mock
 
