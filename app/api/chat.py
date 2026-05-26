@@ -2,7 +2,7 @@ import logging
 import uuid
 from functools import lru_cache
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -66,8 +66,16 @@ async def chat(
     current_user: AuthUser = Depends(get_current_user),
     _: None = Depends(check_rate_limit),
 ) -> ChatResponse:
+    session_id = req.session_id or str(uuid.uuid4())
     is_new_session = req.session_id is None
-    thread_id = req.session_id or str(uuid.uuid4())
+    store = get_session_store()
+
+    if not is_new_session:
+        owned = {s.thread_id for s in store.list_sessions(current_user["user_id"])}
+        if session_id not in owned:
+            raise HTTPException(status_code=403, detail="Session not found")
+
+    thread_id = f"{current_user['user_id']}:{session_id}"
     config = {"configurable": {"thread_id": thread_id}}
     result = answer_question(
         get_graph(),
@@ -77,13 +85,12 @@ async def chat(
         allowed_doc_ids=current_user["allowed_doc_ids"],
     )
 
-    store = get_session_store()
     try:
         if is_new_session:
-            store.create_session(thread_id, current_user["user_id"], req.question[:20])
-        store.add_message(thread_id, "user", req.question, [])
-        store.add_message(thread_id, "assistant", result.text, result.sources)
+            store.create_session(session_id, current_user["user_id"], req.question[:20])
+        store.add_message(session_id, "user", req.question, [])
+        store.add_message(session_id, "assistant", result.text, result.sources)
     except Exception:
-        logging.exception("session store write failed for thread_id=%s", thread_id)
+        logging.exception("session store write failed for session_id=%s", session_id)
 
-    return ChatResponse(answer=result.text, sources=result.sources, session_id=thread_id)
+    return ChatResponse(answer=result.text, sources=result.sources, session_id=session_id)
