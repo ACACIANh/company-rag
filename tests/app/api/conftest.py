@@ -28,6 +28,9 @@ def passthrough_fga():
     개별 테스트에서 patch("app.api.deps._make_fga_client")를 사용하면
     해당 with 블록이 우선 적용된다.
     """
+    from app.api.deps import _make_fga_client as _orig
+    _orig.cache_clear()
+
     mock_fga = MagicMock()
     mock_fga.filter_sources.side_effect = _passthrough_filter
 

@@ -128,7 +128,6 @@ def test_delete_session_404_for_other_user():
 def test_get_messages_filters_inaccessible_sources():
     """권한이 취소된 문서 source는 세션 이력 로드 시 제거된다."""
     from shared.models import SourceRef
-    from shared.fga.models import UserPermission
 
     store = InMemorySessionStore()
     # assistant 메시지에 internal 문서 source 저장 (팀 필요)
@@ -144,9 +143,6 @@ def test_get_messages_filters_inaccessible_sources():
         ],
     )
 
-    # alice의 팀: general (team:restricted 미포함)
-    alice_perm = UserPermission(user_id="user-alice", teams=["team:general"], personal_docs=[])
-
     mock_answer = Answer(text="답변", sources=[])
     with (
         patch("app.api.chat.answer_question", return_value=mock_answer),
@@ -155,8 +151,10 @@ def test_get_messages_filters_inaccessible_sources():
         patch("app.api.deps._make_fga_client") as mock_fga_factory,
     ):
         mock_fga = MagicMock()
+        alice_teams = ["team:general"]
         mock_fga.filter_sources.side_effect = lambda sources, uid: [
-            s for s in sources if s.sensitivity == "public" or uid in s.team_id
+            s for s in sources
+            if s.sensitivity == "public" or (s.sensitivity == "internal" and s.team_id in alice_teams)
         ]
         mock_fga_factory.return_value = mock_fga
 
@@ -171,4 +169,4 @@ def test_get_messages_filters_inaccessible_sources():
 
     assert len(msgs) == 2
     assert msgs[1]["role"] == "assistant"
-    assert msgs[1]["sources"] == ["pub.md"]  # secret.md は除外
+    assert msgs[1]["sources"] == ["pub.md"]  # secret.md 권한 없음 → 제외
