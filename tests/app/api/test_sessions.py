@@ -123,3 +123,52 @@ def test_delete_session_404_for_other_user():
             "/sessions/other-session", headers={"Authorization": f"Bearer {token}"}
         )
         assert res.status_code == 404
+
+
+def test_get_messages_filters_inaccessible_sources():
+    """권한이 취소된 문서 source는 세션 이력 로드 시 제거된다."""
+    from shared.models import SourceRef
+    from shared.fga.models import UserPermission
+
+    store = InMemorySessionStore()
+    # assistant 메시지에 internal 문서 source 저장 (팀 필요)
+    store.create_session("sess1", "user-alice", "질문")
+    store.add_message("sess1", "user", "질문입니다", [])
+    store.add_message(
+        "sess1",
+        "assistant",
+        "답변입니다",
+        [
+            SourceRef(source="pub.md", sensitivity="public"),
+            SourceRef(source="secret.md", sensitivity="internal", team_id="team:restricted"),
+        ],
+    )
+
+    # alice의 팀: general (team:restricted 미포함)
+    alice_perm = UserPermission(user_id="user-alice", teams=["team:general"], personal_docs=[])
+
+    mock_answer = Answer(text="답변", sources=[])
+    with (
+        patch("app.api.chat.answer_question", return_value=mock_answer),
+        patch("app.api.chat.get_graph", return_value=MagicMock()),
+        patch("app.api.deps._session_store", store),
+        patch("app.api.deps._make_fga_client") as mock_fga_factory,
+    ):
+        mock_fga = MagicMock()
+        mock_fga.filter_sources.side_effect = lambda sources, uid: [
+            s for s in sources if s.sensitivity == "public" or uid in s.team_id
+        ]
+        mock_fga_factory.return_value = mock_fga
+
+        from app.api.chat import app
+        client = TestClient(app)
+        token = _token(client)
+
+        msgs = client.get(
+            "/sessions/sess1/messages",
+            headers={"Authorization": f"Bearer {token}"},
+        ).json()
+
+    assert len(msgs) == 2
+    assert msgs[1]["role"] == "assistant"
+    assert msgs[1]["sources"] == ["pub.md"]  # secret.md は除外
