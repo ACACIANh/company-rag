@@ -19,6 +19,20 @@ export function ChatPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const selectingSessionRef = useRef<string | null>(null);
+  const scrollRef = useRef<HTMLElement>(null);
+  const isNearBottomRef = useRef(true);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    isNearBottomRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+  };
+
+  useEffect(() => {
+    if (!isNearBottomRef.current) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
   useEffect(() => {
     if (sessionId) localStorage.setItem("session_id", sessionId);
@@ -47,6 +61,7 @@ export function ChatPage() {
   }, []); // mount only: sessionId 초기값(localStorage)으로 히스토리 복원
 
   const send = async (question: string) => {
+    isNearBottomRef.current = true;
     const isNewSession = sessionId === null;
     setError(null);
     setPending(true);
@@ -242,7 +257,7 @@ export function ChatPage() {
         />
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          <main className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl w-full mx-auto">
+          <main ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl w-full mx-auto">
             {loadingHistory ? (
               <p className="text-[13px] text-ink-mute text-center mt-8">
                 대화 기록을 불러오는 중…
