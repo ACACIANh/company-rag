@@ -49,10 +49,12 @@ class ChromaStore(VectorStore):
         )
         output = []
         for i, doc in enumerate(results["documents"][0]):
+            meta = results["metadatas"][0][i]
             chunk = Chunk(
                 text=doc,
-                source=results["metadatas"][0][i]["source"],
+                source=meta["source"],
                 chunk_id=results["ids"][0][i],
+                metadata=meta,
             )
             score = 1.0 - results["distances"][0][i]
             output.append(SearchResult(chunk=chunk, score=score))
