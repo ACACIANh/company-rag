@@ -42,6 +42,7 @@ def login(req: TokenRequest) -> TokenResponse:
     token = create_token(
         user_id=user["user_id"],
         roles=user["roles"],
+        teams=user.get("teams", []),
         allowed_doc_ids=user["allowed_doc_ids"],
         secret=_config.jwt_secret,
         expire_minutes=_config.jwt_expire_minutes,

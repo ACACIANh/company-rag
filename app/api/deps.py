@@ -28,6 +28,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:
         return AuthUser(
             user_id=payload["sub"],
             roles=payload["roles"],
+            teams=payload.get("teams", []),
             allowed_doc_ids=payload["allowed_doc_ids"],
         )
     except Exception:
