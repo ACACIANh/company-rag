@@ -4,7 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 
 from shared.models import Answer
-from shared.session.base import SessionMeta
 
 
 def _get_token(client: TestClient) -> str:
@@ -24,7 +23,8 @@ def _owned_store(session_ids: list[str]) -> MagicMock:
 def test_chat_returns_200():
     mock_answer = Answer(text="답변", sources=["doc.md"])
     with patch("app.api.chat.answer_question", return_value=mock_answer), \
-         patch("app.api.chat.get_graph", return_value=MagicMock()):
+         patch("app.api.chat.get_graph", return_value=MagicMock()), \
+         patch("app.api.chat.get_session_store", return_value=MagicMock()):
         from app.api.chat import app
         client = TestClient(app)
         token = _get_token(client)
@@ -39,7 +39,8 @@ def test_chat_returns_200():
 def test_chat_response_shape():
     mock_answer = Answer(text="답변 내용", sources=["a.md", "b.md"])
     with patch("app.api.chat.answer_question", return_value=mock_answer), \
-         patch("app.api.chat.get_graph", return_value=MagicMock()):
+         patch("app.api.chat.get_graph", return_value=MagicMock()), \
+         patch("app.api.chat.get_session_store", return_value=MagicMock()):
         from app.api.chat import app
         client = TestClient(app)
         token = _get_token(client)
@@ -55,7 +56,8 @@ def test_chat_response_shape():
 def test_chat_response_includes_session_id():
     mock_answer = Answer(text="답변", sources=["doc.md"])
     with patch("app.api.chat.answer_question", return_value=mock_answer), \
-         patch("app.api.chat.get_graph", return_value=MagicMock()):
+         patch("app.api.chat.get_graph", return_value=MagicMock()), \
+         patch("app.api.chat.get_session_store", return_value=MagicMock()):
         from app.api.chat import app
         client = TestClient(app)
         token = _get_token(client)
