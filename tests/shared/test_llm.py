@@ -1,5 +1,7 @@
+import asyncio
+
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from shared.config import Config
 from shared.llm.base import LLMClient
 from shared.llm.openai_client import OpenAIClient
@@ -88,3 +90,65 @@ def test_factory_creates_anthropic(mocker):
     )
     llm = create_llm(config)
     assert isinstance(llm, AnthropicClient)
+
+
+def test_llm_abstract_requires_stream():
+    """stream()을 구현하지 않은 서브클래스는 인스턴스화 불가."""
+    class NoStream(LLMClient):
+        def complete(self, prompt: str) -> str:
+            return ""
+    with pytest.raises(TypeError):
+        NoStream()
+
+
+@pytest.mark.asyncio
+async def test_openai_client_stream(mocker):
+    """OpenAIClient.stream()이 delta.content 토큰을 yield한다."""
+    def _make_chunk(text):
+        chunk = MagicMock()
+        chunk.choices[0].delta.content = text
+        return chunk
+
+    mock_aiter = MagicMock()
+    mock_aiter.__aiter__ = MagicMock(return_value=mock_aiter)
+    mock_aiter.__anext__ = AsyncMock(side_effect=[
+        _make_chunk("Hello"),
+        _make_chunk(" world"),
+        StopAsyncIteration,
+    ])
+
+    mocker.patch("shared.llm.openai_client.OpenAI")
+    mocker.patch("shared.llm.openai_client.AsyncOpenAI")
+
+    client = OpenAIClient(model="gpt-4o-mini", api_key="test-key")
+    client._async_client.chat.completions.create = AsyncMock(return_value=mock_aiter)
+
+    tokens = []
+    async for token in client.stream("테스트"):
+        tokens.append(token)
+
+    assert tokens == ["Hello", " world"]
+
+
+@pytest.mark.asyncio
+async def test_anthropic_client_stream(mocker):
+    """stream()이 토큰 시퀀스를 yield한다."""
+    mock_stream_ctx = MagicMock()
+    mock_stream_ctx.__aenter__ = AsyncMock(return_value=mock_stream_ctx)
+    mock_stream_ctx.__aexit__ = AsyncMock(return_value=False)
+
+    async def _text_stream():
+        for t in ["안", "녕", "하", "세요"]:
+            yield t
+
+    mock_stream_ctx.text_stream = _text_stream()
+    mocker.patch("shared.llm.anthropic_client.anthropic.AsyncAnthropic")
+
+    client = AnthropicClient(model="claude-3-haiku-20240307", api_key="test-key")
+    client._async_client.messages.stream.return_value = mock_stream_ctx
+
+    tokens = []
+    async for token in client.stream("테스트"):
+        tokens.append(token)
+
+    assert tokens == ["안", "녕", "하", "세요"]

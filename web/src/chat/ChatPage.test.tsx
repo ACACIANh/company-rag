@@ -9,11 +9,11 @@ vi.mock("../auth/AuthContext", () => ({
 }));
 
 vi.mock("../api/client", () => ({
-  apiFetch: vi.fn(),
   getSessions: vi.fn().mockResolvedValue([]),
   getSessionMessages: vi.fn(),
   deleteSession: vi.fn(),
   setOnUnauthorized: vi.fn(),
+  streamChat: vi.fn().mockReturnValue((async function* () {})()),
 }));
 
 describe("ChatPage 헤더 배지", () => {

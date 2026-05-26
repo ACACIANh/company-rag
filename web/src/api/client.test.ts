@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { ApiError } from "../types";
-import { apiFetch, setOnUnauthorized } from "./client";
+import { ApiError, SSEEvent } from "../types";
+import { apiFetch, setOnUnauthorized, streamChat } from "./client";
 
 describe("apiFetch", () => {
   beforeEach(() => {
@@ -79,5 +79,63 @@ describe("apiFetch", () => {
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
     expect(JSON.parse(init.body as string)).toEqual({ question: "hi", session_id: null });
+  });
+});
+
+describe("streamChat", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function makeStreamResponse(lines: string[]): Response {
+    const body = lines.join("\n\n") + "\n\n";
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(body));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { "Content-Type": "text/event-stream" },
+    });
+  }
+
+  test("yields token events from SSE stream", async () => {
+    localStorage.setItem("token", "test-token");
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeStreamResponse([
+        'data: {"type":"token","content":"안녕"}',
+        'data: {"type":"token","content":"하세요"}',
+        'data: {"type":"sources","sources":["doc.md"]}',
+        'data: {"type":"done","session_id":"abc"}',
+      ])
+    );
+
+    const events: SSEEvent[] = [];
+    for await (const event of streamChat("테스트", null)) {
+      events.push(event);
+    }
+
+    expect(events).toHaveLength(4);
+    expect(events[0]).toEqual({ type: "token", content: "안녕" });
+    expect(events[3]).toEqual({ type: "done", session_id: "abc" });
+  });
+
+  test("throws ApiError on 401", async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Unauthorized" }), { status: 401 })
+    );
+
+    await expect(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for await (const _ of streamChat("질문", null)) { /* noop */ }
+    }).rejects.toBeInstanceOf(ApiError);
   });
 });

@@ -1,3 +1,7 @@
+import asyncio
+
+from langchain_core.runnables import RunnableConfig
+
 from shared.llm.base import LLMClient
 from shared.models import SourceRef
 from shared.observability.cost_tracker import get_tracker
@@ -10,7 +14,7 @@ _NO_DOC_NOTICE = (
 _RELEVANCE_THRESHOLD = 0.5
 
 
-def generate_node(state: dict, *, llm: LLMClient) -> dict:
+async def generate_node(state: dict, config: RunnableConfig | None = None, *, llm: LLMClient) -> dict:
     question = state.get("rewritten_question") or state["question"]
     history = state.get("chat_history", [])
     history_text = "\n".join(
@@ -23,12 +27,18 @@ def generate_node(state: dict, *, llm: LLMClient) -> dict:
         or state.get("relevance_score", 1.0) < _RELEVANCE_THRESHOLD
     )
 
-    if is_doc_search and no_relevant_docs:
+    queue: asyncio.Queue | None = (
+        (config or {}).get("configurable", {}).get("token_queue")
+    )
+
+    skip_hallucination_check = is_doc_search and no_relevant_docs
+
+    if skip_hallucination_check:
         prompt = RAG_GENERATE_NO_DOCS.format(
             chat_history=history_text,
             question=question,
         )
-        text = _NO_DOC_NOTICE + llm.complete(prompt)
+        prefix = _NO_DOC_NOTICE
         citations = []
     else:
         context = "\n\n".join(d.chunk.text for d in state["documents"])
@@ -37,7 +47,7 @@ def generate_node(state: dict, *, llm: LLMClient) -> dict:
             question=question,
             chat_history=history_text,
         )
-        text = llm.complete(prompt)
+        prefix = ""
         citations = [
             SourceRef(
                 source=d.chunk.source,
@@ -48,6 +58,18 @@ def generate_node(state: dict, *, llm: LLMClient) -> dict:
             for d in state["documents"]
         ]
 
+    if queue is not None:
+        tokens = []
+        if prefix:
+            await queue.put({"type": "token", "content": prefix})
+            tokens.append(prefix)
+        async for token in llm.stream(prompt):
+            await queue.put({"type": "token", "content": token})
+            tokens.append(token)
+        text = "".join(tokens)
+    else:
+        text = prefix + llm.complete(prompt)
+
     tracker = get_tracker()
     if tracker:
         tracker.track(
@@ -57,4 +79,7 @@ def generate_node(state: dict, *, llm: LLMClient) -> dict:
             model="unknown",
         )
 
-    return {"answer": text, "citations": citations}
+    result: dict = {"answer": text, "citations": citations}
+    if skip_hallucination_check:
+        result["hallucination_passed"] = True
+    return result

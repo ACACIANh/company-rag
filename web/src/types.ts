@@ -32,6 +32,7 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: string[];
+  streaming?: boolean;
 }
 
 export class ApiError extends Error {
@@ -56,3 +57,9 @@ export interface SessionMessage {
   content: string;
   sources?: string[];
 }
+
+export type SSEEvent =
+  | { type: "token";   content: string }
+  | { type: "sources"; sources: string[] }
+  | { type: "done";    session_id: string }
+  | { type: "error";   message: string };
