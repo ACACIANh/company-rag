@@ -24,6 +24,7 @@ from shared.reranker.factory import create_reranker
 from shared.retriever import BasicRetriever
 from shared.session.factory import create_session_store
 from shared.vector_store.factory import create_vector_store
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.graph.builder import answer_question, build_graph, stream_answer
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
@@ -67,19 +68,23 @@ async def lifespan(app: FastAPI):
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
     reranker = create_reranker(config)
-    graph = build_graph(
-        retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client
-    )
 
-    app.state.pool = pool
-    app.state.store = store
-    app.state.fga_client = fga_client
-    app.state.session_store = session_store
-    app.state.graph = graph
+    async with AsyncPostgresSaver.from_conn_string(config.postgres_dsn) as checkpointer:
+        await checkpointer.setup()
+        graph = build_graph(
+            retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client,
+            checkpointer=checkpointer,
+        )
 
-    yield
+        app.state.pool = pool
+        app.state.store = store
+        app.state.fga_client = fga_client
+        app.state.session_store = session_store
+        app.state.graph = graph
 
-    await pool.close()
+        yield
+
+        await pool.close()
 
 
 app = FastAPI(lifespan=lifespan)

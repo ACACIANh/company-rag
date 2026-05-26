@@ -4,6 +4,7 @@ import uuid
 from functools import partial
 from typing import Any
 
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -43,6 +44,7 @@ def build_graph(
     fga_client: FGAClient | None = None,
     retrieve_top_k: int = 20,
     top_k: int = 5,
+    checkpointer: BaseCheckpointSaver | None = None,
 ) -> CompiledStateGraph:
     if fga_client is None:
         raise ValueError("fga_client is required")
@@ -104,7 +106,9 @@ def build_graph(
     )
     g.add_edge("save_memory", END)
 
-    return g.compile(checkpointer=MemorySaver())
+    if checkpointer is None:
+        checkpointer = MemorySaver()
+    return g.compile(checkpointer=checkpointer)
 
 
 def _ensure_thread_id(config: dict | None) -> dict:
