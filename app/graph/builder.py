@@ -161,7 +161,7 @@ async def stream_answer(
     is_new_session: bool,
 ) -> None:
     config = _ensure_thread_id(config)
-    config["configurable"]["token_queue"] = token_queue
+    config = {**config, "configurable": {**config["configurable"], "token_queue": token_queue}}
     existing = graph.get_state(config)
     chat_history = (existing.values or {}).get("chat_history", [])
 
