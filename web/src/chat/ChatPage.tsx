@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { apiFetch, getSessions, getSessionMessages, deleteSession } from "../api/client";
+import { getSessions, getSessionMessages, deleteSession, streamChat } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../types";
-import type { ChatMessage, ChatResponse, Session } from "../types";
+import type { ChatMessage, Session } from "../types";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
@@ -31,20 +31,36 @@ export function ChatPage() {
   const send = async (question: string) => {
     const isNewSession = sessionId === null;
     setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
     setPending(true);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: question },
+      { role: "assistant", content: "", sources: [] },
+    ]);
+
     try {
-      const res = await apiFetch<ChatResponse>("/chat", {
-        method: "POST",
-        body: { question, session_id: sessionId },
-      });
-      setSessionId(res.session_id);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: res.answer, sources: res.sources },
-      ]);
-      if (isNewSession) {
-        getSessions().then(setSessions).catch(() => {});
+      for await (const event of streamChat(question, sessionId)) {
+        if (event.type === "token") {
+          setMessages((prev) => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            next[next.length - 1] = { ...last, content: last.content + event.content };
+            return next;
+          });
+        } else if (event.type === "sources") {
+          setMessages((prev) => {
+            const next = [...prev];
+            next[next.length - 1] = { ...next[next.length - 1], sources: event.sources };
+            return next;
+          });
+        } else if (event.type === "done") {
+          setSessionId(event.session_id);
+          if (isNewSession) {
+            getSessions().then(setSessions).catch(() => {});
+          }
+        } else if (event.type === "error") {
+          setError(event.message);
+        }
       }
     } catch (err) {
       if (err instanceof ApiError) {
