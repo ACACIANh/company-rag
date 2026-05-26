@@ -6,6 +6,7 @@ import jwt
 def create_token(
     user_id: str,
     roles: list[str],
+    teams: list[str],
     allowed_doc_ids: list[str],
     secret: str,
     expire_minutes: int,
@@ -13,6 +14,7 @@ def create_token(
     payload = {
         "sub": user_id,
         "roles": roles,
+        "teams": teams,
         "allowed_doc_ids": allowed_doc_ids,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=expire_minutes),
     }
