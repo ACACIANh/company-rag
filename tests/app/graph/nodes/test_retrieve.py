@@ -70,3 +70,71 @@ async def test_retrieve_node_falls_back_to_question():
         retriever=mock_retriever, fga_client=mock_fga,
     )
     assert mock_retriever.retrieve.call_args[0][0] == "원본"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_node_multi_query_calls_retriever_per_query():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve = AsyncMock(return_value=[])
+    mock_fga = _mock_fga()
+
+    state = {
+        "question": "원본",
+        "rewritten_question": "재작성",
+        "multi_queries": ["쿼리1", "쿼리2", "쿼리3"],
+        "user_id": "u1",
+        "user_teams": [],
+        "personal_doc_ids": [],
+    }
+    await retrieve_node(state, retriever=mock_retriever, fga_client=mock_fga)
+
+    assert mock_retriever.retrieve.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_retrieve_node_multi_query_merges_results_via_rrf():
+    from shared.models import Chunk
+
+    def _sr(cid: str) -> SearchResult:
+        return SearchResult(chunk=Chunk(text="t", source=cid, chunk_id=cid), score=0.9)
+
+    mock_retriever = MagicMock()
+    # q1 → [a, b], q2 → [b, c]: b는 양쪽에 등장 → RRF 점수 높음
+    mock_retriever.retrieve = AsyncMock(side_effect=[
+        [_sr("a"), _sr("b")],
+        [_sr("b"), _sr("c")],
+    ])
+    mock_fga = _mock_fga()
+
+    state = {
+        "question": "원본",
+        "rewritten_question": "재작성",
+        "multi_queries": ["쿼리1", "쿼리2"],
+        "user_id": "u1",
+        "user_teams": [],
+        "personal_doc_ids": [],
+    }
+    result = await retrieve_node(state, retriever=mock_retriever, fga_client=mock_fga, top_k=10)
+    chunk_ids = [r.chunk.chunk_id for r in result["documents"]]
+    # b는 두 리스트 모두에 등장하므로 RRF 상위 순위여야 함
+    assert chunk_ids[0] == "b"
+
+
+@pytest.mark.asyncio
+async def test_retrieve_node_single_query_when_multi_queries_empty():
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve = AsyncMock(return_value=[_make_result()])
+    mock_fga = _mock_fga()
+
+    state = {
+        "question": "원본",
+        "rewritten_question": "재작성",
+        "multi_queries": [],
+        "user_id": "u1",
+        "user_teams": [],
+        "personal_doc_ids": [],
+    }
+    await retrieve_node(state, retriever=mock_retriever, fga_client=mock_fga)
+
+    assert mock_retriever.retrieve.call_count == 1
+    assert mock_retriever.retrieve.call_args[0][0] == "재작성"

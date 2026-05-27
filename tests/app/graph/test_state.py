@@ -56,3 +56,34 @@ def test_agent_state_phase3_instantiation():
     }
     assert state["confirmed"] is False
     assert state["tool_input"] == "회의실 A, 2026-06-01 14:00"
+
+
+def test_agent_state_has_multi_query_fields():
+    hints = get_type_hints(AgentState, include_extras=True)
+    assert "rewrite_strategy" in hints
+    assert "multi_queries" in hints
+
+
+def test_agent_state_multi_query_instantiation():
+    state: AgentState = {
+        "question": "연차 vs 병가 비교",
+        "rewritten_question": "연차와 병가의 차이점은?",
+        "chat_history": [],
+        "route": "doc_search",
+        "rewrite_strategy": "multi_query",
+        "multi_queries": ["연차 규정은?", "병가 규정은?"],
+        "documents": [],
+        "relevance_score": 0.0,
+        "retry_count": 0,
+        "answer": "",
+        "citations": [],
+        "hallucination_passed": False,
+        "confirmed": False,
+        "tool_input": "",
+        "user_id": "u1",
+        "allowed_doc_ids": [],
+        "user_teams": [],
+        "personal_doc_ids": [],
+    }
+    assert state["rewrite_strategy"] == "multi_query"
+    assert state["multi_queries"] == ["연차 규정은?", "병가 규정은?"]

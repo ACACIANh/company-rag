@@ -31,6 +31,7 @@ from app.graph.nodes.retrieve import retrieve_node
 from app.graph.nodes.rewrite_query import rewrite_query_node
 from app.graph.nodes.router import router_node
 from app.graph.nodes.save_memory import save_memory_node
+from app.graph.nodes.multi_query import multi_query_node
 from app.graph.nodes.tool_executor import tool_executor_node
 from app.graph.nodes.web_search import web_search_node
 from app.graph.state import AgentState
@@ -64,6 +65,7 @@ def build_graph(
     ))
     g.add_node("grade_documents", partial(grade_documents_node, llm=llm))
     g.add_node("increment_retry", increment_retry_node)
+    g.add_node("multi_query", partial(multi_query_node, llm=llm))
     g.add_node("web_search", partial(web_search_node, retriever=web_search_retriever))
     g.add_node("confirm", confirm_node)
     g.add_node("tool_executor", tool_executor_node)
@@ -78,8 +80,14 @@ def build_graph(
     g.add_conditional_edges(
         "router",
         route_after_router,
-        {"doc_search": "permission", "web_search": "web_search", "tool_call": "confirm"},
+        {
+            "doc_search": "permission",
+            "multi_query": "multi_query",
+            "web_search": "web_search",
+            "tool_call": "confirm",
+        },
     )
+    g.add_edge("multi_query", "permission")
 
     g.add_edge("permission", "retrieve")
     g.add_edge("retrieve", "grade_documents")
@@ -140,6 +148,8 @@ async def answer_question(
         "rewritten_question": "",
         "chat_history": chat_history,
         "route": "doc_search",
+        "rewrite_strategy": None,
+        "multi_queries": [],
         "documents": [],
         "relevance_score": 0.0,
         "retry_count": 0,
@@ -182,6 +192,8 @@ async def stream_answer(
             "rewritten_question": "",
             "chat_history": chat_history,
             "route": "doc_search",
+            "rewrite_strategy": None,
+            "multi_queries": [],
             "documents": [],
             "relevance_score": 0.0,
             "retry_count": 0,
