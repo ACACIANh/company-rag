@@ -8,6 +8,12 @@
 
 - `#perf` Hybrid Search (C-9) — 현재 Vector Only, BM25 결합으로 recall 향상 / 별도 BM25 인덱스 검토
 
+### 🔍 Query Rewriting (멀티턴 검색 품질 개선) — ref: SKT Enterprise 블로그
+
+- `#perf` `#feat` **Router Node에 재작성 판단 로직 추가** — `router_node`에서 쿼리 재작성 필요 여부(`none` / `contextual` / `multi_query`) 동시 판단; `AgentState`에 `rewritten_query`, `rewrite_strategy` 필드 추가
+- `#feat` **Contextual Query Rewriter 노드 신설** — `app/graph/nodes/query_rewriter.py`; 멀티턴 히스토리 + 현재 질문 → 완전한 단독 쿼리로 변환; **경량 LLM(Haiku) 사용**; retry + timeout 필수
+- `#perf` **Multi-Query + RRF 검색** — 복합 질문을 하위 쿼리 2~3개로 분해 후 병렬 검색, Reciprocal Rank Fusion으로 결과 병합; threshold ↑ + top-k ↓ 로 속도 보상
+
 <!-- 빠르게 처리해야 하는 개선사항 -->
 
 ## Medium
@@ -23,6 +29,10 @@
 - `#feat` **OpenFGA 권한 확인 응답** — OpenFGA 연동 후, 사용자가 접근 불가 문서를 조회하거나 권한 오류 발생 시 "해당 문서에 접근 권한이 없습니다" 형태의 명확한 안내 메시지 추가
 
 <!-- 다음 Phase 계획 시 고려할 항목 -->
+
+- `#perf` **Router용 LLM 경량화 분리** — Router/Rewriter 전용으로 `claude-haiku-4-5` 사용, 메인 응답 LLM과 분리; 비용·속도 개선
+- `#perf` **HyDE (Hypothetical Document Embeddings) 실험** — 질문 → 가상 답변 생성 → 답변으로 Vector 검색; `tests/eval/runner.py`로 on/off 회귀 비교 필수; 사내 문서 도메인에서만 적용 검토
+- `#feat` **Step-Back Prompting** — 복잡한 질문에서 상위 개념 질문 먼저 생성 후 검색; 사규·법률 등 계층적 문서 구조에 유효; 구현 복잡도 높음
 
 <!-- 언젠가 하면 좋을 것들 -->
 
