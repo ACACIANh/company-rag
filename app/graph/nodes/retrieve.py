@@ -44,7 +44,7 @@ async def retrieve_node(
     multi_queries: list[str] = state.get("multi_queries") or []
 
     if multi_queries:
-        all_results: tuple[list[SearchResult], ...] = await asyncio.gather(*[
+        all_results = await asyncio.gather(*[
             retriever.retrieve(q, top_k=retrieve_top_k, where_clause=where_clause, params=params)
             for q in multi_queries
         ])
