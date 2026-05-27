@@ -25,6 +25,7 @@ from shared.retriever import BasicRetriever
 from shared.session.factory import create_session_store
 from shared.vector_store.factory import create_vector_store
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from app.graph.builder import answer_question, build_graph, stream_answer
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
@@ -69,9 +70,12 @@ async def lifespan(app: FastAPI):
     llm = create_llm(config)
     reranker = create_reranker(config)
 
+    serde = JsonPlusSerializer(
+        allowed_msgpack_modules=[("shared.models", "Chunk"), ("shared.models", "SearchResult")]
+    )
     async with AsyncPostgresSaver.from_conn_string(
         config.postgres_dsn,
-        allowed_msgpack_modules=[("shared.models", "Chunk"), ("shared.models", "SearchResult")],
+        serde=serde,
     ) as checkpointer:
         await checkpointer.setup()
         graph = build_graph(

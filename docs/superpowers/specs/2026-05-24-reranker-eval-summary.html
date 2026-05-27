@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reranker 평가 요약 — company-rag 프로젝트</title>
+  <style>
+    /* ── 기본 리셋 ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── 레이아웃 ── */
+    body {
+      font-family: "Georgia", "Noto Serif KR", serif;
+      font-size: 16px;
+      line-height: 1.75;
+      color: #1a1a1a;
+      background: #fafaf8;
+    }
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 60px 48px 80px;
+      background: #ffffff;
+      border-left: 1px solid #e0ddd5;
+      border-right: 1px solid #e0ddd5;
+      min-height: 100vh;
+    }
+
+    /* ── 헤더 ── */
+    header {
+      border-bottom: 2px solid #1a1a1a;
+      padding-bottom: 24px;
+      margin-bottom: 36px;
+    }
+    .doc-label {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: bold;
+      line-height: 1.35;
+      margin-bottom: 14px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 16px;
+      font-size: 13px;
+      color: #555;
+      font-family: "Courier New", Courier, monospace;
+    }
+    .meta-key { color: #999; }
+
+    /* ── 섹션 ── */
+    section { margin-top: 48px; }
+    h2 {
+      font-size: 18px;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 6px;
+      margin-bottom: 20px;
+      counter-increment: section;
+    }
+    h2::before {
+      content: counter(section) ". ";
+      color: #888;
+    }
+    body { counter-reset: section; }
+
+    h3 {
+      font-size: 15px;
+      font-weight: bold;
+      margin-top: 28px;
+      margin-bottom: 10px;
+      color: #222;
+    }
+
+    p { margin-bottom: 14px; }
+
+    /* ── 인라인 코드 & 수식 ── */
+    code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 13.5px;
+      background: #f3f2ee;
+      padding: 2px 5px;
+      border-radius: 3px;
+      color: #333;
+    }
+    .formula {
+      display: block;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 14px;
+      background: #f6f5f0;
+      border-left: 3px solid #bbb;
+      padding: 12px 16px;
+      margin: 16px 0;
+      color: #2a2a2a;
+      line-height: 1.9;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* ── 테이블 ── */
+    .tbl-wrap {
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead tr {
+      background: #1a1a1a;
+      color: #fff;
+    }
+    thead th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: normal;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+    tbody tr:nth-child(even) { background: #f7f6f2; }
+    tbody td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #e8e6df;
+    }
+    .num { text-align: right; font-family: "Courier New", Courier, monospace; }
+    .highlight { background: #fffbeb !important; font-weight: bold; }
+    .delta-pos { color: #1a7a3c; font-family: "Courier New", Courier, monospace; }
+
+    /* ── 콜아웃 박스 ── */
+    .callout {
+      border: 1px solid #c8c4b8;
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      background: #fdfcf8;
+      font-size: 14.5px;
+    }
+    .callout-title {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    /* ── 목록 ── */
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 14px;
+    }
+    li { margin-bottom: 6px; }
+
+    /* ── 구분 다이어그램 ── */
+    .diagram {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 13px;
+      background: #f1f0eb;
+      padding: 18px 20px;
+      border-radius: 4px;
+      margin: 18px 0;
+      line-height: 2;
+      overflow-x: auto;
+      white-space: pre;
+      color: #333;
+    }
+
+    /* ── 푸터 ── */
+    footer {
+      margin-top: 64px;
+      border-top: 1px solid #ddd;
+      padding-top: 18px;
+      font-size: 12px;
+      color: #aaa;
+      font-family: "Courier New", Courier, monospace;
+    }
+
+    /* ── 인쇄 ── */
+    @media print {
+      body { background: white; }
+      .page { border: none; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══════════════════════════════════════════════ HEADER -->
+  <header>
+    <div class="doc-label">Technical Report · company-rag project</div>
+    <h1>Two-Stage Retrieval에서 Reranker가 순위 품질에 미치는 영향:<br>
+        Listwise LLM Reranker 평가 보고서</h1>
+    <div class="meta-grid">
+      <span class="meta-key">Date:</span>      <span>2026-05-24</span>
+      <span class="meta-key">System:</span>    <span>company-rag (LangGraph RAG, Phase 5)</span>
+      <span class="meta-key">Baseline:</span>  <span>NoRerank (dense retrieval, top_k=5)</span>
+      <span class="meta-key">Treatment:</span> <span>LLMReranker (top_k=20 → 5, gpt-4o-mini listwise)</span>
+      <span class="meta-key">Dataset:</span>   <span>doc_search 경로 질문 10개</span>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════ 1. 개요 -->
+  <section>
+    <h2>개요</h2>
+    <p>
+      현대 정보 검색(Information Retrieval) 시스템은 대규모 코퍼스에서 효율적으로 문서를
+      후보군으로 좁히는 1단계(Recall 중심)와, 소수 후보를 정밀 재정렬하는 2단계(Precision 중심)로
+      구성된 <strong>Two-Stage Retrieval</strong> 패러다임을 채택한다.
+    </p>
+    <p>
+      본 보고서는 company-rag 프로젝트에서 수행한 실험 결과를 바탕으로, Listwise LLM Reranker를
+      2단계로 추가했을 때 검색 품질이 어떻게 변화하는지를 <code>Recall@k</code> 및
+      <code>MRR</code> 지표로 분석한다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 2. 배경: Two-Stage Retrieval -->
+  <section>
+    <h2>배경: Two-Stage Retrieval과 Recall–Precision Tradeoff</h2>
+
+    <h3>2.1 구조 개요</h3>
+    <div class="diagram">Query
+  │
+  ▼
+┌──────────────────────────────────────┐
+│  Stage 1: Dense Retrieval            │
+│  (Bi-encoder / BM25)                 │
+│  목표: Recall ↑  (후보 k₁개 확보)    │
+│  비용: O(1) per query (ANN search)   │
+└──────────────────┬───────────────────┘
+                   │ top-k₁ candidates
+                   ▼
+┌──────────────────────────────────────┐
+│  Stage 2: Reranker                   │
+│  (Cross-encoder / LLM Listwise)      │
+│  목표: Precision / MRR ↑             │
+│  비용: O(k₁) per query               │
+└──────────────────┬───────────────────┘
+                   │ top-k₂ results (k₂ &lt;&lt; k₁)
+                   ▼
+              최종 응답 생성 (LLM)</div>
+
+    <h3>2.2 왜 1단계만으로는 부족한가</h3>
+    <p>
+      Dense Retrieval(bi-encoder)은 쿼리와 문서를 각각 독립적으로 인코딩하기 때문에
+      <strong>쿼리-문서 상호작용(cross-attention)</strong>을 직접 모델링하지 못한다.
+      그 결과, 의미적으로 유사한 문서를 빠르게 후보군에 포함시키는 능력(Recall)은 높지만,
+      정확히 어떤 문서가 더 적합한지 순위를 매기는 능력(Precision at top-1, MRR)은
+      떨어지는 경향이 있다.
+    </p>
+    <div class="callout">
+      <div class="callout-title">핵심 직관</div>
+      1단계는 <em>"정답 문서를 놓치지 않기"</em> 위한 단계이고,<br>
+      2단계는 <em>"정답 문서를 가장 위에 올리기"</em> 위한 단계이다.
+    </div>
+    <p>
+      이 구조는 계산 비용도 합리적으로 배분한다. 1단계는 코퍼스 전체(수십만 문서)에 대해
+      근사 최근접 탐색(ANN)을 수행하고, 2단계는 이미 걸러진 소수(예: 20개) 후보에 대해서만
+      고비용 모델을 적용한다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 3. 평가 지표 -->
+  <section>
+    <h2>평가 지표 정의</h2>
+
+    <h3>3.1 Recall@k</h3>
+    <p>
+      상위 <code>k</code>개 결과 안에 정답(ground-truth) 문서가 포함된 비율을 측정한다.
+      쿼리 집합 Q에 대해 각 쿼리 q에서 정답 문서가 상위 k위 안에 있으면 1, 없으면 0으로
+      표시할 때:
+    </p>
+    <code class="formula">Recall@k = (1 / |Q|) × Σ_{q ∈ Q} 1[ rank(rel_q) ≤ k ]</code>
+    <ul>
+      <li><code>rel_q</code>: 쿼리 q에 대한 정답 문서</li>
+      <li><code>rank(·)</code>: 시스템이 부여한 순위 (1이 최상위)</li>
+    </ul>
+    <p>
+      Recall@k는 "정답이 목록 안에 있는가"를 묻는 이진(binary) 지표이며,
+      정답이 1위인지 5위인지는 구별하지 않는다.
+      따라서 Retrieval Coverage(커버리지)를 측정하기에 적합하다.
+    </p>
+
+    <h3>3.2 MRR (Mean Reciprocal Rank)</h3>
+    <p>
+      각 쿼리에서 첫 번째 정답 문서의 <strong>순위 역수(reciprocal rank)</strong>를 평균 낸 값이다.
+    </p>
+    <code class="formula">MRR = (1 / |Q|) × Σ_{q ∈ Q} (1 / rank_q^first)</code>
+    <ul>
+      <li>정답이 1위: 기여값 = 1.0</li>
+      <li>정답이 2위: 기여값 = 0.5</li>
+      <li>정답이 5위: 기여값 = 0.2</li>
+      <li>정답이 없음: 기여값 = 0.0</li>
+    </ul>
+    <p>
+      MRR은 순위에 민감하다(rank-sensitive). 동일한 Recall@5=1.0이더라도
+      정답이 1위에 있는 시스템과 5위에 있는 시스템은 MRR 값이 크게 다르다.
+      사용자 경험 관점에서 첫 번째 결과의 적합성이 중요한 경우, MRR이 더 의미 있는 지표다.
+    </p>
+
+    <h3>3.3 두 지표의 상보적 관계</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>지표</th>
+            <th>측정 대상</th>
+            <th>순위 민감도</th>
+            <th>주요 활용 맥락</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Recall@k</td>
+            <td>정답의 목록 내 존재 여부</td>
+            <td class="num">낮음 (이진)</td>
+            <td>1단계 Retrieval 커버리지 평가</td>
+          </tr>
+          <tr>
+            <td>MRR</td>
+            <td>정답의 실제 순위 품질</td>
+            <td class="num">높음 (연속)</td>
+            <td>2단계 Reranking 품질 평가</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Recall@k가 충분히 높은 상태에서 MRR이 낮다면, 정답 문서는 후보군에 들어오지만
+      순위가 뒤로 밀린다는 뜻이다. 이 상황에서 Reranker는 Recall을 희생하지 않으면서
+      MRR을 향상시키는 역할을 할 수 있다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 4. Listwise Reranking -->
+  <section>
+    <h2>Listwise Reranking: 방법론 비교</h2>
+
+    <h3>4.1 Reranking 방식 분류</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>방식</th>
+            <th>입력 단위</th>
+            <th>모델 추론 횟수</th>
+            <th>컨텍스트</th>
+            <th>대표 모델</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Pointwise</strong></td>
+            <td>쿼리 + 단일 문서</td>
+            <td class="num">k₁ 회</td>
+            <td>문서 간 상대 관계 없음</td>
+            <td>Cross-encoder (단순)</td>
+          </tr>
+          <tr>
+            <td><strong>Pairwise</strong></td>
+            <td>쿼리 + 문서 쌍</td>
+            <td class="num">O(k₁²)</td>
+            <td>두 문서 간 비교</td>
+            <td>RankNet, LambdaMART</td>
+          </tr>
+          <tr class="highlight">
+            <td><strong>Listwise</strong></td>
+            <td>쿼리 + 전체 목록</td>
+            <td class="num">1 회</td>
+            <td>전체 후보 간 상대 관계</td>
+            <td>LLM (GPT-4o-mini 등)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>4.2 LLM 기반 Listwise Reranking의 원리</h3>
+    <p>
+      LLM Listwise Reranker는 쿼리와 후보 문서 목록 전체를 하나의 프롬프트로 입력받아,
+      각 문서의 관련성을 <strong>목록 내 상대적 맥락</strong>을 고려하여 재정렬한다.
+      대형 언어 모델의 자연어 이해 능력을 활용하므로 파인튜닝 없이도 높은 성능을 낼 수 있다.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">LLM Listwise의 장점</div>
+      <ul style="margin:0; padding-left:18px;">
+        <li>단 1회 추론으로 전체 목록 재정렬 가능 (pairwise 대비 효율적)</li>
+        <li>문서 간 상대적 관련성을 동시에 고려 (pointwise 대비 우수)</li>
+        <li>도메인 지식 없이도 일반화 가능 (제로샷)</li>
+        <li>프롬프트 수정만으로 정렬 기준 조정 가능</li>
+      </ul>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">LLM Listwise의 단점 및 한계</div>
+      <ul style="margin:0; padding-left:18px;">
+        <li>컨텍스트 길이 제한 — 후보 수(k₁)가 클수록 토큰 비용 증가</li>
+        <li>API 지연(latency) — 실시간 응답이 중요한 환경에서 병목 가능</li>
+        <li>Position Bias — LLM이 목록에서 앞/뒤 위치에 따라 선호를 보일 수 있음</li>
+        <li>비결정성 — 동일 쿼리에 대해 결과가 달라질 수 있음</li>
+      </ul>
+    </div>
+
+    <h3>4.3 본 프로젝트의 구현</h3>
+    <p>
+      company-rag에서는 <code>shared/retriever/</code> 레이어에 <code>Reranker</code> ABC를
+      정의하고, <code>LLMReranker</code> 구현체에서 <code>gpt-4o-mini</code>를 통한
+      listwise 프롬프트 방식을 적용했다. 1단계에서 <code>top_k=20</code>으로 후보를 넓힌 뒤,
+      Reranker가 상위 5개로 압축한다. 이 설계는 Stage 1/2 경계를 명확히 하여 이후
+      Cross-encoder 등 다른 구현체로 교체 가능한 구조를 유지한다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 5. 실험 결과 -->
+  <section>
+    <h2>실험 결과</h2>
+
+    <h3>5.1 측정값</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>시스템</th>
+            <th>Recall@1</th>
+            <th>Recall@3</th>
+            <th>Recall@5</th>
+            <th>MRR</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baseline (NoRerank, k=5)</td>
+            <td class="num">0.800</td>
+            <td class="num">0.800</td>
+            <td class="num">1.000</td>
+            <td class="num">0.840</td>
+            <td>dense retrieval only</td>
+          </tr>
+          <tr class="highlight">
+            <td>LLMReranker (k=20→5)</td>
+            <td class="num">0.900</td>
+            <td class="num">1.000</td>
+            <td class="num">1.000</td>
+            <td class="num">0.950</td>
+            <td>gpt-4o-mini listwise</td>
+          </tr>
+          <tr>
+            <td>Delta</td>
+            <td class="num delta-pos">+0.100</td>
+            <td class="num delta-pos">+0.200</td>
+            <td class="num">±0.000</td>
+            <td class="num delta-pos">+0.110</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px; color:#777; margin-top: -8px;">
+      * 평가 쿼리 수: 10개 | 측정일: 2026-05-23 | 소수점 3자리 반올림
+    </p>
+
+    <h3>5.2 결과 해석</h3>
+
+    <p>
+      <strong>Recall@5가 두 시스템에서 동일하게 1.000인 것</strong>은 1단계 Dense Retrieval이
+      이미 충분한 커버리지(Coverage)를 제공하고 있음을 의미한다. 즉, 정답 문서는 이미
+      상위 5개 안에 포함되어 있었다. 이는 1단계의 역할—정답을 후보군에 올려두는 것—이
+      제대로 수행되고 있다는 증거다.
+    </p>
+
+    <p>
+      반면 <strong>Recall@1이 0.800 → 0.900, MRR이 0.840 → 0.950으로 향상된 것</strong>은
+      Reranker가 이미 후보군에 있던 정답 문서를 더 높은 순위로 끌어올렸음을 나타낸다.
+      이는 문제가 Retrieval Coverage가 아닌 <em>Ranking Quality</em>에 있었다는 사실을
+      명확히 드러낸다.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">핵심 해석: 무엇이 개선되었는가</div>
+      <p style="margin:0;">
+        Recall@5 = 1.000 (변화 없음) → 정답 문서는 이미 목록 안에 있었다.<br>
+        MRR 0.840 → 0.950 (+0.110) → Reranker가 정답을 순위상 더 앞으로 이동시켰다.<br>
+        Recall@1 0.800 → 0.900 (+0.100) → 10개 쿼리 중 1개가 이제 1위에 정답을 얻는다.
+      </p>
+    </div>
+
+    <h3>5.3 MRR 향상의 실질적 의미</h3>
+    <p>
+      MRR 기대값 0.950은 평균적으로 사용자가 결과 목록의 <strong>1.05위</strong> 근처에서
+      정답 문서를 만난다는 것을 의미한다(1/0.950 ≈ 1.05). Baseline의 MRR 0.840은
+      1/0.840 ≈ 1.19위에 해당한다. 이 0.14 순위 차이는 소수의 질문에서 정답이 2~3위에
+      위치했던 사례들이 Reranking 후 1위로 올라왔음을 반영한다.
+    </p>
+    <p>
+      RAG 시스템에서 LLM이 컨텍스트로 주입받는 문서의 순위는 <strong>Lost in the Middle</strong>
+      현상과 직접 연관된다. 정답 문서가 1위(상단)에 위치할수록 최종 답변 품질이 높아지는
+      경향이 있으므로, MRR 향상은 단순 순위 지표 개선을 넘어 하류(downstream) 생성 품질에도
+      영향을 미칠 수 있다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 6. 한계 및 후속 과제 -->
+  <section>
+    <h2>한계 및 후속 과제</h2>
+    <ul>
+      <li>
+        <strong>평가 셋 규모</strong>: 10개 쿼리는 통계적 유의성 확보에 불충분하다.
+        신뢰 구간(95% CI) 기준 ±0.16 수준의 불확실성을 고려해야 한다.
+        최소 100개 이상의 쿼리로 반복 측정이 필요하다.
+      </li>
+      <li>
+        <strong>Latency 측정 부재</strong>: LLMReranker는 gpt-4o-mini API 호출을 포함하므로
+        응답 지연이 발생한다. 품질-지연 tradeoff를 별도로 측정해야 한다.
+      </li>
+      <li>
+        <strong>Position Bias 검증</strong>: Listwise 방식에서 입력 문서 순서를 변경한 뒤
+        결과 일관성을 측정하는 실험(permutation test)이 필요하다.
+      </li>
+      <li>
+        <strong>비교 대상 확장</strong>: Cross-encoder 기반 Reranker(예: ms-marco-MiniLM)와의
+        성능·비용 비교가 필요하다.
+      </li>
+      <li>
+        <strong>RRF(Reciprocal Rank Fusion)</strong>: 동일 Phase에서 구현된 RRF Reranker와의
+        성능 비교를 통해 모델 없는 앙상블 방식의 효과를 평가해야 한다.
+      </li>
+    </ul>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ 7. 결론 -->
+  <section>
+    <h2>결론</h2>
+    <p>
+      본 실험은 Two-Stage Retrieval에서 각 단계가 서로 다른 문제를 해결함을 실증적으로 확인했다.
+      1단계 Dense Retrieval은 정답 문서를 후보군에 포함시키는 Coverage를 담당하고
+      (Recall@5 = 1.000), 2단계 LLM Listwise Reranker는 이미 후보군에 들어온 정답 문서를
+      상위 순위로 끌어올리는 Ranking Quality를 담당한다(MRR +0.110).
+    </p>
+    <p>
+      Reranker가 Recall@5를 바꾸지 못한 것은 실패가 아니라 <strong>설계 의도와 일치하는 결과</strong>다.
+      Reranker의 역할은 Recall을 높이는 것이 아니라, 1단계가 올려둔 정답 문서를 더 빠르게
+      사용자에게 노출하는 것이기 때문이다. 이 결과는 company-rag의 현재 문서 검색 파이프라인이
+      각 단계의 책임을 명확히 분리하고 있음을 보여준다.
+    </p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════ FOOTER -->
+  <footer>
+    <p>company-rag / docs/superpowers/specs/2026-05-24-reranker-eval-summary.html</p>
+    <p>Generated: 2026-05-24 | Eval commit: Phase 5 (PR #10 #11 #12 #13)</p>
+  </footer>
+
+</div>
+</body>
+</html>
