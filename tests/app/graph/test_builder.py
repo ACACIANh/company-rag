@@ -33,6 +33,8 @@ def _make_initial_state(question: str) -> dict:
         "rewritten_question": "",
         "chat_history": [],
         "route": "doc_search",
+        "rewrite_strategy": None,
+        "multi_queries": [],
         "documents": [],
         "relevance_score": 0.0,
         "retry_count": 0,
