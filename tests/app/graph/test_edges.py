@@ -65,6 +65,22 @@ def test_route_after_router_returns_tool_call():
     assert route_after_router({"route": "tool_call"}) == "tool_call"
 
 
+def test_route_after_router_returns_multi_query_when_strategy_set():
+    state = {"route": "doc_search", "rewrite_strategy": "multi_query"}
+    assert route_after_router(state) == "multi_query"
+
+
+def test_route_after_router_returns_doc_search_when_strategy_none():
+    state = {"route": "doc_search", "rewrite_strategy": "none"}
+    assert route_after_router(state) == "doc_search"
+
+
+def test_route_after_router_returns_doc_search_when_no_strategy_key():
+    """rewrite_strategy 키가 없어도 기존 동작 유지."""
+    state = {"route": "doc_search"}
+    assert route_after_router(state) == "doc_search"
+
+
 # ─── route_after_confirm ───
 
 def test_route_after_confirm_proceeds_when_confirmed():

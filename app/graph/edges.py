@@ -36,15 +36,19 @@ def route_after_hallucination(state: dict) -> str:
 
 
 def route_after_router(state: dict) -> str:
-    """Route based on router decision.
+    """Route based on router decision and rewrite strategy.
 
     Args:
-        state: Graph state containing route field
+        state: Graph state containing route and rewrite_strategy fields
 
     Returns:
-        The route value from state (e.g., "doc_search", "web_search", "tool_call")
+        "multi_query" if doc_search route with multi_query strategy,
+        otherwise the route value from state
     """
-    return state["route"]
+    route = state["route"]
+    if route == "doc_search" and state.get("rewrite_strategy") == "multi_query":
+        return "multi_query"
+    return route
 
 
 def route_after_confirm(state: dict) -> str:
