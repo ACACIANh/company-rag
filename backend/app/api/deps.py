@@ -1,3 +1,6 @@
+import logging
+
+import jwt
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 
@@ -8,6 +11,7 @@ from core.fga.client import FGAClient
 from core.rate_limiter.in_memory import InMemoryRateLimiter
 from core.session.base import SessionStore
 
+logger = logging.getLogger(__name__)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 _config = load_config()
@@ -34,7 +38,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:
             teams=payload.get("teams", []),
             allowed_doc_ids=payload["allowed_doc_ids"],
         )
-    except Exception:
+    except (jwt.InvalidTokenError, KeyError) as exc:
+        logger.warning("token rejected: %s", type(exc).__name__)
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 

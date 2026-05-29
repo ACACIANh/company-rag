@@ -1,4 +1,18 @@
+import pytest
+
 from core.config import load_config
+
+
+def test_load_config_rejects_missing_jwt_secret(monkeypatch):
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    with pytest.raises(RuntimeError):
+        load_config()
+
+
+def test_load_config_rejects_insecure_default_jwt_secret(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET", "dev-secret-change-in-prod")
+    with pytest.raises(RuntimeError):
+        load_config()
 
 
 def test_load_config_defaults(monkeypatch):

@@ -12,6 +12,19 @@ def _parse_cors_origins() -> list[str]:
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 
+_INSECURE_JWT_SECRETS = {"", "dev-secret-change-in-prod"}
+
+
+def _require_jwt_secret() -> str:
+    secret = os.getenv("JWT_SECRET", "")
+    if secret in _INSECURE_JWT_SECRETS:
+        raise RuntimeError(
+            "JWT_SECRET 환경변수가 설정되지 않았거나 안전하지 않은 기본값입니다. "
+            "충분히 긴 임의의 시크릿을 설정하세요."
+        )
+    return secret
+
+
 @dataclass
 class Config:
     llm_provider: str
@@ -45,7 +58,7 @@ def load_config() -> Config:
         embedding_model=os.getenv(
             "EMBEDDING_MODEL", "text-embedding-3-small"
         ),
-        jwt_secret=os.getenv("JWT_SECRET", "dev-secret-change-in-prod"),
+        jwt_secret=_require_jwt_secret(),
         jwt_expire_minutes=int(os.getenv("JWT_EXPIRE_MINUTES", "60")),
         rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),
         cors_origins=_parse_cors_origins(),
