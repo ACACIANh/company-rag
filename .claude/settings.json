@@ -1,0 +1,16 @@
+{
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "worktree": {
+    "sparsePaths": [
+      ".claude",
+      "backend",
+      "web"
+    ],
+    "symlinkDirectories": [
+      "web/node_modules"
+    ]
+  }
+}
