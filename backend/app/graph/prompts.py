@@ -61,13 +61,6 @@ strategy 선택지 (doc_search에만 적용, 그 외는 none):
 질문: {question}
 출력:"""
 
-RAG_GENERATE_NO_DOCS = """\
-이전 대화:
-{chat_history}
-
-질문: {question}
-사내 문서에서 관련 정보를 찾지 못했습니다. 일반 지식을 바탕으로 한국어로 답변하세요."""
-
 MULTI_QUERY_PROMPT = """\
 다음 질문을 사내 문서 검색에 최적화된 2~3개의 독립적인 하위 쿼리로 분해하세요.
 각 쿼리는 단독으로 검색해도 의미가 통하는 완전한 문장이어야 합니다.
