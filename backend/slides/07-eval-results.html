@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>평가 결과</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+}
+.container {
+  width: 1280px;
+  padding: 44px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.subtitle { font-size: 16px; color: #8b949e; margin-bottom: 40px; text-align: center; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 1060px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: rgba(139,148,158,0.04);
+  border: 1px solid rgba(139,148,158,0.1);
+  border-radius: 16px;
+  padding: 28px 32px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardIn 0.5s ease-out forwards;
+}
+.stat-card:nth-child(1) { animation-delay: 0.1s; border-color: rgba(56,189,248,0.25); }
+.stat-card:nth-child(2) { animation-delay: 0.2s; border-color: rgba(52,211,153,0.25); }
+.stat-card:nth-child(3) { animation-delay: 0.3s; border-color: rgba(251,191,36,0.25); }
+.stat-card:nth-child(4) { animation-delay: 0.4s; border-color: rgba(236,72,153,0.25); }
+@keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+.stat-label { font-size: 13px; color: #8b949e; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.04em; }
+.stat-main { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.stat-number { font-size: 52px; font-weight: 900; line-height: 1; }
+.stat-unit { font-size: 18px; font-weight: 700; color: #8b949e; }
+.stat-card:nth-child(1) .stat-number { color: #38bdf8; }
+.stat-card:nth-child(2) .stat-number { color: #34d399; }
+.stat-card:nth-child(3) .stat-number { color: #fbbf24; }
+.stat-card:nth-child(4) .stat-number { color: #ec4899; }
+
+.stat-detail { font-size: 14px; color: #8b949e; line-height: 1.6; }
+.stat-delta {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 13px; font-weight: 700; margin-top: 8px;
+}
+.delta-up { background: rgba(52,211,153,0.12); color: #34d399; }
+
+.before-after {
+  width: 100%;
+  max-width: 1060px;
+  background: rgba(22,27,40,0.6);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 14px;
+  padding: 20px 28px;
+}
+.ba-title { font-size: 14px; font-weight: 700; color: #8b949e; margin-bottom: 14px; }
+.ba-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 100px 1fr 80px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.ba-metric { font-weight: 700; color: #8b949e; }
+.ba-bar-wrap { background: rgba(139,148,158,0.1); border-radius: 4px; height: 8px; }
+.ba-bar { height: 8px; border-radius: 4px; }
+.ba-arrow { text-align: center; color: #7c3aed; font-size: 16px; }
+.ba-delta { text-align: right; font-weight: 700; color: #34d399; }
+
+.slide-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 50px;
+  background: rgba(10,15,26,0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(124,58,237,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.slide-nav-inner {
+  width: 1280px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 60px;
+}
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">평가 결과</h1>
+  <p class="subtitle">questions.yaml 기반 회귀 테스트 + LLM Reranker 실험 (gpt-4o-mini, 2026-05-24)</p>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">RECALL@5 (doc_search 10개)</div>
+      <div class="stat-main">
+        <span class="stat-number">1.00</span>
+        <span class="stat-unit">/ 1.0</span>
+      </div>
+      <p class="stat-detail">Phase 2 baseline부터 유지. 모든 Phase에서 회귀 없음.</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">MRR (LLM Reranker, top-20→5)</div>
+      <div class="stat-main">
+        <span class="stat-number">0.95</span>
+      </div>
+      <p class="stat-detail">baseline 0.84 → LLM Reranker 0.95</p>
+      <span class="stat-delta delta-up">↑ +13.1%</span>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">라우팅 정확도 (3-way, 15문항)</div>
+      <div class="stat-main">
+        <span class="stat-number">93</span>
+        <span class="stat-unit">%</span>
+      </div>
+      <p class="stat-detail">14/15 정답. 경계 케이스 1건 (LangGraph 관련 → web_search 오분류).</p>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">단위 테스트 통과</div>
+      <div class="stat-main">
+        <span class="stat-number">184</span>
+        <span class="stat-unit">개</span>
+      </div>
+      <p class="stat-detail">shared/ + app/ 전체 커버. Phase 진행 중 회귀 0건.</p>
+    </div>
+  </div>
+
+  <div class="before-after">
+    <div class="ba-title">LLM Reranker 도입 전후 (NoRerank vs LLMReranker, top-5 기준)</div>
+    <div class="ba-row">
+      <span class="ba-metric">Recall@1</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:80%; background:#484f58;"></div></div>
+      <span class="ba-arrow" style="text-align:center;">0.80 → 0.90</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:90%; background:#34d399;"></div></div>
+      <span class="ba-delta">+12.5%</span>
+    </div>
+    <div class="ba-row">
+      <span class="ba-metric">Recall@3</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:80%; background:#484f58;"></div></div>
+      <span class="ba-arrow" style="text-align:center;">0.80 → 1.00</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:100%; background:#34d399;"></div></div>
+      <span class="ba-delta">+25.0%</span>
+    </div>
+    <div class="ba-row">
+      <span class="ba-metric">MRR</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:84%; background:#484f58;"></div></div>
+      <span class="ba-arrow" style="text-align:center;">0.84 → 0.95</span>
+      <div class="ba-bar-wrap"><div class="ba-bar" style="width:95%; background:#34d399;"></div></div>
+      <span class="ba-delta">+13.1%</span>
+    </div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="06-access-control.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">07 / 08</a></div>
+    <div class="nav-right"><a href="08-summary.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+
+<script>
+function navigateTo(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(function() { window.location.href = url; }, 300);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') navigateTo('06-access-control.html');
+  if (e.key === 'ArrowRight') navigateTo('08-summary.html');
+});
+</script>
+</body>
+</html>

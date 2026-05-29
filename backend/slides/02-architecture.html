@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>전체 워크플로우 아키텍처</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+}
+.container {
+  width: 1280px;
+  padding: 44px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.subtitle { font-size: 16px; color: #8b949e; margin-bottom: 36px; text-align: center; }
+
+.flow-diagram {
+  width: 100%;
+  max-width: 1060px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+/* Row */
+.flow-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 20px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 130px;
+}
+.flow-node.start {
+  background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(56,189,248,0.1));
+  border: 2px solid #7c3aed;
+  font-size: 15px; font-weight: 900; color: #a78bfa;
+}
+.flow-node.pipeline {
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.3);
+  font-size: 14px; font-weight: 700; color: #e6edf3;
+}
+.flow-node.tool {
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.3);
+  font-size: 13px; font-weight: 700; color: #6ee7b7;
+  min-width: 110px;
+}
+.flow-node.check {
+  background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.3);
+  font-size: 13px; font-weight: 700; color: #fde68a;
+}
+.flow-node.end {
+  background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(52,211,153,0.1));
+  border: 2px solid #38bdf8;
+  font-size: 15px; font-weight: 900; color: #7dd3fc;
+}
+.flow-node .node-icon { font-size: 22px; margin-bottom: 4px; }
+.flow-node .node-name { font-size: 13px; font-weight: 700; }
+.flow-node .node-desc { font-size: 11px; color: #8b949e; margin-top: 2px; }
+
+.arrow-down { font-size: 22px; color: #7c3aed; margin: 4px 0; text-align: center; }
+.arrow-right { font-size: 20px; color: #7c3aed; }
+.branch-label {
+  font-size: 11px; color: #8b949e; font-weight: 700;
+  background: rgba(124,58,237,0.1); border-radius: 6px; padding: 2px 8px;
+}
+
+.retry-note {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 16px; padding: 10px 20px;
+  background: rgba(251,191,36,0.05); border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 10px; font-size: 13px; color: #8b949e;
+}
+
+.slide-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 50px;
+  background: rgba(10,15,26,0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(124,58,237,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.slide-nav-inner {
+  width: 1280px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 60px;
+}
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">전체 워크플로우 아키텍처</h1>
+  <p class="subtitle">LangGraph ReAct 에이전트 — Self-RAG 루프 + 3-way 라우팅</p>
+
+  <div class="flow-diagram">
+    <!-- 시작 -->
+    <div class="flow-row">
+      <div class="flow-node start">
+        <span class="node-icon">💬</span>
+        <span class="node-name">사용자 질문</span>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+
+    <!-- 파이프라인 상단 -->
+    <div class="flow-row">
+      <div class="flow-node pipeline">
+        <span class="node-icon">🧠</span>
+        <span class="node-name">메모리 로드</span>
+        <span class="node-desc">이전 대화 컨텍스트</span>
+      </div>
+      <span class="arrow-right">→</span>
+      <div class="flow-node pipeline">
+        <span class="node-icon">✏️</span>
+        <span class="node-name">질문 재작성</span>
+        <span class="node-desc">대명사 해소 · 서브 질문</span>
+      </div>
+      <span class="arrow-right">→</span>
+      <div class="flow-node check">
+        <span class="node-icon">🔀</span>
+        <span class="node-name">라우터</span>
+        <span class="node-desc">LLM 기반 도구 선택</span>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+
+    <!-- 3-way 분기 -->
+    <div class="flow-row">
+      <div class="flow-node tool">
+        <span class="node-icon">📄</span>
+        <span class="node-name">문서 검색</span>
+        <span class="node-desc">Vector + BM25</span>
+      </div>
+      <span class="branch-label">doc_search</span>
+      <div style="width: 20px;"></div>
+      <span class="branch-label">tool_call</span>
+      <div class="flow-node tool">
+        <span class="node-icon">🔧</span>
+        <span class="node-name">도구 호출</span>
+        <span class="node-desc">사내 API · HITL</span>
+      </div>
+      <div style="width: 20px;"></div>
+      <span class="branch-label">web_search</span>
+      <div class="flow-node tool">
+        <span class="node-icon">🌐</span>
+        <span class="node-name">웹 검색</span>
+        <span class="node-desc">외부 정보 fallback</span>
+      </div>
+    </div>
+    <div class="arrow-down">↓</div>
+
+    <!-- 평가 + 생성 -->
+    <div class="flow-row">
+      <div class="flow-node check">
+        <span class="node-icon">⚖️</span>
+        <span class="node-name">결과 평가</span>
+        <span class="node-desc">관련성 점수 채점</span>
+      </div>
+      <span class="arrow-right">→</span>
+      <div class="flow-node pipeline">
+        <span class="node-icon">💡</span>
+        <span class="node-name">답변 생성</span>
+        <span class="node-desc">컨텍스트 기반 LLM</span>
+      </div>
+      <span class="arrow-right">→</span>
+      <div class="flow-node check">
+        <span class="node-icon">🔍</span>
+        <span class="node-name">환각 체크</span>
+        <span class="node-desc">근거 일치 검증</span>
+      </div>
+      <span class="arrow-right">→</span>
+      <div class="flow-node end">
+        <span class="node-icon">✅</span>
+        <span class="node-name">답변 반환</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="retry-note">
+    <span>🔄</span>
+    <span>관련성 부족 시 질문 재작성으로 재시도 (최대 2회) · 환각 감지 시 재생성 (최대 1회)</span>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="01-intro-hook.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">02 / 08</a></div>
+    <div class="nav-right"><a href="03-core-nodes.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+
+<script>
+function navigateTo(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(function() { window.location.href = url; }, 300);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') navigateTo('01-intro-hook.html');
+  if (e.key === 'ArrowRight') navigateTo('03-core-nodes.html');
+});
+</script>
+</body>
+</html>

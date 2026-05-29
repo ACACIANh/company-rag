@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>단순 RAG vs Agentic RAG</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+}
+.container {
+  width: 1280px;
+  padding: 44px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.subtitle { font-size: 16px; color: #8b949e; margin-bottom: 40px; text-align: center; }
+
+.comparison { width: 100%; max-width: 1060px; }
+
+.col-headers {
+  display: grid;
+  grid-template-columns: 180px 1fr 60px 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.col-label {
+  font-size: 16px; font-weight: 900; text-align: center; padding: 10px 0;
+  border-radius: 8px;
+}
+.col-label.before { color: #8b949e; background: rgba(139,148,158,0.08); }
+.col-label.after {
+  background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(56,189,248,0.1));
+  color: #a78bfa; border: 1px solid rgba(124,58,237,0.2);
+}
+.col-label.spacer { background: transparent; }
+.col-label.category { font-size: 13px; color: #8b949e; background: transparent; text-align: left; padding-left: 0; }
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 60px 1fr;
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 14px;
+  opacity: 0;
+  transform: translateX(-15px);
+  animation: rowIn 0.5s ease-out forwards;
+}
+.comparison-row:nth-child(2) { animation-delay: 0.15s; }
+.comparison-row:nth-child(3) { animation-delay: 0.30s; }
+.comparison-row:nth-child(4) { animation-delay: 0.45s; }
+.comparison-row:nth-child(5) { animation-delay: 0.60s; }
+@keyframes rowIn { to { opacity: 1; transform: translateX(0); } }
+
+.row-category {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 4px;
+}
+.row-cat-icon { font-size: 22px; margin-bottom: 4px; }
+.row-cat-name { font-size: 13px; font-weight: 700; color: #8b949e; }
+
+.comp-old {
+  background: rgba(139,148,158,0.06);
+  border: 1px solid rgba(139,148,158,0.15);
+  border-radius: 12px; padding: 18px 22px;
+  font-size: 15px; color: #8b949e; line-height: 1.6;
+}
+.comp-arrow {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #7c3aed;
+}
+.comp-new {
+  background: rgba(124,58,237,0.06);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 12px; padding: 18px 22px;
+  font-size: 15px; color: #e6edf3; font-weight: 600; line-height: 1.6;
+}
+.comp-new strong { color: #a78bfa; }
+
+.slide-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 50px;
+  background: rgba(10,15,26,0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(124,58,237,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.slide-nav-inner {
+  width: 1280px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 60px;
+}
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">단순 RAG vs Agentic RAG</h1>
+  <p class="subtitle">이 프로젝트가 해결하는 핵심 차이점</p>
+
+  <div class="comparison">
+    <div class="col-headers">
+      <div class="col-label category">항목</div>
+      <div class="col-label before">단순 RAG</div>
+      <div class="col-label spacer"></div>
+      <div class="col-label after">Agentic RAG (이 프로젝트)</div>
+    </div>
+
+    <div class="comparison-row">
+      <div class="row-category">
+        <span class="row-cat-icon">🔍</span>
+        <span class="row-cat-name">검색 방식</span>
+      </div>
+      <div class="comp-old">고정된 벡터 검색만 수행. 검색 실패 시 그냥 빈 답변 반환</div>
+      <div class="comp-arrow">→</div>
+      <div class="comp-new">doc_search / tool_call / web_search <strong>3-way 자동 라우팅</strong>. 관련성 부족 시 질문 재작성 후 재검색</div>
+    </div>
+
+    <div class="comparison-row">
+      <div class="row-category">
+        <span class="row-cat-icon">🧠</span>
+        <span class="row-cat-name">대화 메모리</span>
+      </div>
+      <div class="comp-old">매 질문이 독립적. "방금 그 문서 더 보여줘" 같은 참조 불가</div>
+      <div class="comp-arrow">→</div>
+      <div class="comp-new"><strong>MemorySaver 체크포인터</strong>로 멀티턴 컨텍스트 유지. 대명사·참조 표현 자동 해소</div>
+    </div>
+
+    <div class="comparison-row">
+      <div class="row-category">
+        <span class="row-cat-icon">✅</span>
+        <span class="row-cat-name">답변 품질</span>
+      </div>
+      <div class="comp-old">생성된 답변의 사실 여부를 검증하지 않음. 환각 그대로 노출</div>
+      <div class="comp-arrow">→</div>
+      <div class="comp-new">LLM Reranker (MRR +13%) + <strong>환각 체크 노드</strong>로 이중 품질 보장</div>
+    </div>
+
+    <div class="comparison-row">
+      <div class="row-category">
+        <span class="row-cat-icon">🔒</span>
+        <span class="row-cat-name">접근 권한</span>
+      </div>
+      <div class="comp-old">모든 사용자가 전체 문서에 접근 가능. 기밀 문서 노출 위험</div>
+      <div class="comp-arrow">→</div>
+      <div class="comp-new"><strong>OpenFGA 2-tier Pre-filter</strong>. 팀별·민감도별 문서 필터링 → 비인가 노출 0건</div>
+    </div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="04-phase-journey.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">05 / 08</a></div>
+    <div class="nav-right"><a href="06-access-control.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+
+<script>
+function navigateTo(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(function() { window.location.href = url; }, 300);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') navigateTo('04-phase-journey.html');
+  if (e.key === 'ArrowRight') navigateTo('06-access-control.html');
+});
+</script>
+</body>
+</html>
