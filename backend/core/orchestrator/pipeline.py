@@ -1,6 +1,6 @@
-from shared.observability.tracer import Tracer
-from shared.orchestrator.context import Context
-from shared.orchestrator.step import Step
+from core.observability.tracer import Tracer
+from core.orchestrator.context import Context
+from core.orchestrator.step import Step
 
 
 class Pipeline:

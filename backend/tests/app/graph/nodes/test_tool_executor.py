@@ -1,4 +1,4 @@
-from shared.models import SearchResult
+from core.models import SearchResult
 from app.graph.nodes.tool_executor import tool_executor_node
 
 

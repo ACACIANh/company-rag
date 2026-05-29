@@ -3,8 +3,8 @@ import logging
 
 from openai import OpenAI
 
-from shared.models import SearchResult
-from shared.reranker.base import Reranker
+from core.models import SearchResult
+from core.reranker.base import Reranker
 
 logger = logging.getLogger(__name__)
 

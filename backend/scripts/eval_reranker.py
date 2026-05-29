@@ -15,12 +15,12 @@ sys.path.insert(0, _ROOT)
 
 from openai import OpenAI
 
-from shared.config import load_config
-from shared.embedder import SentenceTransformerEmbedder
-from shared.llm.factory import create_llm
-from shared.reranker import LLMReranker, NoOpReranker
-from shared.retriever import BasicRetriever
-from shared.vector_store.factory import create_vector_store
+from core.config import load_config
+from core.embedder import SentenceTransformerEmbedder
+from core.llm.factory import create_llm
+from core.reranker import LLMReranker, NoOpReranker
+from core.retriever import BasicRetriever
+from core.vector_store.factory import create_vector_store
 
 from app.graph.builder import answer_question, build_graph
 from tests.eval.runner import run_eval

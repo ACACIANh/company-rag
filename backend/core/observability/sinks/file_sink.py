@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from shared.observability.sinks.base import CostSink
+from core.observability.sinks.base import CostSink
 
 
 class FileSink(CostSink):

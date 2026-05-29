@@ -1,13 +1,13 @@
 import asyncpg
 from pgvector.asyncpg import register_vector
 
-from shared.config import load_config
-from shared.fga.cache import make_cache_backend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
-from shared.indexer.indexer import Indexer
-from shared.loader import MarkdownLoader
-from shared.vector_store.factory import create_vector_store
+from core.config import load_config
+from core.fga.cache import make_cache_backend
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig
+from core.indexer.indexer import Indexer
+from core.loader import MarkdownLoader
+from core.vector_store.factory import create_vector_store
 from app.ingestion.chunker import get_chunker
 from app.ingestion.embedder import get_embedder
 

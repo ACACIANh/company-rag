@@ -2,8 +2,8 @@ import json
 
 import asyncpg
 
-from shared.models import Chunk, SearchResult
-from shared.vector_store.base import VectorStore
+from core.models import Chunk, SearchResult
+from core.vector_store.base import VectorStore
 
 
 class PostgresVectorStore(VectorStore):

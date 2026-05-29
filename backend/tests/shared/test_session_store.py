@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from shared.session.adapters.postgres import PostgresSessionStore
+from core.session.adapters.postgres import PostgresSessionStore
 
 
 def _make_pool(fetchrow_return=None, fetch_return=None):

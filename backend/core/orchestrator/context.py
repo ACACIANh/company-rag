@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from shared.models import SearchResult
+from core.models import SearchResult
 
 
 @dataclass

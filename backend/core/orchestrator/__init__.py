@@ -1,5 +1,5 @@
-from shared.orchestrator.context import Context
-from shared.orchestrator.pipeline import Pipeline
-from shared.orchestrator.step import Step
+from core.orchestrator.context import Context
+from core.orchestrator.pipeline import Pipeline
+from core.orchestrator.step import Step
 
 __all__ = ["Context", "Pipeline", "Step"]

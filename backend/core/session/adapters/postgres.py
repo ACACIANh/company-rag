@@ -3,8 +3,8 @@ import json
 
 import asyncpg
 
-from shared.models import SourceRef
-from shared.session.base import SessionMeta, SessionStore, StoredMessage
+from core.models import SourceRef
+from core.session.base import SessionMeta, SessionStore, StoredMessage
 
 
 def _to_source_ref(item) -> SourceRef:

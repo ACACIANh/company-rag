@@ -1,5 +1,5 @@
 import pytest
-from shared.auth.jwt_handler import create_token, decode_token
+from core.auth.jwt_handler import create_token, decode_token
 
 
 def test_create_and_decode_token():

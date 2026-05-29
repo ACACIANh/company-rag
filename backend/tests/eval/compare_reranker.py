@@ -13,12 +13,12 @@ import sys
 
 from openai import OpenAI
 
-from shared.config import load_config
-from shared.embedder import SentenceTransformerEmbedder
-from shared.llm.factory import create_llm
-from shared.reranker.llm_reranker import LLMReranker
-from shared.vector_store.factory import create_vector_store
-from shared.retriever import BasicRetriever
+from core.config import load_config
+from core.embedder import SentenceTransformerEmbedder
+from core.llm.factory import create_llm
+from core.reranker.llm_reranker import LLMReranker
+from core.vector_store.factory import create_vector_store
+from core.retriever import BasicRetriever
 from app.graph.builder import answer_question, build_graph
 from tests.eval.runner import load_questions, run_eval
 

@@ -1,7 +1,7 @@
-from shared.config import Config
-from shared.llm.base import LLMClient
-from shared.llm.anthropic_client import AnthropicClient
-from shared.llm.openai_client import OpenAIClient
+from core.config import Config
+from core.llm.base import LLMClient
+from core.llm.anthropic_client import AnthropicClient
+from core.llm.openai_client import OpenAIClient
 
 
 def create_llm(config: Config) -> LLMClient:

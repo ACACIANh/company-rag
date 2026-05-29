@@ -1,5 +1,5 @@
-from shared.embedder import OpenAIEmbedder, SentenceTransformerEmbedder
-from shared.embedder.base import Embedder
+from core.embedder import OpenAIEmbedder, SentenceTransformerEmbedder
+from core.embedder.base import Embedder
 
 _OPENAI_MODEL_PREFIXES = ("text-embedding-",)
 

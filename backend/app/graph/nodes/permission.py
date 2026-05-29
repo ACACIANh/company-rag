@@ -1,4 +1,4 @@
-from shared.fga.client import FGAClient
+from core.fga.client import FGAClient
 
 
 async def permission_node(state: dict, *, fga_client: FGAClient) -> dict:

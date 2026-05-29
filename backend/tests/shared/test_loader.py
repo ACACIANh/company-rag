@@ -1,7 +1,7 @@
 import pytest
 
-from shared.loader import MarkdownLoader
-from shared.loader.base import DocumentLoader
+from core.loader import MarkdownLoader
+from core.loader.base import DocumentLoader
 
 
 def test_loader_implements_abc():

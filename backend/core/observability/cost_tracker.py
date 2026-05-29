@@ -1,4 +1,4 @@
-from shared.observability.sinks.base import CostSink
+from core.observability.sinks.base import CostSink
 
 _MODEL_PRICING: dict[str, dict[str, float]] = {
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},

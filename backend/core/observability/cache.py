@@ -3,8 +3,8 @@ from collections import OrderedDict
 from collections.abc import AsyncIterator
 from typing import Any
 
-from shared.embedder.base import Embedder
-from shared.llm.base import LLMClient
+from core.embedder.base import Embedder
+from core.llm.base import LLMClient
 
 
 class LRUCache:

@@ -5,7 +5,7 @@ from pydantic import Field
 
 
 class LangChainLLMAdapter(BaseLLM):
-    """shared.LLMClient를 LangChain BaseLLM(Runnable)으로 래핑하는 어댑터."""
+    """core.LLMClient를 LangChain BaseLLM(Runnable)으로 래핑하는 어댑터."""
 
     llm_client: Any = Field(...)
 

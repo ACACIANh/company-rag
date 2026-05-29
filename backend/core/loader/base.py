@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from shared.models import Document
+from core.models import Document
 
 
 class DocumentLoader(ABC):

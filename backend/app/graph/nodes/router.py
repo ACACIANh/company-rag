@@ -1,4 +1,4 @@
-from shared.llm.base import LLMClient
+from core.llm.base import LLMClient
 from app.graph.prompts import ROUTER_PROMPT
 
 _VALID_ROUTES = {"doc_search", "web_search", "tool_call"}

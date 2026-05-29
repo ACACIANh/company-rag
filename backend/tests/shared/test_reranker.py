@@ -1,6 +1,6 @@
-from shared.models import Chunk, SearchResult
-from shared.reranker import NoOpReranker
-from shared.reranker.base import Reranker
+from core.models import Chunk, SearchResult
+from core.reranker import NoOpReranker
+from core.reranker.base import Reranker
 
 
 def _sr(source: str, score: float) -> SearchResult:

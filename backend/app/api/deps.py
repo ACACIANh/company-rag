@@ -1,12 +1,12 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 
-from shared.auth.base import AuthUser
-from shared.auth.jwt_handler import decode_token
-from shared.config import load_config
-from shared.fga.client import FGAClient
-from shared.rate_limiter.in_memory import InMemoryRateLimiter
-from shared.session.base import SessionStore
+from core.auth.base import AuthUser
+from core.auth.jwt_handler import decode_token
+from core.config import load_config
+from core.fga.client import FGAClient
+from core.rate_limiter.in_memory import InMemoryRateLimiter
+from core.session.base import SessionStore
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 

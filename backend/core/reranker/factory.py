@@ -1,10 +1,10 @@
 from openai import OpenAI
 
-from shared.config import Config
-from shared.reranker.base import Reranker
-from shared.reranker.llm_reranker import LLMReranker
-from shared.reranker.noop_reranker import NoOpReranker
-from shared.reranker.rrf_reranker import RRFReranker
+from core.config import Config
+from core.reranker.base import Reranker
+from core.reranker.llm_reranker import LLMReranker
+from core.reranker.noop_reranker import NoOpReranker
+from core.reranker.rrf_reranker import RRFReranker
 
 
 def create_reranker(config: Config) -> Reranker:

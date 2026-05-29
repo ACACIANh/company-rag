@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
-from shared.auth.base import AuthUser
+from core.auth.base import AuthUser
 from app.api.deps import require_admin
 from app.ingestion.indexer import build_index
 

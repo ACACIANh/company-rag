@@ -6,7 +6,7 @@ from pydantic import Field
 
 
 class LangChainRetrieverAdapter(BaseRetriever):
-    """shared.VectorStore를 LangChain BaseRetriever(Runnable)로 래핑하는 어댑터."""
+    """core.VectorStore를 LangChain BaseRetriever(Runnable)로 래핑하는 어댑터."""
 
     vector_store: Any = Field(...)
     embedding_service: Any = Field(...)

@@ -1,11 +1,11 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from shared.config import Config
-from shared.llm.base import LLMClient
-from shared.llm.openai_client import OpenAIClient
-from shared.llm.anthropic_client import AnthropicClient
-from shared.llm.factory import create_llm
+from core.config import Config
+from core.llm.base import LLMClient
+from core.llm.openai_client import OpenAIClient
+from core.llm.anthropic_client import AnthropicClient
+from core.llm.factory import create_llm
 
 
 def test_llm_client_is_abstract():
@@ -16,7 +16,7 @@ def test_llm_client_is_abstract():
 def test_openai_client_complete(mocker):
     mock_response = MagicMock()
     mock_response.choices[0].message.content = "테스트 답변"
-    mocker.patch("shared.llm.openai_client.OpenAI")
+    mocker.patch("core.llm.openai_client.OpenAI")
 
     client = OpenAIClient(model="gpt-4o-mini", api_key="test-key")
     client._client.chat.completions.create.return_value = mock_response
@@ -29,7 +29,7 @@ def test_openai_client_complete(mocker):
 def test_anthropic_client_complete(mocker):
     mock_response = MagicMock()
     mock_response.content[0].text = "테스트 답변"
-    mocker.patch("shared.llm.anthropic_client.anthropic.Anthropic")
+    mocker.patch("core.llm.anthropic_client.anthropic.Anthropic")
 
     client = AnthropicClient(model="claude-3-haiku-20240307", api_key="test-key")
     client._client.messages.create.return_value = mock_response
@@ -40,7 +40,7 @@ def test_anthropic_client_complete(mocker):
 
 
 def test_factory_creates_openai_by_default(mocker):
-    mocker.patch("shared.llm.openai_client.OpenAI")
+    mocker.patch("core.llm.openai_client.OpenAI")
     config = Config(
         llm_provider="openai", llm_model="gpt-4o-mini",
         openai_api_key="sk-test", anthropic_api_key="",
@@ -66,7 +66,7 @@ def test_factory_creates_openai_by_default(mocker):
 
 
 def test_factory_creates_anthropic(mocker):
-    mocker.patch("shared.llm.anthropic_client.anthropic.Anthropic")
+    mocker.patch("core.llm.anthropic_client.anthropic.Anthropic")
     config = Config(
         llm_provider="anthropic", llm_model="claude-3-haiku-20240307",
         openai_api_key="", anthropic_api_key="sk-ant-test",
@@ -116,8 +116,8 @@ async def test_openai_client_stream(mocker):
         StopAsyncIteration,
     ])
 
-    mocker.patch("shared.llm.openai_client.OpenAI")
-    mocker.patch("shared.llm.openai_client.AsyncOpenAI")
+    mocker.patch("core.llm.openai_client.OpenAI")
+    mocker.patch("core.llm.openai_client.AsyncOpenAI")
 
     client = OpenAIClient(model="gpt-4o-mini", api_key="test-key")
     client._async_client.chat.completions.create = AsyncMock(return_value=mock_aiter)
@@ -141,7 +141,7 @@ async def test_anthropic_client_stream(mocker):
             yield t
 
     mock_stream_ctx.text_stream = _text_stream()
-    mocker.patch("shared.llm.anthropic_client.anthropic.AsyncAnthropic")
+    mocker.patch("core.llm.anthropic_client.anthropic.AsyncAnthropic")
 
     client = AnthropicClient(model="claude-3-haiku-20240307", api_key="test-key")
     client._async_client.messages.stream.return_value = mock_stream_ctx

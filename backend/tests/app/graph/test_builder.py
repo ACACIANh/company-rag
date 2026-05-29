@@ -5,8 +5,8 @@ import pytest
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
-from shared.fga.models import UserPermission
-from shared.models import Answer, Chunk, SearchResult, SourceRef
+from core.fga.models import UserPermission
+from core.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
 
 
@@ -333,7 +333,7 @@ async def test_answer_question_uses_chat_history_fallback():
 async def test_stream_answer_falls_back_to_session_store_history():
     """checkpointer 비어있고 기존 세션이면 session_store 메시지를 chat_history로 사용한다."""
     from app.graph.builder import stream_answer
-    from shared.session.base import StoredMessage
+    from core.session.base import StoredMessage
 
     captured: dict = {}
     mock_final = {"answer": "답변", "citations": []}

@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 
-from shared.models import Chunk, SearchResult
-from shared.retriever import BasicRetriever
-from shared.retriever.base import Retriever
+from core.models import Chunk, SearchResult
+from core.retriever import BasicRetriever
+from core.retriever.base import Retriever
 
 
 def test_basic_retriever_implements_abc():

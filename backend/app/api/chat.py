@@ -11,19 +11,19 @@ from fastapi.responses import StreamingResponse
 from pgvector.asyncpg import register_vector
 from pydantic import BaseModel
 
-from shared.auth.base import AuthUser
-from shared.config import load_config
+from core.auth.base import AuthUser
+from core.config import load_config
 from app.ingestion.embedder import get_embedder
-from shared.fga.cache import make_cache_backend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
-from shared.llm.factory import create_llm
-from shared.observability.cost_tracker import init_tracker
-from shared.observability.sinks.file_sink import FileSink
-from shared.reranker.factory import create_reranker
-from shared.retriever import BasicRetriever
-from shared.session.factory import create_session_store
-from shared.vector_store.factory import create_vector_store
+from core.fga.cache import make_cache_backend
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig
+from core.llm.factory import create_llm
+from core.observability.cost_tracker import init_tracker
+from core.observability.sinks.file_sink import FileSink
+from core.reranker.factory import create_reranker
+from core.retriever import BasicRetriever
+from core.session.factory import create_session_store
+from core.vector_store.factory import create_vector_store
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from app.graph.builder import answer_question, build_graph, stream_answer
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     reranker = create_reranker(config)
 
     serde = JsonPlusSerializer(
-        allowed_msgpack_modules=[("shared.models", "Chunk"), ("shared.models", "SearchResult")]
+        allowed_msgpack_modules=[("core.models", "Chunk"), ("core.models", "SearchResult")]
     )
     async with AsyncPostgresSaver.from_conn_string(
         config.postgres_dsn,

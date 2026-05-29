@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from shared.models import Chunk, SearchResult
+from core.models import Chunk, SearchResult
 from app.graph.nodes.retrieve import retrieve_node
 
 
@@ -93,7 +93,7 @@ async def test_retrieve_node_multi_query_calls_retriever_per_query():
 
 @pytest.mark.asyncio
 async def test_retrieve_node_multi_query_merges_results_via_rrf():
-    from shared.models import Chunk
+    from core.models import Chunk
 
     def _sr(cid: str) -> SearchResult:
         return SearchResult(chunk=Chunk(text="t", source=cid, chunk_id=cid), score=0.9)

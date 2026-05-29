@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from shared.retriever.adapters.tavily_retriever import TavilyRetriever
+from core.retriever.adapters.tavily_retriever import TavilyRetriever
 
 
 def test_tavily_retriever_returns_search_results():
@@ -10,7 +10,7 @@ def test_tavily_retriever_returns_search_results():
             {"content": "LangGraph 튜토리얼", "url": "https://example.com/2", "score": 0.8},
         ]
     }
-    with patch("shared.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
+    with patch("core.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
         mock_client = MagicMock()
         mock_client.search.return_value = mock_response
         MockClient.return_value = mock_client
@@ -26,7 +26,7 @@ def test_tavily_retriever_returns_search_results():
 
 def test_tavily_retriever_respects_top_k():
     mock_response = {"results": []}
-    with patch("shared.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
+    with patch("core.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
         mock_client = MagicMock()
         mock_client.search.return_value = mock_response
         MockClient.return_value = mock_client
@@ -39,7 +39,7 @@ def test_tavily_retriever_respects_top_k():
 
 def test_tavily_retriever_returns_empty_on_no_results():
     mock_response = {"results": []}
-    with patch("shared.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
+    with patch("core.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
         mock_client = MagicMock()
         mock_client.search.return_value = mock_response
         MockClient.return_value = mock_client
@@ -54,7 +54,7 @@ def test_tavily_retriever_uses_default_score_when_missing():
     mock_response = {
         "results": [{"content": "내용", "url": "https://example.com"}]
     }
-    with patch("shared.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
+    with patch("core.retriever.adapters.tavily_retriever.TavilyClient") as MockClient:
         mock_client = MagicMock()
         mock_client.search.return_value = mock_response
         MockClient.return_value = mock_client

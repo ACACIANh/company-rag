@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from shared.fga.models import UserPermission
+from core.fga.models import UserPermission
 
 
 class PermissionCacheBackend(ABC):

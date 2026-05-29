@@ -1,6 +1,6 @@
 from typing import Literal, TypedDict
 
-from shared.models import SearchResult, SourceRef
+from core.models import SearchResult, SourceRef
 
 
 class AgentState(TypedDict):

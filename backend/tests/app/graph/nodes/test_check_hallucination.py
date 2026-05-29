@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from shared.models import Chunk, SearchResult
+from core.models import Chunk, SearchResult
 from app.graph.nodes.check_hallucination import check_hallucination_node
 
 

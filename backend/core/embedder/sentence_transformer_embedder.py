@@ -1,6 +1,6 @@
 from sentence_transformers import SentenceTransformer
 
-from shared.embedder.base import Embedder
+from core.embedder.base import Embedder
 
 
 class SentenceTransformerEmbedder(Embedder):

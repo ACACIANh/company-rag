@@ -1,4 +1,4 @@
-from shared.models import Answer, Chunk, Document, SearchResult, SourceRef
+from core.models import Answer, Chunk, Document, SearchResult, SourceRef
 
 
 def test_chunk_fields():
@@ -51,7 +51,7 @@ def test_chunk_with_metadata():
 
 
 def test_source_ref_defaults():
-    from shared.models import SourceRef
+    from core.models import SourceRef
     ref = SourceRef(source="doc.md")
     assert ref.source == "doc.md"
     assert ref.document_id == ""
@@ -60,7 +60,7 @@ def test_source_ref_defaults():
 
 
 def test_source_ref_with_all_fields():
-    from shared.models import SourceRef
+    from core.models import SourceRef
     ref = SourceRef(source="salary.md", document_id="doc:123", sensitivity="secret", team_id="team:dev")
     assert ref.document_id == "doc:123"
     assert ref.sensitivity == "secret"
@@ -68,7 +68,7 @@ def test_source_ref_with_all_fields():
 
 
 def test_answer_sources_are_source_refs():
-    from shared.models import Answer, SourceRef
+    from core.models import Answer, SourceRef
     refs = [SourceRef(source="a.md"), SourceRef(source="b.md")]
     answer = Answer(text="답변", sources=refs)
     assert len(answer.sources) == 2

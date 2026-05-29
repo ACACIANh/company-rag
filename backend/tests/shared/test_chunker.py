@@ -1,6 +1,6 @@
-from shared.chunker import FixedSizeChunker
-from shared.chunker.base import Chunker
-from shared.models import Document
+from core.chunker import FixedSizeChunker
+from core.chunker.base import Chunker
+from core.models import Document
 
 
 def test_chunker_implements_abc():

@@ -1,7 +1,7 @@
 from unittest.mock import ANY, AsyncMock, MagicMock
 
-from shared.indexer.indexer import Indexer
-from shared.models import Chunk, Document
+from core.indexer.indexer import Indexer
+from core.models import Chunk, Document
 
 
 async def test_indexer_composes_loader_chunker_embedder_store():

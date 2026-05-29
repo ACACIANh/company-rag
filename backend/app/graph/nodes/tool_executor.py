@@ -1,4 +1,4 @@
-from shared.models import Chunk, SearchResult
+from core.models import Chunk, SearchResult
 
 _MOCK_DISPATCH = {
     "캘린더": "캘린더 Mock: 다음 주 월요일 오전 10시 회의 일정이 있습니다.",

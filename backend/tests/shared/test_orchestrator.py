@@ -1,7 +1,7 @@
 import pytest
 
-from shared.observability.tracer import Tracer
-from shared.orchestrator import Context, Pipeline, Step
+from core.observability.tracer import Tracer
+from core.orchestrator import Context, Pipeline, Step
 
 
 class _SetAnswer(Step):

@@ -2,7 +2,7 @@ import os
 
 from openai import OpenAI
 
-from shared.embedder.base import Embedder
+from core.embedder.base import Embedder
 
 
 class OpenAIEmbedder(Embedder):

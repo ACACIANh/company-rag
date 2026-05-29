@@ -3,7 +3,7 @@ from typing import Callable
 
 import yaml
 
-from shared.observability.eval.evaluator import EvalCase, Evaluator
+from core.observability.eval.evaluator import EvalCase, Evaluator
 
 _EVAL_KS = [1, 3, 5]
 

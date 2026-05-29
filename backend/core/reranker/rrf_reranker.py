@@ -1,6 +1,6 @@
-from shared.models import SearchResult
-from shared.reranker.base import Reranker
-from shared.retriever.base import Retriever
+from core.models import SearchResult
+from core.reranker.base import Reranker
+from core.retriever.base import Retriever
 
 
 class RRFReranker(Reranker):

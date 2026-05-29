@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from shared.models import Answer, SourceRef
-from shared.session.adapters.memory import InMemorySessionStore
+from core.models import Answer, SourceRef
+from core.session.adapters.memory import InMemorySessionStore
 
 
 def _token(client: TestClient) -> str:

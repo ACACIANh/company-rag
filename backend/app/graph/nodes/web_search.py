@@ -1,4 +1,4 @@
-from shared.retriever.base import Retriever
+from core.retriever.base import Retriever
 
 
 async def web_search_node(state: dict, *, retriever: Retriever | None) -> dict:

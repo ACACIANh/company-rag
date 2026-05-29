@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
-from shared.models import Chunk, SearchResult
+from core.models import Chunk, SearchResult
 from app.graph.nodes.web_search import web_search_node
 
 

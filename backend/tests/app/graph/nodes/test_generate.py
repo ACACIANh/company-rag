@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from shared.models import Chunk, SearchResult, SourceRef
+from core.models import Chunk, SearchResult, SourceRef
 from app.graph.nodes.generate import generate_node
 
 

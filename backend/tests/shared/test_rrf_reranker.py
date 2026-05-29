@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from shared.models import Chunk, SearchResult
-from shared.reranker.rrf_reranker import RRFReranker
+from core.models import Chunk, SearchResult
+from core.reranker.rrf_reranker import RRFReranker
 
 
 def _sr(chunk_id: str, score: float = 0.5) -> SearchResult:

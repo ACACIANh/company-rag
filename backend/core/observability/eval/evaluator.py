@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-from shared.models import Answer
-from shared.observability.eval.metrics import keyword_hit_rate, mrr, recall_at_k
+from core.models import Answer
+from core.observability.eval.metrics import keyword_hit_rate, mrr, recall_at_k
 
 _DEFAULT_EVAL_KS = [1, 3, 5]
 

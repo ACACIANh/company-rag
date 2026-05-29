@@ -1,8 +1,8 @@
 import pytest
 import inspect
 from unittest.mock import AsyncMock, MagicMock
-from shared.vector_store.base import VectorStore
-from shared.models import Chunk
+from core.vector_store.base import VectorStore
+from core.models import Chunk
 
 
 def test_vector_store_is_abstract():
@@ -34,7 +34,7 @@ def _make_pool(fetch_return=None):
 
 @pytest.mark.asyncio
 async def test_postgres_store_add_calls_executemany():
-    from shared.vector_store.postgres_store import PostgresVectorStore
+    from core.vector_store.postgres_store import PostgresVectorStore
     pool, conn = _make_pool()
     store = PostgresVectorStore(pool)
     chunks = [Chunk(text="안녕", source="doc.md", chunk_id="c1")]
@@ -46,7 +46,7 @@ async def test_postgres_store_add_calls_executemany():
 
 @pytest.mark.asyncio
 async def test_postgres_store_search_returns_empty_on_no_rows():
-    from shared.vector_store.postgres_store import PostgresVectorStore
+    from core.vector_store.postgres_store import PostgresVectorStore
     pool, conn = _make_pool(fetch_return=[])
     store = PostgresVectorStore(pool)
     results = await store.search([0.1, 0.2, 0.3], top_k=5)
@@ -55,7 +55,7 @@ async def test_postgres_store_search_returns_empty_on_no_rows():
 
 @pytest.mark.asyncio
 async def test_postgres_store_count_returns_int():
-    from shared.vector_store.postgres_store import PostgresVectorStore
+    from core.vector_store.postgres_store import PostgresVectorStore
     pool, conn = _make_pool()
     conn.fetchval = AsyncMock(return_value=3)
     store = PostgresVectorStore(pool)

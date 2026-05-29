@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 
 import anthropic
 
-from shared.llm.base import LLMClient
+from core.llm.base import LLMClient
 
 
 class AnthropicClient(LLMClient):

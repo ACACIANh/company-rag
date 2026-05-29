@@ -1,7 +1,7 @@
 import time
 
-from shared.fga.cache.memory import InMemoryCacheBackend
-from shared.fga.models import UserPermission
+from core.fga.cache.memory import InMemoryCacheBackend
+from core.fga.models import UserPermission
 
 
 def _perm(user_id="u1") -> UserPermission:

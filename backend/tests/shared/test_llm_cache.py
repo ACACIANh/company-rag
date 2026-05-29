@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from shared.observability.cache import CachedLLM, LRUCache
+from core.observability.cache import CachedLLM, LRUCache
 
 
 def test_cached_llm_calls_inner_on_miss():

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from shared.models import Answer, SourceRef
+from core.models import Answer, SourceRef
 
 
 def _get_token(client: TestClient) -> str:
@@ -98,7 +98,7 @@ def test_chat_generates_new_session_id_when_not_provided():
 def test_chat_passes_fallback_history_for_existing_session():
     """기존 세션에 대해 session_store 메시지를 chat_history_fallback으로 answer_question에 전달한다."""
     from app.api.chat import app
-    from shared.session.base import StoredMessage
+    from core.session.base import StoredMessage
 
     mock_answer = Answer(text="답변", sources=[])
     mock_session = AsyncMock()

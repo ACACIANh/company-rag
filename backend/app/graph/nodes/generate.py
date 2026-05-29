@@ -2,9 +2,9 @@ import asyncio
 
 from langchain_core.runnables import RunnableConfig
 
-from shared.llm.base import LLMClient
-from shared.models import SourceRef
-from shared.observability.cost_tracker import get_tracker
+from core.llm.base import LLMClient
+from core.models import SourceRef
+from core.observability.cost_tracker import get_tracker
 from app.graph.prompts import RAG_GENERATE, RAG_GENERATE_NO_DOCS
 
 _NO_DOC_NOTICE = (

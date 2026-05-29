@@ -1,5 +1,5 @@
-from shared.fga.base import PermissionCacheBackend
-from shared.fga.models import FGAConfig, UserPermission
+from core.fga.base import PermissionCacheBackend
+from core.fga.models import FGAConfig, UserPermission
 
 
 class FGAClient:

@@ -1,18 +1,18 @@
 def test_get_chunker_returns_chunker():
-    from shared.chunker.base import Chunker
+    from core.chunker.base import Chunker
     from app.ingestion.chunker import get_chunker
     assert isinstance(get_chunker(), Chunker)
 
 
 def test_get_embedder_sentence_transformer():
-    from shared.embedder.base import Embedder
+    from core.embedder.base import Embedder
     from app.ingestion.embedder import get_embedder
     assert isinstance(get_embedder("paraphrase-multilingual-MiniLM-L12-v2"), Embedder)
 
 
 def test_get_embedder_openai(mocker):
-    mocker.patch("shared.embedder.openai_embedder.OpenAI")
-    from shared.embedder.base import Embedder
+    mocker.patch("core.embedder.openai_embedder.OpenAI")
+    from core.embedder.base import Embedder
     from app.ingestion.embedder import get_embedder
     assert isinstance(get_embedder("text-embedding-3-small"), Embedder)
 

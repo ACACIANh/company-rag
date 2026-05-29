@@ -1,8 +1,8 @@
-from shared.chunker.base import Chunker
-from shared.embedder.base import Embedder
-from shared.fga.sensitivity import detect_sensitivity
-from shared.loader.base import DocumentLoader
-from shared.vector_store.base import VectorStore
+from core.chunker.base import Chunker
+from core.embedder.base import Embedder
+from core.fga.sensitivity import detect_sensitivity
+from core.loader.base import DocumentLoader
+from core.vector_store.base import VectorStore
 
 
 class Indexer:

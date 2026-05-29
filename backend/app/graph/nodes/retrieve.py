@@ -1,11 +1,11 @@
 import asyncio
 
-from shared.fga.client import FGAClient
-from shared.fga.models import UserPermission
-from shared.models import SearchResult
-from shared.reranker.base import Reranker
-from shared.reranker.noop_reranker import NoOpReranker
-from shared.retriever.base import Retriever
+from core.fga.client import FGAClient
+from core.fga.models import UserPermission
+from core.models import SearchResult
+from core.reranker.base import Reranker
+from core.reranker.noop_reranker import NoOpReranker
+from core.retriever.base import Retriever
 
 
 def _rrf_merge(ranked_lists: list[list[SearchResult]], k: int = 60) -> list[SearchResult]:

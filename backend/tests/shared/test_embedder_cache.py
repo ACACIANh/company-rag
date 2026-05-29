@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from shared.observability.cache import CachedEmbedder, LRUCache
+from core.observability.cache import CachedEmbedder, LRUCache
 
 
 def test_cached_embedder_calls_inner_on_miss():

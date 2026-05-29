@@ -1,6 +1,6 @@
 import pytest
 
-from shared.embedder.base import Embedder
+from core.embedder.base import Embedder
 
 
 class _StubEmbedder(Embedder):
@@ -24,7 +24,7 @@ def test_stub_embedder_works():
 
 def test_sentence_transformer_embedder_shape():
     pytest.importorskip("sentence_transformers")
-    from shared.embedder import SentenceTransformerEmbedder
+    from core.embedder import SentenceTransformerEmbedder
 
     e = SentenceTransformerEmbedder("paraphrase-multilingual-MiniLM-L12-v2")
     v = e.embed("hello world")

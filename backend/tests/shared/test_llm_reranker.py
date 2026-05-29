@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock
 
 
-from shared.models import Chunk, SearchResult
-from shared.reranker.llm_reranker import LLMReranker
+from core.models import Chunk, SearchResult
+from core.reranker.llm_reranker import LLMReranker
 
 
 def _sr(source: str, text: str = "내용", score: float = 0.5) -> SearchResult:

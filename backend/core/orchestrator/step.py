@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from shared.orchestrator.context import Context
+from core.orchestrator.context import Context
 
 
 class Step(ABC):

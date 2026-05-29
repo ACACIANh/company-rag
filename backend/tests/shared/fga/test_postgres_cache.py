@@ -3,8 +3,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from shared.fga.cache.postgres import PostgresCacheBackend
-from shared.fga.models import UserPermission
+from core.fga.cache.postgres import PostgresCacheBackend
+from core.fga.models import UserPermission
 
 
 def _make_pool(fetchrow_return=None):

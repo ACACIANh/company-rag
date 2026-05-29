@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from shared.models import SourceRef
-from shared.session.base import SessionMeta, SessionStore, StoredMessage
+from core.models import SourceRef
+from core.session.base import SessionMeta, SessionStore, StoredMessage
 
 
 class InMemorySessionStore(SessionStore):

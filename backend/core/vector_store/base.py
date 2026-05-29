@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from shared.models import Chunk, SearchResult
+from core.models import Chunk, SearchResult
 
 
 class VectorStore(ABC):

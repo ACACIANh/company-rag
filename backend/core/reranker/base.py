@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from shared.models import SearchResult
+from core.models import SearchResult
 
 
 class Reranker(ABC):

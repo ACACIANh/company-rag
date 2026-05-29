@@ -4,9 +4,9 @@ import yaml
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from shared.auth.base import AuthUser
-from shared.auth.jwt_handler import create_token
-from shared.config import load_config
+from core.auth.base import AuthUser
+from core.auth.jwt_handler import create_token
+from core.config import load_config
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])

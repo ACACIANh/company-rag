@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from shared.models import SourceRef
+from core.models import SourceRef
 
 
 @dataclass

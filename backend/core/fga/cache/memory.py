@@ -1,6 +1,6 @@
 import time
-from shared.fga.base import PermissionCacheBackend
-from shared.fga.models import UserPermission
+from core.fga.base import PermissionCacheBackend
+from core.fga.models import UserPermission
 
 
 class InMemoryCacheBackend(PermissionCacheBackend):

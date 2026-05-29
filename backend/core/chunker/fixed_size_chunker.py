@@ -1,7 +1,7 @@
 import hashlib
 
-from shared.chunker.base import Chunker
-from shared.models import Chunk, Document
+from core.chunker.base import Chunker
+from core.models import Chunk, Document
 
 
 class FixedSizeChunker(Chunker):

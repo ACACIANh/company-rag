@@ -5,10 +5,10 @@ AsyncMock retriever + InMemoryCacheBackend + FGA API mock 사용.
 import time
 from unittest.mock import AsyncMock
 
-from shared.fga.cache.memory import InMemoryCacheBackend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig, UserPermission
-from shared.models import Chunk, SearchResult
+from core.fga.cache.memory import InMemoryCacheBackend
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig, UserPermission
+from core.models import Chunk, SearchResult
 
 
 def _make_fga_client(teams=None, personal_docs=None) -> FGAClient:

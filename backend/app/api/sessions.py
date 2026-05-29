@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from shared.auth.base import AuthUser
-from shared.fga.client import FGAClient
-from shared.session.base import SessionStore
+from core.auth.base import AuthUser
+from core.fga.client import FGAClient
+from core.session.base import SessionStore
 from app.api.deps import get_current_user, get_fga_client, get_session_store
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])

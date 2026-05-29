@@ -1,7 +1,7 @@
-from shared.observability.eval.metrics import keyword_hit_rate, latency_ms, mrr, recall_at_k
-from shared.observability.eval.evaluator import Evaluator, EvalCase, EvalReport
-from shared.observability.tracer import Span
-from shared.models import Answer
+from core.observability.eval.metrics import keyword_hit_rate, latency_ms, mrr, recall_at_k
+from core.observability.eval.evaluator import Evaluator, EvalCase, EvalReport
+from core.observability.tracer import Span
+from core.models import Answer
 
 
 def test_recall_at_k_hit():

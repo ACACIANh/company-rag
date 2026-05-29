@@ -1,4 +1,4 @@
-from shared.observability.tracer import Span
+from core.observability.tracer import Span
 
 
 def recall_at_k(retrieved_sources: list[str], expected_source: str, k: int) -> float:

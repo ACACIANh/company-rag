@@ -1,4 +1,4 @@
-from shared.observability.cache import LRUCache
+from core.observability.cache import LRUCache
 
 
 def test_lru_set_get():

@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
-from shared.observability.cost_tracker import CostTracker
-from shared.observability.sinks.base import CostSink
+from core.observability.cost_tracker import CostTracker
+from core.observability.sinks.base import CostSink
 
 
 def _make_sink() -> CostSink:

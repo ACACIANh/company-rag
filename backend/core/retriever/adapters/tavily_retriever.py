@@ -1,7 +1,7 @@
 from tavily import TavilyClient
 
-from shared.models import Chunk, SearchResult
-from shared.retriever.base import Retriever
+from core.models import Chunk, SearchResult
+from core.retriever.base import Retriever
 
 
 class TavilyRetriever(Retriever):

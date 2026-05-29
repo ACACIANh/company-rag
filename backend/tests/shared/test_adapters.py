@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock
 from langchain_core.documents import Document
-from shared.llm.adapters.langchain_adapter import LangChainLLMAdapter
-from shared.vector_store.adapters.langchain_retriever import LangChainRetrieverAdapter
-from shared.models import Chunk, SearchResult
+from core.llm.adapters.langchain_adapter import LangChainLLMAdapter
+from core.vector_store.adapters.langchain_retriever import LangChainRetrieverAdapter
+from core.models import Chunk, SearchResult
 
 
 def test_langchain_llm_adapter_generates(mocker):

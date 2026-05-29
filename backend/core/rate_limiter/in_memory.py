@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict, deque
 
-from shared.rate_limiter.base import RateLimiter
+from core.rate_limiter.base import RateLimiter
 
 
 class InMemoryRateLimiter(RateLimiter):

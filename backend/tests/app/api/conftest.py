@@ -5,7 +5,7 @@ app.state를 mock으로 초기화해 lifespan/DB 없이 API 테스트가 동작�
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from shared.models import SourceRef
+from core.models import SourceRef
 
 
 async def _passthrough_filter(sources, uid):

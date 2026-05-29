@@ -1,7 +1,7 @@
 import os
 
-from shared.loader.base import DocumentLoader
-from shared.models import Document
+from core.loader.base import DocumentLoader
+from core.models import Document
 
 
 class MarkdownLoader(DocumentLoader):

@@ -1,4 +1,4 @@
-from shared.rate_limiter.in_memory import InMemoryRateLimiter
+from core.rate_limiter.in_memory import InMemoryRateLimiter
 
 
 def test_allows_under_limit():

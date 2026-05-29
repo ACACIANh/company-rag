@@ -1,5 +1,5 @@
-from shared.models import SearchResult
-from shared.reranker.base import Reranker
+from core.models import SearchResult
+from core.reranker.base import Reranker
 
 
 class NoOpReranker(Reranker):

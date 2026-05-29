@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI, OpenAI
 
-from shared.llm.base import LLMClient
+from core.llm.base import LLMClient
 
 
 class OpenAIClient(LLMClient):

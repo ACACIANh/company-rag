@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig, UserPermission
-from shared.fga.cache.memory import InMemoryCacheBackend
-from shared.models import SourceRef
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig, UserPermission
+from core.fga.cache.memory import InMemoryCacheBackend
+from core.models import SourceRef
 
 
 def _client() -> FGAClient:

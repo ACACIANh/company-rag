@@ -5,10 +5,10 @@ from pathlib import Path
 import asyncpg
 import yaml
 
-from shared.config import load_config
-from shared.fga.cache import make_cache_backend
-from shared.fga.client import FGAClient
-from shared.fga.models import FGAConfig
+from core.config import load_config
+from core.fga.cache import make_cache_backend
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig
 
 
 async def main() -> None:

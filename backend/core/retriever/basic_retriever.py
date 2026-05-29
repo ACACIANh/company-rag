@@ -1,7 +1,7 @@
-from shared.embedder.base import Embedder
-from shared.models import SearchResult
-from shared.retriever.base import Retriever
-from shared.vector_store.base import VectorStore
+from core.embedder.base import Embedder
+from core.models import SearchResult
+from core.retriever.base import Retriever
+from core.vector_store.base import VectorStore
 
 
 class BasicRetriever(Retriever):

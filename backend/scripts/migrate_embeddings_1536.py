@@ -22,8 +22,8 @@ sys.path.insert(0, _ROOT)
 import asyncpg
 from pgvector.asyncpg import register_vector
 
-from shared.config import load_config
-from shared.embedder.openai_embedder import OpenAIEmbedder
+from core.config import load_config
+from core.embedder.openai_embedder import OpenAIEmbedder
 
 
 async def _alter_column(conn: asyncpg.Connection, dry_run: bool) -> None:

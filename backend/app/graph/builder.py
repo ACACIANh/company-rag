@@ -9,11 +9,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from shared.llm.base import LLMClient
-from shared.models import Answer
-from shared.reranker.base import Reranker
-from shared.retriever.base import Retriever
-from shared.fga.client import FGAClient
+from core.llm.base import LLMClient
+from core.models import Answer
+from core.reranker.base import Reranker
+from core.retriever.base import Retriever
+from core.fga.client import FGAClient
 from app.graph.edges import (
     route_after_confirm,
     route_after_grade,

@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock
 
-from shared.fga.models import UserPermission
+from core.fga.models import UserPermission
 from app.graph.nodes.permission import permission_node
 
 

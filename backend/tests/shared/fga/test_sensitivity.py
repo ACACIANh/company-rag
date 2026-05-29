@@ -1,5 +1,5 @@
 import pytest
-from shared.fga.sensitivity import detect_sensitivity
+from core.fga.sensitivity import detect_sensitivity
 
 
 @pytest.mark.parametrize("text,expected", [
