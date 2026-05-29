@@ -62,7 +62,7 @@ cd backend
 # 1. 가상환경 + 의존성
 python3 -m venv .venv
 source .venv/bin/activate           # Windows: .venv\Scripts\activate
-pip3 install -r requirements.txt
+pip3 install -e ".[dev]"            # 런타임+개발 의존성 (pyproject.toml)
 
 # 2. 인프라 기동 (PostgreSQL + OpenFGA)
 docker compose up -d
