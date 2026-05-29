@@ -22,6 +22,17 @@ def test_stub_embedder_works():
     assert e.embed_batch(["a", "bb"]) == [[1.0], [2.0]]
 
 
+def test_openai_embedder_passes_timeout_and_retries(mocker):
+    mock_openai = mocker.patch("core.embedder.openai_embedder.OpenAI")
+    from core.embedder.openai_embedder import OpenAIEmbedder
+
+    OpenAIEmbedder(model_name="text-embedding-3-small", api_key="test-key",
+                   timeout=12.5, max_retries=4)
+
+    assert mock_openai.call_args.kwargs["timeout"] == 12.5
+    assert mock_openai.call_args.kwargs["max_retries"] == 4
+
+
 def test_sentence_transformer_embedder_shape():
     pytest.importorskip("sentence_transformers")
     from core.embedder import SentenceTransformerEmbedder
