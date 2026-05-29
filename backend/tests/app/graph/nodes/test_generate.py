@@ -132,9 +132,8 @@ _NOTICE_PREFIX = "⚠️ 관련 사내 문서를 찾지 못했습니다."
 
 
 @pytest.mark.asyncio
-async def test_generate_node_prepends_notice_when_no_documents():
+async def test_generate_node_returns_only_notice_when_no_documents():
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "일반 답변"
 
     state = {
         "question": "질문",
@@ -146,15 +145,14 @@ async def test_generate_node_prepends_notice_when_no_documents():
     }
     result = await generate_node(state, llm=mock_llm)
 
-    assert result["answer"].startswith(_NOTICE_PREFIX)
-    assert "일반 답변" in result["answer"]
+    assert result["answer"] == _NOTICE_PREFIX
     assert result["citations"] == []
+    mock_llm.complete.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_generate_node_prepends_notice_when_low_relevance():
+async def test_generate_node_returns_only_notice_when_low_relevance():
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "일반 답변"
 
     state = {
         "question": "질문",
@@ -166,9 +164,9 @@ async def test_generate_node_prepends_notice_when_low_relevance():
     }
     result = await generate_node(state, llm=mock_llm)
 
-    assert result["answer"].startswith(_NOTICE_PREFIX)
-    assert "일반 답변" in result["answer"]
+    assert result["answer"] == _NOTICE_PREFIX
     assert result["citations"] == []
+    mock_llm.complete.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -268,14 +266,10 @@ async def test_generate_node_no_queue_uses_complete():
 
 
 @pytest.mark.asyncio
-async def test_generate_node_streams_notice_prefix_when_no_docs():
-    """no-doc 경로에서 _NO_DOC_NOTICE도 토큰으로 스트리밍된다."""
-
-    async def _fake_stream(prompt):
-        yield "일반 답변"
+async def test_generate_node_streams_only_notice_when_no_docs():
+    """no-doc 경로에서는 LLM을 호출하지 않고 안내문만 단일 토큰으로 스트리밍한다."""
 
     mock_llm = MagicMock()
-    mock_llm.stream = _fake_stream
 
     queue: asyncio.Queue = asyncio.Queue()
     state = {
@@ -293,6 +287,6 @@ async def test_generate_node_streams_notice_prefix_when_no_docs():
     tokens = []
     while not queue.empty():
         tokens.append(queue.get_nowait()["content"])
-    assert tokens[0].startswith("⚠️")   # notice prefix가 첫 토큰
-    assert "일반 답변" in "".join(tokens)
-    assert result["answer"].startswith("⚠️")
+    assert tokens == [_NOTICE_PREFIX]
+    assert result["answer"] == _NOTICE_PREFIX
+    mock_llm.stream.assert_not_called()
