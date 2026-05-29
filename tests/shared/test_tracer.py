@@ -1,6 +1,6 @@
 import pytest
 
-from shared.observability.tracer import Tracer, Span
+from shared.observability.tracer import Tracer
 
 
 def test_tracer_records_single_span():

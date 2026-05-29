@@ -10,7 +10,6 @@
 """
 import os
 import sys
-from functools import partial
 
 from openai import OpenAI
 

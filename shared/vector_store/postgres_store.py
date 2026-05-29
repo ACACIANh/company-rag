@@ -1,7 +1,6 @@
 import json
 
 import asyncpg
-from pgvector.asyncpg import register_vector
 
 from shared.models import Chunk, SearchResult
 from shared.vector_store.base import VectorStore

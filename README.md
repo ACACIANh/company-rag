@@ -2,9 +2,9 @@
 
 LangGraph 기반 RAG 챗봇 학습 프로젝트.
 
-회사 내부 문서(`docs/`)를 대상으로 RAG Q&A를 구현하며, 단일 ReAct 에이전트로 시작해 멀티에이전트(Supervisor 패턴)로 확장하는 것을 목표로 합니다.
+회사 내부 문서(`docs/`)를 대상으로 RAG Q&A를 구현합니다. 라우팅(문서검색/웹검색/도구호출), Self-RAG(문서 평가 + 환각 검사 후 재시도), 멀티턴 메모리, HITL(민감 도구 승인), FGA 기반 접근 제어를 포함합니다.
 
-> **현재 단계**: 초기 — 공용 인프라(`shared/`)만 구현되어 있고, 워크플로우 레이어는 LangGraph 기반으로 새로 작성 중입니다.
+> **현재 단계**: Phase 1~5 완료. `shared/` 공용 인프라 + `app/` LangGraph 워크플로우(FastAPI API) + 웹 프론트(`web/`)가 동작합니다.
 
 ---
 
@@ -14,26 +14,33 @@ LangGraph 기반 RAG 챗봇 학습 프로젝트.
 company-rag/
 ├── docs/                     # 회사 내부 문서 (Q&A 대상) + 가이드
 │   ├── langgraph-guide/      # LangGraph 학습 노트 (INDEX.md 진입점)
-│   └── *.md                  # 정책, 가이드 등
-├── shared/                   # 공용 RAG 인프라 (워크플로우 무관)
+│   └── superpowers/          # ADR(decisions) · plans · specs
+├── app/                      # LangGraph 워크플로우 + FastAPI API
+│   ├── api/                  # FastAPI 엔트리(chat/auth/sessions/admin) + deps
+│   ├── graph/                # builder, state(AgentState), edges, prompts
+│   │   └── nodes/            # 순수 함수 노드 (router, retrieve, grade 등)
+│   └── ingestion/            # 문서 → 청크 → 임베딩 → 벡터 저장소 인덱싱
+├── shared/                   # 공용 RAG 인프라 (LangGraph 무관, ABC + Factory)
 │   ├── loader/               # MarkdownLoader
 │   ├── chunker/              # FixedSizeChunker
-│   ├── embedder/             # SentenceTransformerEmbedder
-│   ├── vector_store/         # PostgreSQL (ABC + Factory)
-│   ├── retriever/            # EmbeddingService + Retriever
-│   ├── reranker/             # Reranker
+│   ├── embedder/             # OpenAIEmbedder / SentenceTransformerEmbedder
+│   ├── vector_store/         # PostgreSQL(pgvector) (ABC + Factory)
+│   ├── retriever/            # BasicRetriever + 웹검색 어댑터(Tavily/DuckDuckGo)
+│   ├── reranker/             # NoOp / RRF / LLM Reranker (ABC + Factory)
 │   ├── llm/                  # LLMClient ABC + OpenAI/Anthropic + LangChain 어댑터
+│   ├── session/              # 세션 저장소 (memory/postgres)
+│   ├── fga/                  # OpenFGA 클라이언트 + 민감도 + PostgreSQL TTL 캐시
+│   ├── rate_limiter/         # 인메모리 레이트 리미터
 │   ├── indexer/              # 문서 → 청크 → 벡터 저장소
-│   ├── orchestrator/         # 공통 오케스트레이션 유틸
-│   ├── observability/        # cache, tracer, eval
-│   ├── models.py             # Chunk, SearchResult, Answer DTOs
+│   ├── orchestrator/         # 공통 오케스트레이션 유틸 (학습용)
+│   ├── observability/        # cost_tracker, sinks, tracer, eval (학습용)
+│   ├── models.py             # Chunk, SearchResult, Answer 등 DTO
 │   └── config.py             # 환경변수 로드
-├── scripts/
-│   └── build_index.py        # 문서 인덱싱 진입점
-├── eval_suite/               # 평가 데이터셋 + 러너
-│   ├── questions.yaml
-│   └── runner.py             # run(question) 함수를 외부 주입 받아 채점
-├── tests/                    # 단위 테스트 (shared/ 대상, 85개)
+├── scripts/                  # build_index, seed_fga, 평가/마이그레이션 스크립트
+├── tests/                    # 단위 테스트 (shared/ + app/) + eval/ + load/
+│   └── eval/                 # questions.yaml + runner.py (회귀 채점)
+├── web/                      # Vite 기반 프론트엔드
+├── docker-compose.yml        # PostgreSQL(pgvector) + OpenFGA
 └── CLAUDE.md                 # 작업 규칙 및 아키텍처 결정 (ADR)
 ```
 
@@ -47,88 +54,111 @@ python3 -m venv .venv
 source .venv/bin/activate           # Windows: .venv\Scripts\activate
 pip3 install -r requirements.txt
 
-# 2. 환경변수
-cp .env.example .env
-# .env에 OPENAI_API_KEY (또는 ANTHROPIC_API_KEY) 입력
+# 2. 인프라 기동 (PostgreSQL + OpenFGA)
+docker compose up -d
+./scripts/fga_init.sh               # FGA_STORE_ID 획득 후 .env에 입력
 
-# 3. 문서 인덱싱 (최초 1회)
+# 3. 환경변수
+cp .env.example .env
+# .env에 OPENAI_API_KEY (또는 ANTHROPIC_API_KEY), FGA_STORE_ID 입력
+
+# 4. 문서 인덱싱 (최초 1회)
 python3 -m scripts.build_index
+
+# 5. API 서버 기동
+uvicorn app.api.chat:app --reload
 ```
 
-### `.env` 최소 설정 (ChromaDB 기본)
+### `.env` 최소 설정
 
 ```
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-4o-mini
 OPENAI_API_KEY=sk-...
-EMBEDDING_MODEL=paraphrase-multilingual-MiniLM-L12-v2
+EMBEDDING_MODEL=text-embedding-3-small
+POSTGRES_DSN=postgresql://fga:fga@localhost:5432/app
+FGA_API_URL=http://localhost:8080
+FGA_STORE_ID=
 ```
+
+전체 항목은 `.env.example` 참고.
 
 ---
 
 ## 아키텍처
 
+### `app/graph` — LangGraph 워크플로우
+
+상태는 `AgentState(TypedDict)` 단일 스키마를 사용합니다(`MessagesState`·임의 dict 금지).
+
+흐름:
+
+```
+START → load_memory → rewrite_query → router
+  ├─ doc_search → multi_query → permission → retrieve → grade_documents
+  │                                  └─(품질 미달)→ increment_retry → rewrite_query (재시도)
+  ├─ web_search → web_search ─────────────────────────────────┐
+  └─ tool_call  → confirm(interrupt) → tool_executor ─────────┤
+                                                              ↓
+                                  generate → check_hallucination → save_memory → END
+                                                  └─(환각)→ 재생성/재시도
+```
+
+- **라우터**: `router_node`가 `route` 필드로 doc_search/web_search/tool_call 분기
+- **Self-RAG**: `grade_documents` + `check_hallucination` 평가 후 `increment_retry`로 재시도(임계값 제한)
+- **HITL**: tool_call 경로에서만 `interrupt()`로 사용자 승인 — checkpointer 필수
+- **FGA**: 2-tier pre-filter(`team_id`+`sensitivity` + `personal_doc_ids`)로 검색 전 접근 제어
+
 ### `shared/` — 워크플로우 무관 공용 인프라
 
-ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic)와 벡터 저장소(PostgreSQL)를 추상화합니다. 모든 워크플로우는 `shared/`를 재사용합니다.
+ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic), 벡터 저장소(PostgreSQL), 임베더, 리랭커, 세션 저장소를 추상화합니다. LangChain 통합용 얇은 어댑터(`shared/*/adapters/`)도 포함합니다.
 
-LangChain 통합을 위한 얇은 어댑터도 포함합니다:
-- `shared/llm/adapters/langchain_adapter.py` — `LLMClient` → `BaseLLM`
-- `shared/vector_store/adapters/langchain_retriever.py` — `VectorStore` → `BaseRetriever`
-
-### 공통 응답 모델
-
-```python
-@dataclass
-class Answer:
-    text: str
-    sources: list[str]
-    trace: list[dict] | None = None
-```
+> 일부 모듈(`orchestrator/`, `observability/eval/`, 일부 어댑터)은 학습 목적 + 구현체 교체 가능성을 위해 유지되는, 현재 워크플로우에 미연결된 추상화입니다.
 
 ### 아키텍처 결정 (요약)
 
 | 영역 | 결정 |
 |---|---|
-| 상태 관리 | `MessagesState` 확장 |
-| 메모리 | 개발: `InMemorySaver` → 다음: `SqliteSaver` |
-| 에이전트 시작점 | `create_agent` |
-| 멀티에이전트 | Supervisor 패턴 |
-| 스트리밍 | `messages` 모드 (토큰) |
+| 상태 관리 | `AgentState(TypedDict)` 단일 스키마 |
+| checkpointer | 운영: `AsyncPostgresSaver` / 기본값: `MemorySaver` |
+| 라우팅 | `router_node`의 `route` 필드 분기 |
+| 멀티쿼리 | 쿼리 분해 + 병렬 검색 + RRF merge |
+| 스트리밍 | SSE (`/chat` 스트리밍) |
 | HITL/가드레일 | 결정론적 가드레일 우선, 민감 도구는 `interrupt()` |
+| 접근 제어 | OpenFGA + PostgreSQL pre-filter (ABAC/RBAC) |
 
-상세 근거는 `CLAUDE.md`와 `docs/langgraph-guide/`를 참고하세요.
+상세 근거는 `CLAUDE.md`와 `docs/superpowers/decisions/`(ADR)를 참고하세요.
 
 ---
 
 ## 테스트
 
 ```bash
-pytest tests/ -v          # 전체 (85개)
+pytest tests/ -q          # 전체
 pytest tests/shared/      # shared 단위 테스트
+pytest tests/app/         # app(그래프/API) 테스트
 ```
 
 ---
 
 ## 평가
 
-`eval_suite/runner.py`의 `run_eval(run, yaml_path)`에 워크플로우의 `run(question) -> Answer` 함수를 주입하면 `questions.yaml`을 대상으로 recall@k / keyword_hit_rate 등을 채점합니다.
+`tests/eval/runner.py`의 `run_eval(run, ...)`에 워크플로우의 `run(question) -> Answer` 함수를 주입하면 `tests/eval/questions.yaml`을 대상으로 회귀 점수(recall@k / keyword_hit_rate 등)를 채점합니다. 변경 후 회귀 확인은 DoD 항목입니다.
 
-```python
-from eval_suite.runner import run_eval
-from <your_workflow> import run
-
-run_eval(run)
+```bash
+python3 -m scripts.eval_rag_basic     # 그래프를 주입해 회귀 채점
 ```
 
 ---
 
 ## 기술 스택
 
-- **LLM**: OpenAI GPT / Anthropic Claude
-- **임베딩**: sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`)
+- **LLM**: OpenAI GPT / Anthropic Claude (`LLMClient` ABC + Factory)
+- **임베딩**: OpenAI `text-embedding-3-small` (1536차원) / SentenceTransformer 대체 가능
 - **벡터 저장소**: PostgreSQL (pgvector)
+- **접근 제어**: OpenFGA + PostgreSQL TTL 캐시
 - **오케스트레이션**: LangGraph (+ LangChain 어댑터)
+- **API**: FastAPI (SSE 스트리밍)
 - **테스트**: pytest, pytest-mock
 
 ---
@@ -137,4 +167,5 @@ run_eval(run)
 
 - `CLAUDE.md` — 작업 규칙, 아키텍처 결정
 - `docs/langgraph-guide/INDEX.md` — LangGraph 학습 노트 진입점
+- `docs/superpowers/decisions/` — ADR 목록
 - 원본 위키독스: https://wikidocs.net/book/16723

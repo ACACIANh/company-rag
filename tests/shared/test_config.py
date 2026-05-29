@@ -1,4 +1,4 @@
-from shared.config import Config, load_config
+from shared.config import load_config
 
 
 def test_load_config_defaults(monkeypatch):

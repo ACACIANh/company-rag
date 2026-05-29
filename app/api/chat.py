@@ -29,7 +29,7 @@ from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from app.graph.builder import answer_question, build_graph, stream_answer
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
-from app.api.deps import check_rate_limit, get_current_user, get_session_store
+from app.api.deps import check_rate_limit, get_current_user
 from app.api.sessions import router as sessions_router
 
 init_tracker([FileSink("logs")])

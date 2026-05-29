@@ -1,9 +1,8 @@
 """POST /chat/stream SSE 엔드포인트 테스트."""
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
