@@ -1,3 +1,5 @@
+import asyncio
+
 from duckduckgo_search import DDGS
 
 from core.models import Chunk, SearchResult
@@ -5,9 +7,18 @@ from core.retriever.base import Retriever
 
 
 class DuckDuckGoRetriever(Retriever):
-    def retrieve(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        with DDGS() as ddgs:
-            raw = ddgs.text(query, max_results=top_k)
+    async def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        where_clause: str = "",
+        params: list | None = None,
+    ) -> list[SearchResult]:
+        def _search() -> list[dict]:
+            with DDGS() as ddgs:
+                return ddgs.text(query, max_results=top_k)
+
+        raw = await asyncio.to_thread(_search)
 
         return [
             SearchResult(
