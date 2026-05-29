@@ -3,7 +3,6 @@ FGA 권한별 PostgreSQL 검색 통합 테스트.
 AsyncMock retriever + InMemoryCacheBackend + FGA API mock 사용.
 """
 import time
-import pytest
 from unittest.mock import AsyncMock
 
 from shared.fga.cache.memory import InMemoryCacheBackend

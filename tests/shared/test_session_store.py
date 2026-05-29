@@ -1,11 +1,8 @@
-import dataclasses
-import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from shared.session.adapters.postgres import PostgresSessionStore
-from shared.models import SourceRef
 
 
 def _make_pool(fetchrow_return=None, fetch_return=None):

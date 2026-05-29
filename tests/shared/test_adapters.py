@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from langchain_core.documents import Document
 from shared.llm.adapters.langchain_adapter import LangChainLLMAdapter

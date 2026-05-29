@@ -1,7 +1,6 @@
-import asyncio
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from shared.config import Config
 from shared.llm.base import LLMClient
 from shared.llm.openai_client import OpenAIClient

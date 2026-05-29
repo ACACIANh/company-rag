@@ -1,6 +1,5 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 
 from shared.models import Chunk, SearchResult
 from shared.reranker.llm_reranker import LLMReranker
