@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>총정리 & 다음 단계</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* glow orb 배경 */
+body::before {
+  content: '';
+  position: fixed;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.12), transparent 70%);
+  top: -100px; left: -100px;
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.08), transparent 70%);
+  bottom: -100px; right: -100px;
+  pointer-events: none;
+}
+
+.container {
+  width: 1280px;
+  padding: 44px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.subtitle { font-size: 16px; color: #8b949e; margin-bottom: 36px; text-align: center; }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  width: 100%;
+  max-width: 1060px;
+  margin-bottom: 28px;
+}
+.summary-card {
+  background: rgba(22,27,40,0.8);
+  border: 1px solid rgba(139,148,158,0.1);
+  border-radius: 16px;
+  padding: 26px 22px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardIn 0.5s ease-out forwards;
+}
+.summary-card:nth-child(1) { animation-delay: 0.1s; }
+.summary-card:nth-child(2) { animation-delay: 0.2s; }
+.summary-card:nth-child(3) { animation-delay: 0.3s; }
+.summary-card:nth-child(4) { animation-delay: 0.4s; }
+.summary-card:nth-child(5) { animation-delay: 0.5s; }
+.summary-card:nth-child(6) { animation-delay: 0.6s; }
+@keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
+
+.summary-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.summary-card:nth-child(1)::before { background: #7c3aed; }
+.summary-card:nth-child(2)::before { background: #38bdf8; }
+.summary-card:nth-child(3)::before { background: #34d399; }
+.summary-card:nth-child(4)::before { background: #f97316; }
+.summary-card:nth-child(5)::before { background: #ec4899; }
+.summary-card:nth-child(6)::before { background: linear-gradient(90deg, #7c3aed, #38bdf8, #34d399); }
+
+.card-icon { font-size: 38px; margin-bottom: 12px; display: block; }
+.card-name { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+.summary-card:nth-child(1) .card-name { color: #a78bfa; }
+.summary-card:nth-child(2) .card-name { color: #7dd3fc; }
+.summary-card:nth-child(3) .card-name { color: #6ee7b7; }
+.summary-card:nth-child(4) .card-name { color: #fdba74; }
+.summary-card:nth-child(5) .card-name { color: #f9a8d4; }
+.summary-card:nth-child(6) .card-name {
+  background: linear-gradient(90deg, #a78bfa, #38bdf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.card-desc { font-size: 13px; color: #8b949e; line-height: 1.55; }
+
+.conclusion {
+  text-align: center; padding: 26px 40px;
+  background: rgba(22,27,40,0.6);
+  border: 1px solid rgba(124,58,237,0.2);
+  border-radius: 16px;
+  width: 100%; max-width: 1060px;
+}
+.conclusion-line {
+  font-size: 22px; font-weight: 900; line-height: 1.8;
+  background: linear-gradient(90deg, #7c3aed, #38bdf8, #34d399, #f97316, #ec4899, #fbbf24);
+  background-size: 400% 400%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+}
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.next-steps {
+  margin-top: 12px;
+  font-size: 14px; color: #8b949e;
+  display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+}
+.next-step {
+  display: flex; align-items: center; gap: 6px;
+}
+.next-dot { width: 6px; height: 6px; border-radius: 50%; background: #7c3aed; }
+
+.slide-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 50px;
+  background: rgba(10,15,26,0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(124,58,237,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.slide-nav-inner {
+  width: 1280px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 60px;
+}
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">총정리 & 다음 단계</h1>
+  <p class="subtitle">단계적 확장 가능한 Agentic RAG 플랫폼 — 구현 완료</p>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <span class="card-icon">🕸️</span>
+      <div class="card-name">LangGraph</div>
+      <p class="card-desc">ReAct 에이전트 워크플로우. 노드는 순수 함수, 상태는 AgentState TypedDict.</p>
+    </div>
+    <div class="summary-card">
+      <span class="card-icon">🔍</span>
+      <div class="card-name">Hybrid RAG</div>
+      <p class="card-desc">Vector + BM25 검색 + LLM Reranker. recall@5 1.00, MRR +13% 달성.</p>
+    </div>
+    <div class="summary-card">
+      <span class="card-icon">🔀</span>
+      <div class="card-name">3-way 라우팅</div>
+      <p class="card-desc">doc_search / tool_call / web_search 자동 선택. 라우팅 정확도 93%.</p>
+    </div>
+    <div class="summary-card">
+      <span class="card-icon">🧠</span>
+      <div class="card-name">멀티턴 메모리</div>
+      <p class="card-desc">MemorySaver 체크포인터. 최근 10턴 트리밍, 5턴 이상 대화 일관성 유지.</p>
+    </div>
+    <div class="summary-card">
+      <span class="card-icon">🔒</span>
+      <div class="card-name">OpenFGA 권한</div>
+      <p class="card-desc">2-tier Pre-filter ABAC. team_id + sensitivity + 개인 doc_ids 3중 필터.</p>
+    </div>
+    <div class="summary-card">
+      <span class="card-icon">📊</span>
+      <div class="card-name">평가 시스템</div>
+      <p class="card-desc">recall@k + MRR 회귀 테스트. 184개 단위 테스트, Phase마다 자동 채점.</p>
+    </div>
+  </div>
+
+  <div class="conclusion">
+    <div class="conclusion-line">멀티에이전트(Supervisor 패턴) 확장 → FastAPI 프로덕션 배포 → 사내 SSO 연동</div>
+    <div class="next-steps">
+      <div class="next-step"><span class="next-dot"></span><span>Supervisor 멀티에이전트 구조 도입</span></div>
+      <div class="next-step"><span class="next-dot"></span><span>Next.js 스트리밍 UI 연결</span></div>
+      <div class="next-step"><span class="next-dot"></span><span>LangSmith 관측성 통합</span></div>
+    </div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="07-eval-results.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">08 / 08</a></div>
+    <div class="nav-right"><span class="nav-disabled">다음 &rarr;</span></div>
+  </div>
+</nav>
+
+<script>
+function navigateTo(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(function() { window.location.href = url; }, 300);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') navigateTo('07-eval-results.html');
+});
+</script>
+</body>
+</html>

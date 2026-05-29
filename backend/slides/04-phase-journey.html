@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>개발 3단계 여정</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #e6edf3;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 50px;
+}
+.container {
+  width: 1280px;
+  padding: 44px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.subtitle { font-size: 16px; color: #8b949e; margin-bottom: 44px; text-align: center; }
+
+.flow {
+  display: flex;
+  gap: 0;
+  align-items: stretch;
+  width: 100%;
+  max-width: 1060px;
+}
+.flow-stage {
+  flex: 1;
+  padding: 36px 28px;
+  text-align: center;
+  background: rgba(139,148,158,0.04);
+  border: 1px solid rgba(139,148,158,0.1);
+}
+.flow-stage:first-child { border-radius: 16px 0 0 16px; }
+.flow-stage:last-child { border-radius: 0 16px 16px 0; }
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  font-size: 28px;
+  color: #7c3aed;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.flow-stage-num {
+  font-size: 12px;
+  color: #8b949e;
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
+}
+.flow-stage-icon { font-size: 42px; margin-bottom: 14px; display: block; }
+.flow-stage-title { font-size: 20px; font-weight: 900; margin-bottom: 10px; }
+.flow-stage-desc { font-size: 14px; color: #8b949e; line-height: 1.7; text-align: left; }
+
+.stage-1 .flow-stage-title { color: #38bdf8; }
+.stage-1 { border-color: rgba(56,189,248,0.2); }
+
+.stage-2 .flow-stage-title { color: #34d399; }
+.stage-2 { border-color: rgba(52,211,153,0.2); }
+
+.stage-3 .flow-stage-title { color: #a78bfa; }
+.stage-3 { border-color: rgba(124,58,237,0.2); }
+
+.phase-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+.phase-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #8b949e;
+}
+.phase-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.phase-dot.blue { background: #38bdf8; }
+.phase-dot.green { background: #34d399; }
+.phase-dot.purple { background: #a78bfa; }
+
+.bottom-note {
+  margin-top: 32px;
+  padding: 14px 28px;
+  background: rgba(52,211,153,0.05);
+  border: 1px solid rgba(52,211,153,0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  color: #6ee7b7;
+  text-align: center;
+}
+
+.slide-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 50px;
+  background: rgba(10,15,26,0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(124,58,237,0.2);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.slide-nav-inner {
+  width: 1280px; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 60px;
+}
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">개발 3단계 여정</h1>
+  <p class="subtitle">Phase 1~5 + 백로그까지 — 점진적 확장 전략</p>
+
+  <div class="flow">
+    <div class="flow-stage stage-1">
+      <div class="flow-stage-num">STAGE 1</div>
+      <span class="flow-stage-icon">🏗️</span>
+      <div class="flow-stage-title">RAG 기초 구축</div>
+      <p class="flow-stage-desc">shared/ 인프라 설계, 문서 인덱싱 파이프라인, 기본 벡터 검색, 답변 생성 구현</p>
+      <div class="phase-tags">
+        <div class="phase-tag"><span class="phase-dot blue"></span><span>Phase 1: 스캐폴딩 + 인덱서</span></div>
+        <div class="phase-tag"><span class="phase-dot blue"></span><span>Phase 2: Self-RAG 루프</span></div>
+      </div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage stage-2">
+      <div class="flow-stage-num">STAGE 2</div>
+      <span class="flow-stage-icon">🤖</span>
+      <div class="flow-stage-title">Agentic 확장</div>
+      <p class="flow-stage-desc">3-way 라우터, HITL interrupt(), 멀티턴 메모리, LLM Reranker 도입으로 Agentic RAG 완성</p>
+      <div class="phase-tags">
+        <div class="phase-tag"><span class="phase-dot green"></span><span>Phase 3: 도구 선택 라우터</span></div>
+        <div class="phase-tag"><span class="phase-dot green"></span><span>Phase 4: 멀티턴 메모리</span></div>
+        <div class="phase-tag"><span class="phase-dot green"></span><span>백로그: LLM Reranker</span></div>
+      </div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage stage-3">
+      <div class="flow-stage-num">STAGE 3</div>
+      <span class="flow-stage-icon">🔒</span>
+      <div class="flow-stage-title">프로덕션 준비</div>
+      <p class="flow-stage-desc">OpenFGA 접근 권한, Chroma 2-tier Pre-filter, PostgreSQL 캐시, 부하 테스트, 비용 모니터링</p>
+      <div class="phase-tags">
+        <div class="phase-tag"><span class="phase-dot purple"></span><span>Phase 5: 운영 준비</span></div>
+        <div class="phase-tag"><span class="phase-dot purple"></span><span>백로그: 접근 권한 제어</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-note">
+    ✅ 모든 단계 완료 · 단위 테스트 184개 통과 · recall@5 1.00 달성
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="03-core-nodes.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">04 / 08</a></div>
+    <div class="nav-right"><a href="05-rag-vs-agentic.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+
+<script>
+function navigateTo(url) {
+  document.body.classList.add('fade-out');
+  setTimeout(function() { window.location.href = url; }, 300);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowLeft') navigateTo('03-core-nodes.html');
+  if (e.key === 'ArrowRight') navigateTo('05-rag-vs-agentic.html');
+});
+</script>
+</body>
+</html>

@@ -1,9 +1,11 @@
-.env
-.chroma/
+backend/.env
+backend/.chroma/
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
-dist/
+backend/logs/
+web/dist/
 .venv/
 venv/
+.DS_Store

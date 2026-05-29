@@ -4,7 +4,7 @@ LangGraph 기반 RAG 챗봇 학습 프로젝트.
 
 회사 내부 문서(`docs/`)를 대상으로 RAG Q&A를 구현합니다. 라우팅(문서검색/웹검색/도구호출), Self-RAG(문서 평가 + 환각 검사 후 재시도), 멀티턴 메모리, HITL(민감 도구 승인), FGA 기반 접근 제어를 포함합니다.
 
-> **현재 단계**: Phase 1~5 완료. `shared/` 공용 인프라 + `app/` LangGraph 워크플로우(FastAPI API) + 웹 프론트(`web/`)가 동작합니다.
+> **현재 단계**: Phase 1~5 완료. `backend/core/` 공용 인프라 + `backend/app/` LangGraph 워크플로우(FastAPI API) + 웹 프론트(`web/`)가 동작합니다.
 
 ---
 
@@ -12,43 +12,53 @@ LangGraph 기반 RAG 챗봇 학습 프로젝트.
 
 ```
 company-rag/
-├── docs/                     # 회사 내부 문서 (Q&A 대상) + 가이드
-│   ├── langgraph-guide/      # LangGraph 학습 노트 (INDEX.md 진입점)
-│   └── superpowers/          # ADR(decisions) · plans · specs
-├── app/                      # LangGraph 워크플로우 + FastAPI API
-│   ├── api/                  # FastAPI 엔트리(chat/auth/sessions/admin) + deps
-│   ├── graph/                # builder, state(AgentState), edges, prompts
-│   │   └── nodes/            # 순수 함수 노드 (router, retrieve, grade 등)
-│   └── ingestion/            # 문서 → 청크 → 임베딩 → 벡터 저장소 인덱싱
-├── shared/                   # 공용 RAG 인프라 (LangGraph 무관, ABC + Factory)
-│   ├── loader/               # MarkdownLoader
-│   ├── chunker/              # FixedSizeChunker
-│   ├── embedder/             # OpenAIEmbedder / SentenceTransformerEmbedder
-│   ├── vector_store/         # PostgreSQL(pgvector) (ABC + Factory)
-│   ├── retriever/            # BasicRetriever + 웹검색 어댑터(Tavily/DuckDuckGo)
-│   ├── reranker/             # NoOp / RRF / LLM Reranker (ABC + Factory)
-│   ├── llm/                  # LLMClient ABC + OpenAI/Anthropic + LangChain 어댑터
-│   ├── session/              # 세션 저장소 (memory/postgres)
-│   ├── fga/                  # OpenFGA 클라이언트 + 민감도 + PostgreSQL TTL 캐시
-│   ├── rate_limiter/         # 인메모리 레이트 리미터
-│   ├── indexer/              # 문서 → 청크 → 벡터 저장소
-│   ├── orchestrator/         # 공통 오케스트레이션 유틸 (학습용)
-│   ├── observability/        # cost_tracker, sinks, tracer, eval (학습용)
-│   ├── models.py             # Chunk, SearchResult, Answer 등 DTO
-│   └── config.py             # 환경변수 로드
-├── scripts/                  # build_index, seed_fga, 평가/마이그레이션 스크립트
-├── tests/                    # 단위 테스트 (shared/ + app/) + eval/ + load/
-│   └── eval/                 # questions.yaml + runner.py (회귀 채점)
-├── web/                      # Vite 기반 프론트엔드
-├── docker-compose.yml        # PostgreSQL(pgvector) + OpenFGA
-└── CLAUDE.md                 # 작업 규칙 및 아키텍처 결정 (ADR)
+├── backend/                  # 백엔드 루트 (실행·테스트 작업 디렉터리)
+│   ├── app/                  # LangGraph 워크플로우 + FastAPI API
+│   │   ├── api/              # FastAPI 엔트리(chat/auth/sessions/admin) + deps
+│   │   ├── graph/            # builder, state(AgentState), edges, prompts
+│   │   │   └── nodes/        # 순수 함수 노드 (router, retrieve, grade 등)
+│   │   └── ingestion/        # 문서 → 청크 → 임베딩 → 벡터 저장소 인덱싱
+│   ├── core/                 # 공용 RAG 인프라 (LangGraph 무관, ABC + Factory)
+│   │   ├── loader/           # MarkdownLoader
+│   │   ├── chunker/          # FixedSizeChunker
+│   │   ├── embedder/         # OpenAIEmbedder / SentenceTransformerEmbedder
+│   │   ├── vector_store/     # PostgreSQL(pgvector) (ABC + Factory)
+│   │   ├── retriever/        # BasicRetriever + 웹검색 어댑터(Tavily/DuckDuckGo)
+│   │   ├── reranker/         # NoOp / RRF / LLM Reranker (ABC + Factory)
+│   │   ├── llm/              # LLMClient ABC + OpenAI/Anthropic + LangChain 어댑터
+│   │   ├── session/          # 세션 저장소 (memory/postgres)
+│   │   ├── fga/              # OpenFGA 클라이언트 + 민감도 + PostgreSQL TTL 캐시
+│   │   ├── rate_limiter/     # 인메모리 레이트 리미터
+│   │   ├── indexer/          # 문서 → 청크 → 벡터 저장소
+│   │   ├── orchestrator/     # 공통 오케스트레이션 유틸 (학습용)
+│   │   ├── observability/    # cost_tracker, sinks, tracer, eval (학습용)
+│   │   ├── models.py         # Chunk, SearchResult, Answer 등 DTO
+│   │   └── config.py         # 환경변수 로드
+│   ├── scripts/              # build_index, seed_fga, 평가/마이그레이션 스크립트
+│   ├── config/               # 설정 파일
+│   ├── fga/                  # OpenFGA 모델/시드
+│   ├── tests/                # 단위 테스트 (core/ + app/) + eval/ + load/
+│   │   └── eval/             # questions.yaml + runner.py (회귀 채점)
+│   ├── docs/                 # 회사 내부 문서 (Q&A 대상) + 가이드
+│   │   ├── langgraph-guide/  # LangGraph 학습 노트 (INDEX.md 진입점)
+│   │   └── superpowers/      # ADR(decisions) · plans · specs
+│   ├── plan/                 # 작업 계획
+│   ├── reference/            # 참고 자료
+│   ├── slides/               # 발표 자료
+│   ├── docker-compose.yml    # PostgreSQL(pgvector) + OpenFGA
+│   └── CLAUDE.md             # 작업 규칙 및 아키텍처 결정 (ADR)
+└── web/                      # Vite 기반 프론트엔드
 ```
 
 ---
 
 ## 빠른 시작
 
+백엔드 명령은 모두 `backend/`를 작업 디렉터리로 실행합니다.
+
 ```bash
+cd backend
+
 # 1. 가상환경 + 의존성
 python3 -m venv .venv
 source .venv/bin/activate           # Windows: .venv\Scripts\activate
@@ -109,9 +119,9 @@ START → load_memory → rewrite_query → router
 - **HITL**: tool_call 경로에서만 `interrupt()`로 사용자 승인 — checkpointer 필수
 - **FGA**: 2-tier pre-filter(`team_id`+`sensitivity` + `personal_doc_ids`)로 검색 전 접근 제어
 
-### `shared/` — 워크플로우 무관 공용 인프라
+### `core/` — 워크플로우 무관 공용 인프라
 
-ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic), 벡터 저장소(PostgreSQL), 임베더, 리랭커, 세션 저장소를 추상화합니다. LangChain 통합용 얇은 어댑터(`shared/*/adapters/`)도 포함합니다.
+ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic), 벡터 저장소(PostgreSQL), 임베더, 리랭커, 세션 저장소를 추상화합니다. LangChain 통합용 얇은 어댑터(`core/*/adapters/`)도 포함합니다.
 
 > 일부 모듈(`orchestrator/`, `observability/eval/`, 일부 어댑터)은 학습 목적 + 구현체 교체 가능성을 위해 유지되는, 현재 워크플로우에 미연결된 추상화입니다.
 
@@ -133,9 +143,12 @@ ABC + Factory 패턴으로 LLM 프로바이더(OpenAI/Anthropic), 벡터 저장�
 
 ## 테스트
 
+`backend/`를 작업 디렉터리로 실행합니다.
+
 ```bash
+cd backend
 pytest tests/ -q          # 전체
-pytest tests/shared/      # shared 단위 테스트
+pytest tests/core/        # core 단위 테스트
 pytest tests/app/         # app(그래프/API) 테스트
 ```
 

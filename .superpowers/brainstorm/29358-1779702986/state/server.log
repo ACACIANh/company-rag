@@ -1,0 +1,5 @@
+{"type":"server-started","port":55780,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:55780","screen_dir":"/Users/acacian/vscode/company-rag/.superpowers/brainstorm/29358-1779702986/content","state_dir":"/Users/acacian/vscode/company-rag/.superpowers/brainstorm/29358-1779702986/state"}
+{"type":"screen-added","file":"/Users/acacian/vscode/company-rag/.superpowers/brainstorm/29358-1779702986/content/sidebar-layout.html"}
+{"type":"screen-added","file":"/Users/acacian/vscode/company-rag/.superpowers/brainstorm/29358-1779702986/content/waiting-1.html"}
+{"type":"screen-added","file":"/Users/acacian/vscode/company-rag/.superpowers/brainstorm/29358-1779702986/content/design-ui.html"}
+{"type":"server-stopped","reason":"idle timeout"}
