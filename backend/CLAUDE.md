@@ -9,9 +9,9 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - ADR 목록 → `docs/superpowers/decisions/`
 
 ## 레이어 경계 (절대 위반 금지)
-- `shared/`는 LangGraph를 모른다. import 금지.
-- `app/`는 `shared/`의 인터페이스(ABC)만 의존. 구현체 직접 참조 금지.
-- `app/graph/nodes/`는 순수 함수. State in → State out. side effect는 `shared/` 호출로만.
+- `core/`는 LangGraph를 모른다. import 금지.
+- `app/`는 `core/`의 인터페이스(ABC)만 의존. 구현체 직접 참조 금지.
+- `app/graph/nodes/`는 순수 함수. State in → State out. side effect는 `core/` 호출로만.
 
 ## 핵심 아키텍처 결정
 - State: `AgentState(TypedDict)`. `MessagesState` 및 임의 dict 금지.
@@ -25,14 +25,14 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 2. **상태 스키마 변경**: `AgentState(TypedDict)` 확장만. 임의 dict 금지.
 3. **외부 API 호출 노드**: retry + timeout 필수.
 4. **테스트**: 노드는 순수 함수로 작성해 단위 테스트 가능하게.
-5. **`shared/` 추상화**: ABC·미연결 구현체 삭제 제안/실행 금지. 학습 목적 + 구현체 교체 가능성 유지.
+5. **`core/` 추상화**: ABC·미연결 구현체 삭제 제안/실행 금지. 학습 목적 + 구현체 교체 가능성 유지.
 6. **수술적 변경**: 요청에 해당하는 줄만 수정. 인접 코드·주석·포맷 수정 금지. 기존 스타일 유지. 내 변경이 만든 dead code만 정리.
 
 ## 코딩 원칙 (Karpathy 4원칙)
 상세: `docs/superpowers/decisions/2026-05-26-karpathy-guidelines-audit.md`
 
 1. **먼저 생각하라**: 구현 전 가정 명시. 불확실하면 질문.
-2. **단순함 우선**: 요청한 것만 구현. 추측성 기능·추상화 금지. (`shared/` 예외: 규칙 5)
+2. **단순함 우선**: 요청한 것만 구현. 추측성 기능·추상화 금지. (`core/` 예외: 규칙 5)
 3. **수술적 변경**: 요청에 해당하는 줄만. (규칙 6 참조)
 4. **목표 중심**: 멀티스텝 착수 전 "단계 → 검증" 명시.
 
