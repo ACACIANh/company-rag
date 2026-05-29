@@ -12,8 +12,8 @@ company-rag/
 ## 작업 디렉토리 규칙 (중요)
 
 - **백엔드 작업은 `backend/`를 작업 디렉토리로 실행한다.** 모든 경로(`config/users.yaml`, `logs/`, `.env`, `docker-compose.yml`)와 import(`app`, `core`)가 `backend/` cwd 기준이다.
-  - 테스트: `cd backend && pytest`
-  - 실행 인터프리터는 `.venv/bin/python` (시스템에 `python` 없음)
+  - venv는 **저장소 루트(`.venv/`)**에 있다 (모노레포 공용). backend cwd 기준 인터프리터는 `../.venv/bin/python` (시스템에 `python` 없음).
+  - 테스트: `cd backend && ../.venv/bin/python -m pytest`
 - **프론트엔드 작업은 `web/`를 작업 디렉토리로 실행한다.** (`npm run dev` 등)
 - 백엔드·프론트 양쪽을 건드리는 작업이면 루트에서 시작한다. 한 영역만 다루면 해당 하위 디렉토리에서 시작하면 그 영역의 CLAUDE.md만 로드되어 컨텍스트가 가볍다.
 
