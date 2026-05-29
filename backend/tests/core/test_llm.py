@@ -129,6 +129,42 @@ async def test_openai_client_stream(mocker):
     assert tokens == ["Hello", " world"]
 
 
+def test_openai_client_passes_timeout_and_retries(mocker):
+    mock_sync = mocker.patch("core.llm.openai_client.OpenAI")
+    mock_async = mocker.patch("core.llm.openai_client.AsyncOpenAI")
+
+    OpenAIClient(model="gpt-4o-mini", api_key="test-key", timeout=12.5, max_retries=4)
+
+    assert mock_sync.call_args.kwargs["timeout"] == 12.5
+    assert mock_sync.call_args.kwargs["max_retries"] == 4
+    assert mock_async.call_args.kwargs["timeout"] == 12.5
+    assert mock_async.call_args.kwargs["max_retries"] == 4
+
+
+def test_openai_client_has_default_timeout_and_retries(mocker):
+    mock_sync = mocker.patch("core.llm.openai_client.OpenAI")
+    mocker.patch("core.llm.openai_client.AsyncOpenAI")
+
+    OpenAIClient(model="gpt-4o-mini", api_key="test-key")
+
+    assert mock_sync.call_args.kwargs["timeout"] > 0
+    assert mock_sync.call_args.kwargs["max_retries"] >= 1
+
+
+def test_anthropic_client_passes_timeout_and_retries(mocker):
+    mock_sync = mocker.patch("core.llm.anthropic_client.anthropic.Anthropic")
+    mock_async = mocker.patch("core.llm.anthropic_client.anthropic.AsyncAnthropic")
+
+    AnthropicClient(
+        model="claude-3-haiku-20240307", api_key="test-key", timeout=12.5, max_retries=4
+    )
+
+    assert mock_sync.call_args.kwargs["timeout"] == 12.5
+    assert mock_sync.call_args.kwargs["max_retries"] == 4
+    assert mock_async.call_args.kwargs["timeout"] == 12.5
+    assert mock_async.call_args.kwargs["max_retries"] == 4
+
+
 @pytest.mark.asyncio
 async def test_anthropic_client_stream(mocker):
     """stream()이 토큰 시퀀스를 yield한다."""

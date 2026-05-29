@@ -45,7 +45,7 @@ async def _alter_column(conn: asyncpg.Connection, dry_run: bool) -> None:
     # pgvector는 atttypmod에 차원 수를 저장한다 (0-indexed offset 없음, 값 그대로)
     current_dim = row["atttypmod"]
     if current_dim == 1536:
-        print(f"[skip] 이미 vector(1536)입니다.")
+        print("[skip] 이미 vector(1536)입니다.")
         return
 
     print(f"[alter] embedding 컬럼 타입 변경: vector({current_dim}) → vector(1536)")

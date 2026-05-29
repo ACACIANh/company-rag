@@ -58,7 +58,10 @@ def main() -> None:
             print("doc_search 질문이 없습니다.")
             sys.exit(1)
 
-        import tempfile, yaml, pathlib
+        import pathlib
+        import tempfile
+
+        import yaml
         tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False, encoding="utf-8")
         yaml.dump({"questions": questions}, tmp, allow_unicode=True)
         tmp.close()
