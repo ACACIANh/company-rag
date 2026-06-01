@@ -429,3 +429,50 @@ async def test_stream_answer_empty_answer_skips_tokens_but_sends_done():
     types = [e["type"] for e in events]
     assert "token" not in types
     assert types[-1] == "done"
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_no_duplicate_on_hallucination_retry():
+    """hallucination 재생성이 일어나도 토큰은 최종 답변 1회분만 방출된다."""
+    from app.graph.builder import stream_answer
+
+    retriever = _make_retriever(text="배포는 staging 검증 후 배포한다.", source="deploy.md")
+    llm = MagicMock()
+    # 그래프 흐름 순서대로 llm.complete 응답:
+    # rewrite_query → router → grade_documents → generate(1차) → check_hallucination(NO)
+    # → generate(2차) → check_hallucination(YES)
+    llm.complete.side_effect = [
+        "배포 절차 재작성",       # rewrite_query
+        "doc_search",            # router
+        "0.9",                   # grade_documents
+        "첫 번째 답변",           # generate 1차
+        "NO",                    # check_hallucination 1차 → 재생성
+        "최종 답변입니다",        # generate 2차
+        "YES",                   # check_hallucination 2차 → 통과
+    ]
+    graph = build_graph(retriever=retriever, llm=llm, fga_client=_mock_fga_client())
+
+    queue: asyncio.Queue = asyncio.Queue()
+    mock_store = AsyncMock()
+    await stream_answer(
+        graph=graph,
+        question="배포는 어떤 절차로 진행해?",
+        config={"configurable": {"thread_id": "hallu-retry-1"}},
+        user_id="alice",
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-hallu",
+        is_new_session=True,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    token_events = [e for e in events if e["type"] == "token"]
+    joined = "".join(e["content"] for e in token_events)
+    # 최종 답변만 방출, 1차 답변은 섞이지 않음 (중복 없음)
+    assert joined == "최종 답변입니다"
+    assert "첫 번째 답변" not in joined
+    types = [e["type"] for e in events]
+    assert types[-1] == "done"
