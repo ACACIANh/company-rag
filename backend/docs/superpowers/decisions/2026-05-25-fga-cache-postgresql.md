@@ -2,6 +2,7 @@
 
 **Date**: 2026-05-25
 **Context**: 기존 ADR(2026-05-23)에서 Redis Cloud를 우선 검토하기로 했으나, 기존 PostgreSQL 재사용으로 변경
+**Update (2026-06-01)**: 용도 변경 — post-filter 권한 조회(teams/personal_docs) 캐싱 → `list_readable_folders` 결과(allowed_folders) 캐싱으로 재배치. 캐시 추상화·TTL·무효화 전략은 그대로 유지(superseded 아님). 컬럼 `teams/personal_docs` → `folders`.
 
 ## Options
 
