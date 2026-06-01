@@ -1,5 +1,7 @@
 # ADR-0001: 결정 기록 메커니즘 도입
 
+> **Status**: 🟢 적용완료
+
 **Date**: 2026-05-22
 **Context**: superpowers 개발 흐름 중 AskUserQuestion으로 선택이 발생할 때 트레이드오프와 기준을 어떻게 기록할지 결정
 

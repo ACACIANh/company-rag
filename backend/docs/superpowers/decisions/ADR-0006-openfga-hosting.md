@@ -1,5 +1,7 @@
 # ADR-0006: OpenFGA 호스팅 방식
 
+> **Status**: 🟢 적용완료
+
 **Date**: 2026-05-23
 **Context**: RAG 챗봇의 접근 권한 제어에 사용할 OpenFGA 서버를 어디서 실행할지 결정
 

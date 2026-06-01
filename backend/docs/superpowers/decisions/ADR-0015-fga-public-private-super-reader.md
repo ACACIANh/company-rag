@@ -1,5 +1,7 @@
 # ADR-0015: FGA 권한 모델 확장 — public/private/dept/super_reader 4축 모델
 
+> **Status**: 🟢 적용완료
+
 **Date**: 2026-06-01
 **Context**: ADR-0011의 단순 폴더 트리 모델(`folder.viewer: [department#member]` + `can_read: viewer or can_read from parent`)을, "전체공개가 기본 + private 서브트리 + 명시 부서권한 + 전사 상위 열람권" 정책을 표현하는 모델로 확장. ADR-0011을 supersede.
 
