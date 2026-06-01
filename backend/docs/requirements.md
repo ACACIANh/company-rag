@@ -47,11 +47,11 @@
 | # | 요구사항 | 상태 | 비고 |
 |---|----------|------|------|
 | C-1 | 질문 자동 재작성 (대명사 해소, 서브 질문 분해) | ✅ | `rewrite_query_node` |
-| C-2 | 질문 유형 자동 분류 (doc / web / tool) | ✅ | `router_node` — LLM 기반, 93% 정확도 |
+| C-2 | 질문 유형 자동 분류 (doc / tool) | ✅ | `router_node` — LLM 기반 |
 | C-3 | 사내 문서 벡터 검색 | ✅ | `retrieve_node` + ChromaDB |
 | C-4 | 검색 결과 관련성 채점 (0~1) | ✅ | `grade_documents_node` |
 | C-5 | 관련성 부족 시 재검색 (최대 2회) | ✅ | `retry_count` 상한 적용 |
-| C-6 | 웹 검색 fallback | ✅ | `web_search_node` (Tavily/DuckDuckGo 어댑터) |
+| C-6 | ~~웹 검색 fallback~~ (제거, 역기획서 §9.1) | 🗑️ | `web_search_node` 그래프 경로 제거. `core/` Tavily/DuckDuckGo 어댑터는 에이전틱 `tool_call` 재사용 위해 보존 |
 | C-7 | 환각(hallucination) 감지 및 재생성 | ✅ | `check_hallucination_node` |
 | C-8 | 사용 권한 기반 문서 필터링 | ✅ | `filter_doc_ids` → ChromaDB `$in` 필터 |
 | C-9 | Hybrid Search (Vector + BM25) | ❌ | 현재 Vector Only |

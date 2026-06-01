@@ -48,14 +48,13 @@ ROUTER_PROMPT = """\
 route 선택지:
 - doc_search: 사내 문서에서 정보를 찾는 질문 (정책, 절차, 규정, 가이드 등)
 - tool_call: 실제 작업을 수행하는 요청 (예약, 조회, 실행, 전송 등 동작)
-- web_search: 외부 최신 정보가 필요한 질문 (사내 문서에 없는 일반 지식, 뉴스 등)
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
 - multi_query: 질문이 복잡하거나 여러 항목 비교/열거 → 하위 쿼리로 분해 검색
 
 출력 형식: <route>:<strategy>
-예시: doc_search:none, doc_search:multi_query, web_search:none, tool_call:none
+예시: doc_search:none, doc_search:multi_query, tool_call:none
 다른 텍스트 없이 위 형식만 출력하세요.
 
 질문: {question}

@@ -9,13 +9,6 @@ DOC_SEARCH_QUESTIONS = [
     "복리후생 혜택을 알려주세요",
 ]
 
-WEB_SEARCH_QUESTIONS = [
-    "최근 LangGraph 업데이트 내용 알려줘",
-    "FastAPI 최신 버전은?",
-    "Python 3.12 새로운 기능은?",
-]
-
-
 class ChatUser(HttpUser):
     wait_time = between(1, 3)
     token: str = ""
@@ -37,15 +30,6 @@ class ChatUser(HttpUser):
             json={"question": random.choice(DOC_SEARCH_QUESTIONS)},
             headers=self._headers(),
             name="/chat [doc_search]",
-        )
-
-    @task(2)
-    def chat_web_search(self) -> None:
-        self.client.post(
-            "/chat",
-            json={"question": random.choice(WEB_SEARCH_QUESTIONS)},
-            headers=self._headers(),
-            name="/chat [web_search]",
         )
 
     @task(1)

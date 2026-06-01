@@ -1,7 +1,7 @@
 from core.llm.base import LLMClient
 from app.graph.prompts import ROUTER_PROMPT
 
-_VALID_ROUTES = {"doc_search", "web_search", "tool_call"}
+_VALID_ROUTES = {"doc_search", "tool_call"}
 _VALID_STRATEGIES = {"none", "contextual", "multi_query"}
 
 

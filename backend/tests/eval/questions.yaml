@@ -164,31 +164,6 @@ questions:
     expected_source: "meeting-culture.md"
     expected_route: "doc_search"
 
-  # ── web_search ────────────────────────────────────────────────────────
-  - question: "최신 Python 3.13 릴리즈 노트 알려줘"
-    expected_keywords: ["Python", "릴리즈"]
-    expected_route: "web_search"
-
-  - question: "오늘 날씨 어때?"
-    expected_keywords: ["날씨"]
-    expected_route: "web_search"
-
-  - question: "GPT-5 출시일이 언제야?"
-    expected_keywords: ["GPT"]
-    expected_route: "web_search"
-
-  - question: "LangGraph 0.3 변경사항이 뭐야?"
-    expected_keywords: ["LangGraph", "변경"]
-    expected_route: "web_search"
-
-  - question: "요즘 AI 트렌드가 뭐야?"
-    expected_keywords: ["AI", "트렌드"]
-    expected_route: "web_search"
-
-  - question: "AWS re:Invent 2025 주요 발표 내용이 뭐야?"
-    expected_keywords: ["AWS", "re:Invent"]
-    expected_route: "web_search"
-
   # ── tool_call ─────────────────────────────────────────────────────────
   - question: "다음 주 월요일 회의실 A 예약해줘"
     expected_keywords: ["회의실", "예약"]

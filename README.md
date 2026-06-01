@@ -2,7 +2,7 @@
 
 LangGraph 기반 RAG 챗봇 학습 프로젝트.
 
-회사 내부 문서(`docs/`)를 대상으로 RAG Q&A를 구현합니다. 라우팅(문서검색/웹검색/도구호출), Self-RAG(문서 평가 + 환각 검사 후 재시도), 멀티턴 메모리, HITL(민감 도구 승인), FGA 기반 접근 제어를 포함합니다.
+회사 내부 문서(`docs/`)를 대상으로 RAG Q&A를 구현합니다. 라우팅(문서검색/도구호출), Self-RAG(문서 평가 + 환각 검사 후 재시도), 멀티턴 메모리, HITL(민감 도구 승인), FGA 기반 접근 제어를 포함합니다.
 
 > **현재 단계**: Phase 1~5 완료. `backend/core/` 공용 인프라 + `backend/app/` LangGraph 워크플로우(FastAPI API) + 웹 프론트(`web/`)가 동작합니다.
 
@@ -107,14 +107,13 @@ FGA_STORE_ID=
 START → load_memory → rewrite_query → router
   ├─ doc_search → multi_query → permission → retrieve → grade_documents
   │                                  └─(품질 미달)→ increment_retry → rewrite_query (재시도)
-  ├─ web_search → web_search ─────────────────────────────────┐
-  └─ tool_call  → confirm(interrupt) → tool_executor ─────────┤
+  └─ tool_call  → confirm(interrupt) → tool_executor ─────────┐
                                                               ↓
                                   generate → check_hallucination → save_memory → END
                                                   └─(환각)→ 재생성/재시도
 ```
 
-- **라우터**: `router_node`가 `route` 필드로 doc_search/web_search/tool_call 분기
+- **라우터**: `router_node`가 `route` 필드로 doc_search/tool_call 분기
 - **Self-RAG**: `grade_documents` + `check_hallucination` 평가 후 `increment_retry`로 재시도(임계값 제한)
 - **HITL**: tool_call 경로에서만 `interrupt()`로 사용자 승인 — checkpointer 필수
 - **FGA**: 2-tier pre-filter(`team_id`+`sensitivity` + `personal_doc_ids`)로 검색 전 접근 제어

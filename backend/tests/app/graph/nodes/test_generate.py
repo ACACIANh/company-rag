@@ -185,22 +185,22 @@ async def test_generate_node_no_notice_when_relevant_docs_exist():
 
 
 @pytest.mark.asyncio
-async def test_generate_node_no_notice_for_web_search_route():
+async def test_generate_node_no_notice_for_tool_call_route():
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "웹 검색 답변"
+    mock_llm.complete.return_value = "도구 실행 답변"
 
     state = {
         "question": "질문",
         "rewritten_question": "질문",
         "documents": [],
         "relevance_score": 0.0,
-        "route": "web_search",
+        "route": "tool_call",
         "chat_history": [],
     }
     result = await generate_node(state, llm=mock_llm)
 
     assert not result["answer"].startswith(_NOTICE_PREFIX)
-    assert result["answer"] == "웹 검색 답변"
+    assert result["answer"] == "도구 실행 답변"
 
 
 @pytest.mark.asyncio
