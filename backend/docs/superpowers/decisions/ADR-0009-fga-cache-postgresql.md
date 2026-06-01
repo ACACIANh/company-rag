@@ -1,4 +1,4 @@
-# Decision: listObjects 캐싱 전략 — Redis → PostgreSQL 변경
+# ADR-0009: listObjects 캐싱 전략 — Redis → PostgreSQL 변경
 
 **Date**: 2026-05-25
 **Context**: 기존 ADR(2026-05-23)에서 Redis Cloud를 우선 검토하기로 했으나, 기존 PostgreSQL 재사용으로 변경

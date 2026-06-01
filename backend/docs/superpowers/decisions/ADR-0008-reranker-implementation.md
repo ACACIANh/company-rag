@@ -1,4 +1,4 @@
-# Decision: Reranker 구현체 선택
+# ADR-0008: Reranker 구현체 선택
 
 **Date**: 2026-05-23
 **Context**: Reranker 구현체 방식 결정 — 사내 문서를 외부로 보내지 않아야 하고, 사내 LLM 인프라 활용 가능

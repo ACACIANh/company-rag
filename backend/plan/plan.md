@@ -254,7 +254,7 @@ class AgentState(TypedDict):
 
 - `PermissionCacheBackend` ABC 구현체 2종: `InMemoryCacheBackend`, `PostgresCacheBackend`
 - `shared/fga/cache/__init__.py` 팩토리 (`backend=` 환경 변수로 전환)
-- ADR: `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md`
+- ADR: `docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md`
 
 #### FGA ValidationException 핸들링 — 2026-05-26 완료
 
@@ -269,10 +269,12 @@ class AgentState(TypedDict):
 |---------|------|------|
 | ✅ | ~~`shared/fga/client.py` 커밋~~ | ba07aa5 (2026-05-26) |
 | ✅ | ~~eval web_search AttributeError 픽스~~ | `web_search_node` retriever=None 가드 추가, 24b08ea (2026-05-26) |
-| P2 | **SSE 스트리밍** | FastAPI `astream` + `StreamingResponse` + 프론트엔드 `EventSource` 일괄 도입 (ADR: `2026-05-23-frontend-architecture.md`) |
+| P2 | **SSE 스트리밍** | FastAPI `astream` + `StreamingResponse` + 프론트엔드 `EventSource` 일괄 도입 (ADR: `ADR-0003-frontend-architecture.md`) |
 | P2 | **CI 파이프라인** | `tests/eval/runner.py` 자동 실행, 점수 하락 시 알림 (plan 7.3) |
 | P3 | **실제 부하 테스트 실행** | `tests/load/locustfile.py` 실행 후 결과 기록 (Phase 5 DoD 미기록 상태) |
 | P3 | **관리자 대시보드** | 인덱스 관리, 평가셋 운영 UI (`/admin/*` 백엔드 존재) |
+| P2 | **문서 인덱스 동기화** | 버전 이력(`document_versions`, source of truth) + pgvector 최신 프로젝션. 남은 작업: `VectorStore.delete_by_document`·`Chunk.document_id`·정기 재인제스천 잡·`POST /admin/index/sync`. ADR: `ADR-0012-document-index-sync.md` (채택, `document_versions` 테이블 생성까지 완료) |
+| P2 | **다중 포맷 인제스천** | 포맷별 파서 격리 + Markdown 통일 중간표현, PDF 첫 구현체, 원본 `bytea` 보관 + enrichment. ADR: `ADR-0013-multi-format-ingestion.md` (제안됨) |
 
 ---
 

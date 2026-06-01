@@ -2005,13 +2005,13 @@ git commit -m "test: FGA 권한별 RAG 통합 테스트 추가"
 ## Task 15: ADR 업데이트 + CLAUDE.md 갱신
 
 **Files:**
-- Create: `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md`
+- Create: `docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md`
 - Modify: `plan/access-control.md` (결정 사항 섹션 업데이트)
 - Modify: `CLAUDE.md` (ADR 테이블)
 
 - [ ] **Step 1: ADR 파일 생성**
 
-`docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md`를 작성한다.
+`docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md`를 작성한다.
 
 ```markdown
 # Decision: listObjects 캐싱 전략 — Redis → PostgreSQL 변경
@@ -2043,7 +2043,7 @@ git commit -m "test: FGA 권한별 RAG 통합 테스트 추가"
 
 ```markdown
 | FGA Pre-filter | 2-tier: team_id+sensitivity 메타데이터 필터 + personal_doc_ids. listObjects 전체 목록 미사용 | `docs/superpowers/specs/2026-05-25-access-control-design.md` |
-| FGA 캐시 | PostgreSQL TTL 캐시 (Redis 미사용 — 기존 PG 재사용) | `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md` |
+| FGA 캐시 | PostgreSQL TTL 캐시 (Redis 미사용 — 기존 PG 재사용) | `docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md` |
 ```
 
 - [ ] **Step 3: `plan/access-control.md` 결정 사항 업데이트**
@@ -2051,13 +2051,13 @@ git commit -m "test: FGA 권한별 RAG 통합 테스트 추가"
 섹션 7의 캐싱 행을 수정한다.
 
 ```markdown
-| `listObjects` 캐싱 | PostgreSQL TTL 캐시 (기존 POSTGRES_DSN 재사용, Redis 미도입) | [2026-05-25-fga-cache-postgresql.md](../docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md) |
+| `listObjects` 캐싱 | PostgreSQL TTL 캐시 (기존 POSTGRES_DSN 재사용, Redis 미도입) | [ADR-0009-fga-cache-postgresql.md](../docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md) |
 ```
 
 - [ ] **Step 4: 커밋**
 
 ```bash
-git add docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md CLAUDE.md plan/access-control.md
+git add docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md CLAUDE.md plan/access-control.md
 git commit -m "docs(adr): FGA 캐시 전략 Redis → PostgreSQL 변경 기록"
 ```
 

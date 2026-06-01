@@ -29,7 +29,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 6. **수술적 변경**: 요청에 해당하는 줄만 수정. 인접 코드·주석·포맷 수정 금지. 기존 스타일 유지. 내 변경이 만든 dead code만 정리.
 
 ## 코딩 원칙 (Karpathy 4원칙)
-상세: `docs/superpowers/decisions/2026-05-26-karpathy-guidelines-audit.md`
+상세: `docs/superpowers/decisions/ADR-0010-karpathy-guidelines-audit.md`
 
 1. **먼저 생각하라**: 구현 전 가정 명시. 불확실하면 질문.
 2. **단순함 우선**: 요청한 것만 구현. 추측성 기능·추상화 금지. (`core/` 예외: 규칙 5)
@@ -38,7 +38,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 
 ## 결정 기록 규칙
 `AskUserQuestion`으로 설계·방향·도구 선택 발생 시 즉시 ADR 생성.
-경로: `docs/superpowers/decisions/YYYY-MM-DD-<topic>.md` / 템플릿: `docs/superpowers/decisions/_template.md`
+경로: `docs/superpowers/decisions/ADR-NNNN-<topic>.md` (NNNN = 날짜순 일련번호, 기존 최대값+1) / 템플릿: `docs/superpowers/decisions/_template.md`
 
 ## DoD (Definition of Done)
 1. 단위 테스트 추가

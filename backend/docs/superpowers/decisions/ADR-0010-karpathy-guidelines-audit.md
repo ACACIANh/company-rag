@@ -1,4 +1,4 @@
-# Karpathy Guidelines 적용 감사 보고서
+# ADR-0010: Karpathy Guidelines 적용 감사 보고서
 
 **Date**: 2026-05-26  
 **Source**: https://github.com/multica-ai/andrej-karpathy-skills  
