@@ -203,11 +203,9 @@ async def test_generate_node_no_notice_for_tool_call_route():
     assert result["answer"] == "도구 실행 답변"
 
 
-
-
 @pytest.mark.asyncio
 async def test_generate_node_no_queue_uses_complete():
-    """token_queue 없을 때 llm.complete() 폴백."""
+    """token_queue 존재 여부와 무관하게 llm.complete()를 사용한다."""
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "complete 답변"
 
