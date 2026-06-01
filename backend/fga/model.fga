@@ -3,11 +3,12 @@ model
 
 type user
 
-type team
+type department
   relations
     define member: [user]
 
-type document
+type folder
   relations
-    define owner: [user]
-    define viewer: [user:*, user, team#member] or owner
+    define parent: [folder]
+    define viewer: [department#member]
+    define can_read: viewer or can_read from parent
