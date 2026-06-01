@@ -35,7 +35,7 @@ def test_me_returns_departments_for_alice():
     assert res.status_code == 200
     data = res.json()
     assert "departments" in data
-    assert data["departments"] == ["engineering", "all"]
+    assert data["departments"] == ["engineering"]
 
 
 def test_me_returns_departments_for_admin():
@@ -44,4 +44,5 @@ def test_me_returns_departments_for_admin():
     res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
     data = res.json()
-    assert data["departments"] == ["all", "engineering", "hr"]
+    # admin 은 부서 대신 c_level FGA 역할로 전사 열람(super_reader). 부서 소속 없음.
+    assert data["departments"] == []

@@ -1,11 +1,18 @@
-# 폴더 ↔ viewer 부서 매핑. 튜플 생성의 단일 소스.
-# viewers 줄이 없는 폴더는 부모 권한을 그대로 상속한다 (순수 상속).
+# 폴더 권한. 튜플 생성의 단일 소스. base_path=/company 가 prefix로 붙은 path 기준.
+# 정책: 전체공개가 기본 — /company 에 public 을 부여하면 하위 폴더는 상속(표식 없는 폴더 = 공개).
+#       private: true 폴더만 공개를 차단하고 dept_viewers 로 명시 부서에만 권한 부여.
+#       c_level 역할은 super_reader 로 전사 열람(private 도 관통, 하위 상속).
 folders:
   /company:
-    viewers: [all]
-  /hr:
-    viewers: [hr]
-  /engineering:
-    viewers: [engineering]
-  /engineering/ops:
-    # viewer 미지정 — /engineering(engineering 부서) 권한 상속
+    public: true               # 전 직원 공개 (하위 상속)
+    super_readers: [c_level]    # 전사 상위 열람권 (private 관통, 하위 상속)
+  /company/common:
+    # 상속 — 전사공통 공개 문서
+  /company/engineering:
+    # 상속 — 엔지니어링 공개 문서
+  /company/engineering/ops:
+    private: true              # 배포·인시던트 운영 문서 — 공개 차단
+    dept_viewers: [engineering]
+  /company/hr:
+    private: true              # 인사 문서 — 공개 차단
+    dept_viewers: [hr]

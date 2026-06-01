@@ -1,8 +1,12 @@
-"""FGA 시드: users.yaml의 departments → 부서 멤버십, folders.yaml → 폴더 viewer/parent 튜플.
+"""FGA 시드: users.yaml → 멤버십, folders.yaml → 폴더 권한/parent 튜플.
 
-- 부서 멤버십:   user:{uid}            member  department:{d}
-- 폴더 viewer:   department:{d}#member viewer  folder:{path}   (viewers 있는 폴더만)
-- 폴더 parent:   folder:{parent}       parent  folder:{path}   (path 계층에서 자동 도출)
+- 부서 멤버십:   user:{uid}            member         department:{d}   (departments)
+- 역할 멤버십:   user:{uid}            member         role:{r}         (fga_roles)
+- 전체공개:      user:*                public_viewer  folder:{path}    (public: true)
+- private 표식:  user:*                private_flag   folder:{path}    (private: true)
+- 부서 명시권한: department:{d}#member dept_viewer    folder:{path}    (dept_viewers)
+- 전사 열람권:   role:{r}#member       super_reader   folder:{path}    (super_readers)
+- 폴더 parent:   folder:{parent}       parent         folder:{path}    (path 계층에서 자동 도출)
 """
 import asyncio
 from pathlib import Path
@@ -27,7 +31,7 @@ def _parent_of(path: str) -> str | None:
 def _build_tuples(users: list[dict], folders: dict) -> list[dict]:
     tuples: list[dict] = []
 
-    # 1) 부서 멤버십
+    # 1) 부서 멤버십 + 역할 멤버십
     for user in users:
         uid = user["user_id"]
         for dept in user.get("departments", []):
@@ -36,14 +40,38 @@ def _build_tuples(users: list[dict], folders: dict) -> list[dict]:
                 "relation": "member",
                 "object": f"department:{dept}",
             })
+        for role in user.get("fga_roles", []):
+            tuples.append({
+                "user": f"user:{uid}",
+                "relation": "member",
+                "object": f"role:{role}",
+            })
 
-    # 2) 폴더 viewer + parent
+    # 2) 폴더 권한 + parent
     for path, spec in folders.items():
         spec = spec or {}
-        for dept in spec.get("viewers", []):
+        if spec.get("public"):
+            tuples.append({
+                "user": "user:*",
+                "relation": "public_viewer",
+                "object": f"folder:{path}",
+            })
+        if spec.get("private"):
+            tuples.append({
+                "user": "user:*",
+                "relation": "private_flag",
+                "object": f"folder:{path}",
+            })
+        for dept in spec.get("dept_viewers", []):
             tuples.append({
                 "user": f"department:{dept}#member",
-                "relation": "viewer",
+                "relation": "dept_viewer",
+                "object": f"folder:{path}",
+            })
+        for role in spec.get("super_readers", []):
+            tuples.append({
+                "user": f"role:{role}#member",
+                "relation": "super_reader",
                 "object": f"folder:{path}",
             })
         parent = _parent_of(path)

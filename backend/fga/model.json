@@ -5,11 +5,24 @@
       "type": "user"
     },
     {
+      "type": "role",
+      "relations": {
+        "member": {"this": {}}
+      },
+      "metadata": {
+        "relations": {
+          "member": {
+            "directly_related_user_types": [
+              {"type": "user"}
+            ]
+          }
+        }
+      }
+    },
+    {
       "type": "department",
       "relations": {
-        "member": {
-          "this": {}
-        }
+        "member": {"this": {}}
       },
       "metadata": {
         "relations": {
@@ -24,20 +37,70 @@
     {
       "type": "folder",
       "relations": {
-        "parent": {
-          "this": {}
+        "parent": {"this": {}},
+        "dept_viewer": {"this": {}},
+        "dept_access": {
+          "union": {
+            "child": [
+              {"computedUserset": {"relation": "dept_viewer"}},
+              {
+                "tupleToUserset": {
+                  "tupleset": {"relation": "parent"},
+                  "computedUserset": {"relation": "dept_access"}
+                }
+              }
+            ]
+          }
         },
-        "viewer": {
-          "this": {}
+        "public_viewer": {"this": {}},
+        "public_access": {
+          "union": {
+            "child": [
+              {"computedUserset": {"relation": "public_viewer"}},
+              {
+                "tupleToUserset": {
+                  "tupleset": {"relation": "parent"},
+                  "computedUserset": {"relation": "public_access"}
+                }
+              }
+            ]
+          }
+        },
+        "private_flag": {
+          "union": {
+            "child": [
+              {"this": {}},
+              {
+                "tupleToUserset": {
+                  "tupleset": {"relation": "parent"},
+                  "computedUserset": {"relation": "private_flag"}
+                }
+              }
+            ]
+          }
+        },
+        "super_reader": {
+          "union": {
+            "child": [
+              {"this": {}},
+              {
+                "tupleToUserset": {
+                  "tupleset": {"relation": "parent"},
+                  "computedUserset": {"relation": "super_reader"}
+                }
+              }
+            ]
+          }
         },
         "can_read": {
           "union": {
             "child": [
-              {"computedUserset": {"relation": "viewer"}},
+              {"computedUserset": {"relation": "super_reader"}},
+              {"computedUserset": {"relation": "dept_access"}},
               {
-                "tupleToUserset": {
-                  "tupleset": {"relation": "parent"},
-                  "computedUserset": {"relation": "can_read"}
+                "difference": {
+                  "base": {"computedUserset": {"relation": "public_access"}},
+                  "subtract": {"computedUserset": {"relation": "private_flag"}}
                 }
               }
             ]
@@ -51,9 +114,30 @@
               {"type": "folder"}
             ]
           },
-          "viewer": {
+          "dept_viewer": {
             "directly_related_user_types": [
               {"type": "department", "relation": "member"}
+            ]
+          },
+          "dept_access": {
+            "directly_related_user_types": []
+          },
+          "public_viewer": {
+            "directly_related_user_types": [
+              {"type": "user", "wildcard": {}}
+            ]
+          },
+          "public_access": {
+            "directly_related_user_types": []
+          },
+          "private_flag": {
+            "directly_related_user_types": [
+              {"type": "user", "wildcard": {}}
+            ]
+          },
+          "super_reader": {
+            "directly_related_user_types": [
+              {"type": "role", "relation": "member"}
             ]
           },
           "can_read": {
