@@ -13,16 +13,6 @@ def test_router_sets_doc_search_route():
     assert result["tool_input"] == ""
 
 
-def test_router_sets_web_search_route():
-    mock_llm = MagicMock()
-    mock_llm.complete.return_value = "web_search"
-
-    result = router_node({"rewritten_question": "최신 LangGraph 업데이트 알려줘"}, llm=mock_llm)
-
-    assert result["route"] == "web_search"
-    assert result["tool_input"] == ""
-
-
 def test_router_sets_tool_call_route_and_tool_input():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "tool_call"
@@ -78,16 +68,6 @@ def test_router_strategy_defaults_to_none_on_unknown():
 
     result = router_node({"rewritten_question": "질문"}, llm=mock_llm)
 
-    assert result["rewrite_strategy"] == "none"
-
-
-def test_router_web_search_has_none_strategy():
-    mock_llm = MagicMock()
-    mock_llm.complete.return_value = "web_search:none"
-
-    result = router_node({"rewritten_question": "최신 뉴스"}, llm=mock_llm)
-
-    assert result["route"] == "web_search"
     assert result["rewrite_strategy"] == "none"
 
 

@@ -71,26 +71,6 @@ async def test_answer_question_doc_search_happy_path():
     assert any(ref.source == "vacation.md" for ref in result.sources)
 
 
-async def test_answer_question_web_search_path():
-    doc_retriever = _make_retriever(text="사내 문서", source="doc.md")
-    web_retriever = _make_retriever(text="LangGraph 최신 기능", source="https://langchain.com")
-    llm = MagicMock()
-    llm.complete.side_effect = [
-        "LangGraph 최신 업데이트",
-        "web_search",
-        "웹 검색 기반 답변",
-        "YES",
-    ]
-    graph = build_graph(
-        retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
-        web_search_retriever=web_retriever,
-    )
-    result = await answer_question(graph, "LangGraph 최신 버전 알려줘")
-
-    assert result.text == "웹 검색 기반 답변"
-    assert any(ref.source == "https://langchain.com" for ref in result.sources)
-
-
 async def test_answer_question_doc_search_retry_on_low_grade():
     retriever = _make_retriever(text="내용", source="doc.md")
     llm = MagicMock()
@@ -113,7 +93,6 @@ async def test_answer_question_doc_search_retry_on_low_grade():
 def test_tool_call_triggers_interrupt():
     """LangGraph: invoke() returns __interrupt__ key when HITL interrupt fires."""
     doc_retriever = _make_retriever()
-    web_retriever = _make_retriever()
     llm = MagicMock()
     llm.complete.side_effect = [
         "회의실 예약 요청",
@@ -121,7 +100,6 @@ def test_tool_call_triggers_interrupt():
     ]
     graph = build_graph(
         retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
-        web_search_retriever=web_retriever,
     )
     config = {"configurable": {"thread_id": "test-interrupt-1"}}
 
@@ -133,7 +111,6 @@ def test_tool_call_triggers_interrupt():
 @pytest.mark.asyncio
 async def test_tool_call_completes_after_user_approves():
     doc_retriever = _make_retriever()
-    web_retriever = _make_retriever()
     llm = MagicMock()
     llm.complete.side_effect = [
         "회의실 예약 요청",
@@ -143,7 +120,6 @@ async def test_tool_call_completes_after_user_approves():
     ]
     graph = build_graph(
         retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
-        web_search_retriever=web_retriever,
     )
     config = {"configurable": {"thread_id": "test-interrupt-2"}}
 
@@ -156,7 +132,6 @@ async def test_tool_call_completes_after_user_approves():
 
 def test_tool_call_ends_when_user_denies():
     doc_retriever = _make_retriever()
-    web_retriever = _make_retriever()
     llm = MagicMock()
     llm.complete.side_effect = [
         "슬랙 메시지 요청",
@@ -164,7 +139,6 @@ def test_tool_call_ends_when_user_denies():
     ]
     graph = build_graph(
         retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
-        web_search_retriever=web_retriever,
     )
     config = {"configurable": {"thread_id": "test-interrupt-3"}}
 

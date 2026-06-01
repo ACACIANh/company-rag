@@ -13,9 +13,9 @@ def test_router_handles_uppercase():
 def test_router_strips_whitespace():
     """Test that router strips whitespace from LLM output"""
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "  web_search  "
+    mock_llm.complete.return_value = "  tool_call  "
     result = router_node({"rewritten_question": "테스트"}, llm=mock_llm)
-    assert result["route"] == "web_search"
+    assert result["route"] == "tool_call"
 
 
 def test_router_handles_empty_response():
@@ -36,8 +36,8 @@ def test_router_handles_garbage_response():
 
 
 def test_router_never_sets_tool_input_for_non_tool_call():
-    """Ensure tool_input is empty for doc_search and web_search"""
-    for route_response in ["doc_search", "web_search"]:
+    """Ensure tool_input is empty for doc_search"""
+    for route_response in ["doc_search"]:
         mock_llm = MagicMock()
         mock_llm.complete.return_value = route_response
         result = router_node({"rewritten_question": "질문"}, llm=mock_llm)

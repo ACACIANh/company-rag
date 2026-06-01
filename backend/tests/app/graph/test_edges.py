@@ -57,10 +57,6 @@ def test_route_after_router_returns_doc_search():
     assert route_after_router({"route": "doc_search"}) == "doc_search"
 
 
-def test_route_after_router_returns_web_search():
-    assert route_after_router({"route": "web_search"}) == "web_search"
-
-
 def test_route_after_router_returns_tool_call():
     assert route_after_router({"route": "tool_call"}) == "tool_call"
 

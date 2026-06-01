@@ -7,7 +7,7 @@ class AgentState(TypedDict):
     question: str
     rewritten_question: str
     chat_history: list[dict]
-    route: Literal["doc_search", "tool_call", "web_search"]
+    route: Literal["doc_search", "tool_call"]
     rewrite_strategy: Literal["none", "contextual", "multi_query"] | None
     multi_queries: list[str]
     documents: list[SearchResult]
