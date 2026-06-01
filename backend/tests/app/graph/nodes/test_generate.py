@@ -203,40 +203,6 @@ async def test_generate_node_no_notice_for_tool_call_route():
     assert result["answer"] == "도구 실행 답변"
 
 
-@pytest.mark.asyncio
-async def test_generate_node_streams_tokens_to_queue():
-    """token_queue 있을 때 llm.stream() 호출, 토큰이 큐에 쌓인다."""
-
-    async def _fake_stream(prompt):
-        for t in ["안녕", "하세요"]:
-            yield t
-
-    mock_llm = MagicMock()
-    mock_llm.stream = _fake_stream
-
-    queue: asyncio.Queue = asyncio.Queue()
-    state = {
-        "question": "질문",
-        "rewritten_question": "질문",
-        "documents": [_make_result("내용", "doc.md")],
-        "relevance_score": 0.9,
-        "route": "doc_search",
-        "chat_history": [],
-    }
-    config = {"configurable": {"token_queue": queue}}
-
-    result = await generate_node(state, config=config, llm=mock_llm)
-
-    tokens = []
-    while not queue.empty():
-        tokens.append(queue.get_nowait())
-
-    assert tokens == [
-        {"type": "token", "content": "안녕"},
-        {"type": "token", "content": "하세요"},
-    ]
-    assert result["answer"] == "안녕하세요"
-    assert len(result["citations"]) == 1
 
 
 @pytest.mark.asyncio
@@ -261,17 +227,18 @@ async def test_generate_node_no_queue_uses_complete():
 
 
 @pytest.mark.asyncio
-async def test_generate_node_streams_only_notice_when_no_docs():
-    """no-doc 경로에서는 LLM을 호출하지 않고 안내문만 단일 토큰으로 스트리밍한다."""
-
+async def test_generate_node_never_streams_to_queue():
+    """token_queue가 있어도 큐에 흘리지 않고 complete만 쓴다 (스트리밍은 stream_answer 담당)."""
     mock_llm = MagicMock()
+    mock_llm.complete.return_value = "최종 답변"
+    mock_llm.stream = MagicMock(side_effect=AssertionError("stream을 호출하면 안 된다"))
 
     queue: asyncio.Queue = asyncio.Queue()
     state = {
         "question": "질문",
         "rewritten_question": "질문",
-        "documents": [],
-        "relevance_score": 0.0,
+        "documents": [_make_result("내용", "doc.md")],
+        "relevance_score": 0.9,
         "route": "doc_search",
         "chat_history": [],
     }
@@ -279,9 +246,6 @@ async def test_generate_node_streams_only_notice_when_no_docs():
 
     result = await generate_node(state, config=config, llm=mock_llm)
 
-    tokens = []
-    while not queue.empty():
-        tokens.append(queue.get_nowait()["content"])
-    assert tokens == [_NOTICE_PREFIX]
-    assert result["answer"] == _NOTICE_PREFIX
-    mock_llm.stream.assert_not_called()
+    assert result["answer"] == "최종 답변"
+    assert queue.empty()
+    mock_llm.complete.assert_called_once()
