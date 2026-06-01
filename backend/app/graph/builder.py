@@ -35,6 +35,8 @@ from app.graph.nodes.multi_query import multi_query_node
 from app.graph.nodes.tool_executor import tool_executor_node
 from app.graph.state import AgentState
 
+_STREAM_CHUNK_SIZE = 3  # 의사 스트리밍 청크 크기(글자). 타이핑 효과용.
+
 
 def build_graph(
     retriever: Retriever,
@@ -198,6 +200,9 @@ async def stream_answer(
         }
 
         final = await graph.ainvoke(initial, config=config)
+        answer = final["answer"]
+        for i in range(0, len(answer), _STREAM_CHUNK_SIZE):
+            await token_queue.put({"type": "token", "content": answer[i:i + _STREAM_CHUNK_SIZE]})
         await token_queue.put({
             "type": "sources",
             "sources": [s.source for s in final["citations"]],

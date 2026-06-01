@@ -228,13 +228,20 @@ async def test_stream_answer_puts_tokens_and_done_in_queue():
         events.append(queue.get_nowait())
 
     types = [e["type"] for e in events]
+    assert "token" in types
     assert "sources" in types
     assert types[-1] == "done"
     done_event = events[-1]
     assert done_event["session_id"] == "sess-1"
 
+    # 토큰 이벤트를 합치면 최종 answer가 된다 (중복 없이 1회분)
+    token_events = [e for e in events if e["type"] == "token"]
+    assert "".join(e["content"] for e in token_events) == "안녕하세요"
+
     sources_event = next(e for e in events if e["type"] == "sources")
     assert sources_event["sources"] == ["doc.md"]
+    # sources는 모든 token 뒤에 온다
+    assert types.index("sources") > max(i for i, t in enumerate(types) if t == "token")
 
 
 @pytest.mark.asyncio
