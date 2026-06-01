@@ -27,7 +27,7 @@ describe("AuthContext", () => {
       )
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ user_id: "u1", roles: ["user"], teams: [], allowed_doc_ids: ["d1"] }),
+          JSON.stringify({ user_id: "u1", roles: ["user"], departments: ["engineering"] }),
           { status: 200 }
         )
       );
@@ -50,7 +50,7 @@ describe("AuthContext", () => {
     localStorage.setItem("session_id", "sess-1");
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
       new Response(
-        JSON.stringify({ user_id: "u1", roles: [], teams: [], allowed_doc_ids: [] }),
+        JSON.stringify({ user_id: "u1", roles: [], departments: [] }),
         { status: 200 }
       )
     );
