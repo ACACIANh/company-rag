@@ -3,7 +3,7 @@ from datetime import date
 from pathlib import Path
 
 import yaml
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 
 from core.auth.base import AuthUser
 from app.api.deps import require_admin
@@ -74,46 +74,30 @@ def list_users(_: AuthUser = Depends(require_admin)) -> list:
             "user_id": u["user_id"],
             "username": u["username"],
             "roles": u["roles"],
-            "allowed_doc_ids": u["allowed_doc_ids"],
+            "departments": u.get("departments", []),
         }
         for u in users
     ]
 
 
-@router.put("/users/{user_id}/docs")
-def update_user_docs(
+@router.post("/users/{user_id}/departments/{department_id}", status_code=204)
+async def add_user_to_department(
     user_id: str,
-    allowed_doc_ids: list[str],
-    _: AuthUser = Depends(require_admin),
-) -> dict:
-    path = Path("config/users.yaml")
-    data = yaml.safe_load(path.read_text())
-    for user in data["users"]:
-        if user["user_id"] == user_id:
-            user["allowed_doc_ids"] = allowed_doc_ids
-            path.write_text(yaml.dump(data, allow_unicode=True))
-            return {"user_id": user_id, "allowed_doc_ids": allowed_doc_ids}
-    raise HTTPException(status_code=404, detail="User not found")
-
-
-@router.post("/users/{user_id}/teams/{team_id}", status_code=204)
-async def add_user_to_team(
-    user_id: str,
-    team_id: str,
+    department_id: str,
     request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    await request.app.state.fga_client.add_team_member(user_id, team_id)
+    await request.app.state.fga_client.add_department_member(user_id, department_id)
 
 
-@router.delete("/users/{user_id}/teams/{team_id}", status_code=204)
-async def remove_user_from_team(
+@router.delete("/users/{user_id}/departments/{department_id}", status_code=204)
+async def remove_user_from_department(
     user_id: str,
-    team_id: str,
+    department_id: str,
     request: Request,
     _: AuthUser = Depends(require_admin),
 ) -> None:
-    await request.app.state.fga_client.remove_team_member(user_id, team_id)
+    await request.app.state.fga_client.remove_department_member(user_id, department_id)
 
 
 @router.delete("/users/{user_id}", status_code=204)
@@ -123,23 +107,3 @@ async def offboard_user(
     _: AuthUser = Depends(require_admin),
 ) -> None:
     await request.app.state.fga_client.delete_user_tuples(user_id)
-
-
-@router.post("/documents/{doc_id}/viewers/{user_id}", status_code=204)
-async def grant_doc_viewer(
-    doc_id: str,
-    user_id: str,
-    request: Request,
-    _: AuthUser = Depends(require_admin),
-) -> None:
-    await request.app.state.fga_client.grant_doc_access(user_id, f"doc:{doc_id}")
-
-
-@router.delete("/documents/{doc_id}/viewers/{user_id}", status_code=204)
-async def revoke_doc_viewer(
-    doc_id: str,
-    user_id: str,
-    request: Request,
-    _: AuthUser = Depends(require_admin),
-) -> None:
-    await request.app.state.fga_client.revoke_doc_access(user_id, f"doc:{doc_id}")
