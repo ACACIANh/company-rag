@@ -1,5 +1,3 @@
-import asyncio
-
 from langchain_core.runnables import RunnableConfig
 
 from core.llm.base import LLMClient
@@ -18,14 +16,8 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
         or state.get("relevance_score", 1.0) < _RELEVANCE_THRESHOLD
     )
 
-    queue: asyncio.Queue | None = (
-        (config or {}).get("configurable", {}).get("token_queue")
-    )
-
     # 내부 문서를 찾지 못하면 LLM 일반 지식 답변 대신 고지문만 반환
     if is_doc_search and no_relevant_docs:
-        if queue is not None:
-            await queue.put({"type": "token", "content": _NO_DOC_NOTICE})
         return {
             "answer": _NO_DOC_NOTICE,
             "citations": [],
@@ -46,14 +38,7 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
     )
     citations = [SourceRef(source=d.chunk.source) for d in state["documents"]]
 
-    if queue is not None:
-        tokens = []
-        async for token in llm.stream(prompt):
-            await queue.put({"type": "token", "content": token})
-            tokens.append(token)
-        text = "".join(tokens)
-    else:
-        text = llm.complete(prompt)
+    text = llm.complete(prompt)
 
     tracker = get_tracker()
     if tracker:
