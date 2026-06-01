@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 import asyncpg
 
 from core.fga.base import PermissionCacheBackend
-from core.fga.models import UserPermission
 
 
 class PostgresCacheBackend(PermissionCacheBackend):
@@ -15,11 +14,10 @@ class PostgresCacheBackend(PermissionCacheBackend):
         async with self._pool.acquire() as conn:
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS fga_permission_cache (
-                    user_id       TEXT PRIMARY KEY,
-                    teams         TEXT         NOT NULL DEFAULT '[]',
-                    personal_docs TEXT         NOT NULL DEFAULT '[]',
-                    expires_at    TIMESTAMPTZ  NOT NULL,
-                    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
+                    user_id     TEXT PRIMARY KEY,
+                    folders     TEXT         NOT NULL DEFAULT '[]',
+                    expires_at  TIMESTAMPTZ  NOT NULL,
+                    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
                 )
             """)
             await conn.execute("""
@@ -27,33 +25,28 @@ class PostgresCacheBackend(PermissionCacheBackend):
                 ON fga_permission_cache(expires_at)
             """)
 
-    async def get(self, user_id: str) -> UserPermission | None:
+    async def get(self, user_id: str) -> list[str] | None:
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
-                "SELECT teams, personal_docs FROM fga_permission_cache "
+                "SELECT folders FROM fga_permission_cache "
                 "WHERE user_id = $1 AND expires_at > now()",
                 user_id,
             )
             if row is None:
                 return None
-            return UserPermission(
-                user_id=user_id,
-                teams=json.loads(row["teams"]),
-                personal_docs=json.loads(row["personal_docs"]),
-            )
+            return json.loads(row["folders"])
 
-    async def set(self, user_id: str, perm: UserPermission, ttl_seconds: int) -> None:
+    async def set(self, user_id: str, folders: list[str], ttl_seconds: int) -> None:
         expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl_seconds)
         async with self._pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO fga_permission_cache (user_id, teams, personal_docs, expires_at, updated_at)
-                VALUES ($1, $2, $3, $4, now())
+                INSERT INTO fga_permission_cache (user_id, folders, expires_at, updated_at)
+                VALUES ($1, $2, $3, now())
                 ON CONFLICT (user_id) DO UPDATE SET
-                    teams = EXCLUDED.teams,
-                    personal_docs = EXCLUDED.personal_docs,
+                    folders = EXCLUDED.folders,
                     expires_at = EXCLUDED.expires_at,
                     updated_at = now()
-            """, user_id, json.dumps(perm.teams), json.dumps(perm.personal_docs), expires_at)
+            """, user_id, json.dumps(folders), expires_at)
 
     async def invalidate(self, user_id: str) -> None:
         async with self._pool.acquire() as conn:

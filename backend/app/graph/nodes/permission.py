@@ -2,8 +2,5 @@ from core.fga.client import FGAClient
 
 
 async def permission_node(state: dict, *, fga_client: FGAClient) -> dict:
-    perm = await fga_client.get_permission(state["user_id"])
-    return {
-        "user_teams": perm.teams,
-        "personal_doc_ids": perm.personal_docs,
-    }
+    folders = await fga_client.get_readable_folders(state["user_id"])
+    return {"allowed_folders": folders}

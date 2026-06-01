@@ -5,17 +5,14 @@ import pytest
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
-from core.fga.models import UserPermission
 from core.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
 
 
 def _mock_fga_client():
     mock_fga = MagicMock()
-    mock_fga.get_permission = AsyncMock(return_value=UserPermission(
-        user_id="anonymous", teams=[], personal_docs=[]
-    ))
-    mock_fga.build_pg_filter = MagicMock(return_value=("sensitivity = 'public'", []))
+    mock_fga.build_pg_filter = MagicMock(return_value=("path = $1 OR path LIKE $2", ["/company", "/company/%"]))
+    mock_fga.get_readable_folders = AsyncMock(return_value=["/company"])
     return mock_fga
 
 
@@ -44,9 +41,7 @@ def _make_initial_state(question: str) -> dict:
         "confirmed": False,
         "tool_input": "",
         "user_id": "anonymous",
-        "allowed_doc_ids": [],
-        "user_teams": [],
-        "personal_doc_ids": [],
+        "allowed_folders": [],
     }
 
 
@@ -248,7 +243,6 @@ async def test_stream_answer_puts_tokens_and_done_in_queue():
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
         user_id="alice",
-        allowed_doc_ids=[],
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -286,7 +280,6 @@ async def test_stream_answer_puts_error_then_done_on_exception():
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
         user_id="alice",
-        allowed_doc_ids=[],
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -358,7 +351,6 @@ async def test_stream_answer_falls_back_to_session_store_history():
         question="후속 질문",
         config={"configurable": {"thread_id": "t-fallback"}},
         user_id="alice",
-        allowed_doc_ids=[],
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-fallback",
@@ -390,7 +382,6 @@ async def test_stream_answer_does_not_load_store_for_new_session():
         question="첫 질문",
         config={"configurable": {"thread_id": "t-new"}},
         user_id="alice",
-        allowed_doc_ids=[],
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-new",
@@ -418,7 +409,6 @@ async def test_stream_answer_saves_session():
         question="안녕",
         config={"configurable": {"thread_id": "t1"}},
         user_id="alice",
-        allowed_doc_ids=[],
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-2",

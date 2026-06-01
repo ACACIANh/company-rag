@@ -81,9 +81,7 @@ def test_agent_state_multi_query_instantiation():
         "confirmed": False,
         "tool_input": "",
         "user_id": "u1",
-        "allowed_doc_ids": [],
-        "user_teams": [],
-        "personal_doc_ids": [],
+        "allowed_folders": [],
     }
     assert state["rewrite_strategy"] == "multi_query"
     assert state["multi_queries"] == ["연차 규정은?", "병가 규정은?"]

@@ -20,10 +20,7 @@ class PostgresVectorStore(VectorStore):
                     content     TEXT        NOT NULL,
                     embedding   vector(1536),
                     metadata    TEXT        NOT NULL DEFAULT '{}',
-                    team_id     TEXT        NOT NULL DEFAULT '',
-                    sensitivity TEXT        NOT NULL DEFAULT 'public',
-                    owner_id    TEXT        NOT NULL DEFAULT '',
-                    doc_id      TEXT        NOT NULL DEFAULT '',
+                    path        TEXT        NOT NULL DEFAULT '',
                     source      TEXT        NOT NULL DEFAULT '',
                     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
@@ -32,9 +29,10 @@ class PostgresVectorStore(VectorStore):
                 "CREATE INDEX IF NOT EXISTS idx_documents_hnsw "
                 "ON documents USING hnsw (embedding vector_cosine_ops)"
             )
+            # path prefix(LIKE '/x/%')·등호 매칭용. text_pattern_ops로 anchored LIKE 인덱스 활용.
             await conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_documents_filter "
-                "ON documents (team_id, sensitivity)"
+                "CREATE INDEX IF NOT EXISTS idx_documents_path "
+                "ON documents (path text_pattern_ops)"
             )
 
     async def add(
@@ -51,25 +49,19 @@ class PostgresVectorStore(VectorStore):
                 chunk.text,
                 emb,
                 json.dumps({**chunk.metadata, "source": chunk.source, **meta}),
-                meta.get("team_id", ""),
-                meta.get("sensitivity", "public"),
-                meta.get("owner_id", ""),
-                meta.get("document_id", meta.get("doc_id", "")),
+                chunk.metadata.get("path", ""),
                 chunk.source,
             ))
         async with self._pool.acquire() as conn:
             await conn.executemany("""
                 INSERT INTO documents
-                    (chunk_id, content, embedding, metadata, team_id, sensitivity, owner_id, doc_id, source)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                    (chunk_id, content, embedding, metadata, path, source)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (chunk_id) DO UPDATE SET
                     content = EXCLUDED.content,
                     embedding = EXCLUDED.embedding,
                     metadata = EXCLUDED.metadata,
-                    team_id = EXCLUDED.team_id,
-                    sensitivity = EXCLUDED.sensitivity,
-                    owner_id = EXCLUDED.owner_id,
-                    doc_id = EXCLUDED.doc_id,
+                    path = EXCLUDED.path,
                     source = EXCLUDED.source
             """, rows)
 

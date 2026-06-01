@@ -44,15 +44,7 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
         question=question,
         chat_history=history_text,
     )
-    citations = [
-        SourceRef(
-            source=d.chunk.source,
-            document_id=d.chunk.metadata.get("document_id", ""),
-            sensitivity=d.chunk.metadata.get("sensitivity", "public"),
-            team_id=d.chunk.metadata.get("team_id", ""),
-        )
-        for d in state["documents"]
-    ]
+    citations = [SourceRef(source=d.chunk.source) for d in state["documents"]]
 
     if queue is not None:
         tokens = []

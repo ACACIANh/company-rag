@@ -25,9 +25,6 @@ class SearchResult:
 @dataclass
 class SourceRef:
     source: str
-    document_id: str = ""
-    sensitivity: str = "public"
-    team_id: str = ""
 
 
 @dataclass

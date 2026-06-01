@@ -37,28 +37,23 @@ async def test_generate_node_returns_source_refs():
     ref = result["citations"][0]
     assert isinstance(ref, SourceRef)
     assert ref.source == "doc.md"
-    assert ref.sensitivity == "internal"
-    assert ref.team_id == "team:dev"
-    assert ref.document_id == "doc:1"
 
 
 @pytest.mark.asyncio
-async def test_generate_node_defaults_to_public_when_no_metadata():
+async def test_generate_node_citation_holds_source_only():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "답변"
 
     state = {
         "question": "질문",
         "documents": [SearchResult(
-            chunk=Chunk(text="내용", source="doc.md", chunk_id="id"), score=0.9
+            chunk=Chunk(text="내용", source="hr/perf.md", chunk_id="id"), score=0.9
         )],
     }
     result = await generate_node(state, llm=mock_llm)
     ref = result["citations"][0]
     assert isinstance(ref, SourceRef)
-    assert ref.sensitivity == "public"
-    assert ref.team_id == ""
-    assert ref.document_id == ""
+    assert ref.source == "hr/perf.md"
 
 
 @pytest.mark.asyncio

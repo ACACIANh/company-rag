@@ -19,7 +19,7 @@ async def test_indexer_composes_loader_chunker_embedder_store():
     loader.load.assert_called_once_with("/some/path")
     chunker.chunk.assert_called_once()
     embedder.embed_batch.assert_called_once_with(["hello world"])
-    store.add.assert_called_once_with(ANY, ANY, extra_metadata=ANY)
+    store.add.assert_called_once_with(ANY, ANY)
     assert count == 1
 
 
@@ -58,42 +58,6 @@ async def test_indexer_concatenates_chunks_from_multiple_docs():
 
     embedder.embed_batch.assert_called_once_with(["A", "B"])
     assert store.add.call_count == 1
-
-
-async def test_indexer_passes_extra_metadata_with_sensitivity():
-    loader = MagicMock()
-    loader.load.return_value = [Document(text="기밀 연봉 정보", source="secret.md")]
-    chunker = MagicMock()
-    chunker.chunk.return_value = [Chunk(text="기밀 연봉 정보", source="secret.md", chunk_id="c1")]
-    embedder = MagicMock()
-    embedder.embed_batch.return_value = [[0.1]]
-    store = AsyncMock()
-
-    indexer = Indexer(loader=loader, chunker=chunker, embedder=embedder, store=store)
-    await indexer.index("/secret")
-
-    call_kwargs = store.add.call_args[1]
-    extra = call_kwargs["extra_metadata"]
-    assert len(extra) == 1
-    assert "sensitivity" in extra[0]
-
-
-async def test_indexer_calls_fga_write_tuples_when_fga_client_provided():
-    loader = MagicMock()
-    loader.load.return_value = [Document(text="공개 문서", source="pub.md")]
-    chunker = MagicMock()
-    chunker.chunk.return_value = [Chunk(text="공개 문서", source="pub.md", chunk_id="c1")]
-    embedder = MagicMock()
-    embedder.embed_batch.return_value = [[0.1]]
-    store = AsyncMock()
-    fga_client = AsyncMock()
-
-    indexer = Indexer(
-        loader=loader, chunker=chunker, embedder=embedder, store=store, fga_client=fga_client
-    )
-    await indexer.index("/pub")
-
-    fga_client.write_tuples.assert_called_once()
 
 
 async def test_indexer_skips_fga_when_no_fga_client():

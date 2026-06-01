@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from core.fga.cache.postgres import PostgresCacheBackend
-from core.fga.models import UserPermission
 
 
 def _make_pool(fetchrow_return=None):
@@ -28,22 +27,19 @@ async def test_get_returns_none_when_no_row():
 
 
 @pytest.mark.asyncio
-async def test_get_returns_permission_when_row_found():
-    row = {"teams": json.dumps(["team:dev"]), "personal_docs": json.dumps(["doc:x"])}
+async def test_get_returns_folders_when_row_found():
+    row = {"folders": json.dumps(["/company", "/engineering"])}
     pool, conn = _make_pool(fetchrow_return=row)
     backend = PostgresCacheBackend(pool)
     result = await backend.get("u1")
-    assert result is not None
-    assert result.teams == ["team:dev"]
-    assert result.personal_docs == ["doc:x"]
+    assert result == ["/company", "/engineering"]
 
 
 @pytest.mark.asyncio
 async def test_set_calls_execute():
     pool, conn = _make_pool()
     backend = PostgresCacheBackend(pool)
-    perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
-    await backend.set("u1", perm, ttl_seconds=60)
+    await backend.set("u1", ["/company"], ttl_seconds=60)
     conn.execute.assert_called_once()
 
 
