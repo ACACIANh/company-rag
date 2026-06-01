@@ -6,16 +6,15 @@ def test_create_and_decode_token():
     token = create_token(
         user_id="user-alice",
         roles=["user"],
-        teams=[],
-        allowed_doc_ids=["docs/company/policy.md"],
+        departments=["engineering", "all"],
         secret="test-secret",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="test-secret")
     assert payload["sub"] == "user-alice"
     assert payload["roles"] == ["user"]
-    assert payload["teams"] == []
-    assert payload["allowed_doc_ids"] == ["docs/company/policy.md"]
+    assert payload["departments"] == ["engineering", "all"]
+    assert "allowed_doc_ids" not in payload
 
 
 def test_decode_invalid_token_raises():
@@ -27,8 +26,7 @@ def test_decode_wrong_secret_raises():
     token = create_token(
         user_id="u1",
         roles=["user"],
-        teams=[],
-        allowed_doc_ids=[],
+        departments=[],
         secret="secret-a",
         expire_minutes=60,
     )
@@ -36,27 +34,25 @@ def test_decode_wrong_secret_raises():
         decode_token(token, secret="secret-b")
 
 
-def test_teams_encoded_and_decoded():
+def test_departments_encoded_and_decoded():
     token = create_token(
         user_id="u1",
         roles=["user"],
-        teams=["general"],
-        allowed_doc_ids=[],
+        departments=["engineering"],
         secret="s",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="s")
-    assert payload["teams"] == ["general"]
+    assert payload["departments"] == ["engineering"]
 
 
-def test_empty_teams_encoded():
+def test_empty_departments_encoded():
     token = create_token(
         user_id="u1",
         roles=["admin"],
-        teams=[],
-        allowed_doc_ids=[],
+        departments=[],
         secret="s",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="s")
-    assert payload["teams"] == []
+    assert payload["departments"] == []

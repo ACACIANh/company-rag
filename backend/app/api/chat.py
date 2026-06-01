@@ -153,7 +153,6 @@ async def chat(
         req.question,
         config=config,
         user_id=current_user["user_id"],
-        allowed_doc_ids=current_user["allowed_doc_ids"],
         chat_history_fallback=chat_history_fallback,
     )
 
@@ -195,7 +194,6 @@ async def chat_stream(
                 question=req.question,
                 config=config,
                 user_id=current_user["user_id"],
-                allowed_doc_ids=current_user["allowed_doc_ids"],
                 token_queue=token_queue,
                 session_store=store,
                 session_id=session_id,

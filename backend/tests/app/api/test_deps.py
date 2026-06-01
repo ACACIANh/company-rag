@@ -9,8 +9,7 @@ def _token(expire_minutes: int) -> str:
     return create_token(
         user_id="u1",
         roles=["member"],
-        teams=["t1"],
-        allowed_doc_ids=["d1"],
+        departments=["t1"],
         secret=deps._config.jwt_secret,
         expire_minutes=expire_minutes,
     )
@@ -19,7 +18,7 @@ def _token(expire_minutes: int) -> str:
 def test_get_current_user_accepts_valid_token():
     user = deps.get_current_user(token=_token(60))
     assert user["user_id"] == "u1"
-    assert user["teams"] == ["t1"]
+    assert user["departments"] == ["t1"]
 
 
 def test_get_current_user_rejects_malformed_token():
@@ -36,7 +35,7 @@ def test_get_current_user_rejects_expired_token():
 
 def test_get_current_user_rejects_wrong_secret_signature():
     bad = create_token(
-        user_id="u1", roles=["member"], teams=[], allowed_doc_ids=[],
+        user_id="u1", roles=["member"], departments=[],
         secret="some-other-secret-not-matching", expire_minutes=60,
     )
     with pytest.raises(HTTPException) as exc:
