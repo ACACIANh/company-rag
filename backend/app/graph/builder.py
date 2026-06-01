@@ -134,7 +134,6 @@ async def answer_question(
     question: str,
     config: dict | None = None,
     user_id: str = "anonymous",
-    allowed_doc_ids: list[str] | None = None,
     chat_history_fallback: list | None = None,
 ) -> Answer:
     config = _ensure_thread_id(config)
@@ -159,9 +158,7 @@ async def answer_question(
         "confirmed": False,
         "tool_input": "",
         "user_id": user_id,
-        "allowed_doc_ids": allowed_doc_ids or [],
-        "user_teams": [],
-        "personal_doc_ids": [],
+        "allowed_folders": [],
     }
     final = await graph.ainvoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])
@@ -172,7 +169,6 @@ async def stream_answer(
     question: str,
     config: dict,
     user_id: str,
-    allowed_doc_ids: list[str],
     token_queue: asyncio.Queue,
     session_store: Any,
     session_id: str,
@@ -203,9 +199,7 @@ async def stream_answer(
             "confirmed": False,
             "tool_input": "",
             "user_id": user_id,
-            "allowed_doc_ids": allowed_doc_ids or [],
-            "user_teams": [],
-            "personal_doc_ids": [],
+            "allowed_folders": [],
         }
 
         final = await graph.ainvoke(initial, config=config)

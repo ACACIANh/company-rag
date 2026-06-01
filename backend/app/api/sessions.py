@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core.auth.base import AuthUser
-from core.fga.client import FGAClient
 from core.session.base import SessionStore
-from app.api.deps import get_current_user, get_fga_client, get_session_store
+from app.api.deps import get_current_user, get_session_store
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -37,23 +36,16 @@ async def get_session_messages(
     session_id: str,
     user: AuthUser = Depends(get_current_user),
     store: SessionStore = Depends(get_session_store),
-    fga_client: FGAClient = Depends(get_fga_client),
 ):
     owned = {s.thread_id for s in await store.list_sessions(user["user_id"])}
     if session_id not in owned:
         raise HTTPException(status_code=404, detail="Session not found")
-    result = []
-    for m in await store.get_messages(session_id):
-        if m.role == "assistant" and m.sources:
-            visible = await fga_client.filter_sources(m.sources, user["user_id"])
-        else:
-            visible = m.sources
-        result.append(MessageOut(
-            role=m.role,
-            content=m.content,
-            sources=[s.source for s in visible],
-        ))
-    return result
+    # 권한 경계는 pre-filter(검색 시 allowed_folders)가 담당. 이력은 사용자 본인 것만
+    # 보이며(세션 소유권 검사), 당시 정당하게 본 source만 담겨 있으므로 그대로 반환.
+    return [
+        MessageOut(role=m.role, content=m.content, sources=[s.source for s in m.sources])
+        for m in await store.get_messages(session_id)
+    ]
 
 
 @router.delete("/{session_id}", status_code=204)

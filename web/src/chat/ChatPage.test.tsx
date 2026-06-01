@@ -28,8 +28,7 @@ describe("ChatPage 세션 복원", () => {
       user: {
         user_id: "user-alice",
         roles: ["user"],
-        teams: [],
-        allowed_doc_ids: [],
+        departments: [],
       },
       logout: vi.fn(),
     });
@@ -63,8 +62,7 @@ describe("ChatPage 헤더 배지", () => {
       user: {
         user_id: "user-alice",
         roles: ["user"],
-        teams: ["general"],
-        allowed_doc_ids: [],
+        departments: ["general"],
       },
       logout: vi.fn(),
     });
@@ -75,22 +73,21 @@ describe("ChatPage 헤더 배지", () => {
     expect(screen.getByText("user")).toBeInTheDocument();
   });
 
-  it("팀 배지를 렌더링한다", () => {
+  it("부서 배지를 렌더링한다", () => {
     render(<ChatPage />);
     expect(screen.getByText("general")).toBeInTheDocument();
   });
 
-  it("teams가 비어 있으면 team: 레이블을 렌더링하지 않는다", () => {
+  it("departments가 비어 있으면 부서: 레이블을 렌더링하지 않는다", () => {
     mockUseAuth.mockReturnValue({
       user: {
         user_id: "user-admin",
         roles: ["admin"],
-        teams: [],
-        allowed_doc_ids: [],
+        departments: [],
       },
       logout: vi.fn(),
     });
     render(<ChatPage />);
-    expect(screen.queryByText(/^team:$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^부서:$/)).not.toBeInTheDocument();
   });
 });

@@ -1,0 +1,11 @@
+# 폴더 ↔ viewer 부서 매핑. 튜플 생성의 단일 소스.
+# viewers 줄이 없는 폴더는 부모 권한을 그대로 상속한다 (순수 상속).
+folders:
+  /company:
+    viewers: [all]
+  /hr:
+    viewers: [hr]
+  /engineering:
+    viewers: [engineering]
+  /engineering/ops:
+    # viewer 미지정 — /engineering(engineering 부서) 권한 상속

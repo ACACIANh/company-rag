@@ -11,8 +11,7 @@ export interface TokenResponse {
 export interface AuthUser {
   user_id: string;
   roles: string[];
-  teams: string[];
-  allowed_doc_ids: string[];
+  departments: string[];
 }
 
 export interface ChatRequest {

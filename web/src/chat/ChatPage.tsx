@@ -221,15 +221,15 @@ export function ChatPage() {
                     {r}
                   </span>
                 ))}
-                {user.teams.length > 0 && (
+                {user.departments.length > 0 && (
                   <>
-                    <span className="text-[11px] text-ink-mute">team:</span>
-                    {user.teams.map((t) => (
+                    <span className="text-[11px] text-ink-mute">부서:</span>
+                    {user.departments.map((d) => (
                       <span
-                        key={t}
+                        key={d}
                         className="bg-primary-muted text-primary-deep text-[10px] font-[400] tracking-[0.1px] rounded-pill px-2 py-[3px] uppercase"
                       >
-                        {t}
+                        {d}
                       </span>
                     ))}
                   </>

@@ -1,10 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from core.fga.client import FGAClient
-from core.fga.models import FGAConfig, UserPermission
+from core.fga.client import FGAClient, prune_to_top_folders
+from core.fga.models import FGAConfig
 from core.fga.cache.memory import InMemoryCacheBackend
-from core.models import SourceRef
 
 
 def _client() -> FGAClient:
@@ -12,106 +11,60 @@ def _client() -> FGAClient:
     return FGAClient(config=config, cache=InMemoryCacheBackend())
 
 
-def test_build_pg_filter_public_only():
+def test_build_pg_filter_empty_returns_false():
     client = _client()
-    perm = UserPermission(user_id="u1", teams=[], personal_docs=[])
-    clause, params = client.build_pg_filter(perm)
-    assert "sensitivity = 'public'" in clause
+    clause, params = client.build_pg_filter([])
+    assert clause == "FALSE"
     assert params == []
 
 
-def test_build_pg_filter_with_teams():
+def test_build_pg_filter_single_folder_prefix():
     client = _client()
-    perm = UserPermission(user_id="u1", teams=["team:dev", "team:ops"], personal_docs=[])
-    clause, params = client.build_pg_filter(perm)
-    assert "sensitivity = 'public'" in clause
-    assert "team_id = ANY" in clause
-    assert "sensitivity = 'internal'" in clause
-    assert ["team:dev", "team:ops"] in params
+    clause, params = client.build_pg_filter(["/engineering"])
+    assert "path = $1" in clause
+    assert "path LIKE $2" in clause
+    assert params == ["/engineering", "/engineering/%"]
 
 
-def test_build_pg_filter_with_personal_docs():
+def test_build_pg_filter_multiple_folders():
     client = _client()
-    perm = UserPermission(user_id="u1", teams=[], personal_docs=["doc:salary"])
-    clause, params = client.build_pg_filter(perm)
-    assert "sensitivity = 'public'" in clause
-    assert "doc_id = ANY" in clause
-    assert ["doc:salary"] in params
+    clause, params = client.build_pg_filter(["/company", "/engineering"])
+    assert params == ["/company", "/company/%", "/engineering", "/engineering/%"]
+    assert "$3" in clause and "$4" in clause
+    assert " OR " in clause
 
 
-def test_build_pg_filter_full():
-    client = _client()
-    perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=["doc:review"])
-    clause, params = client.build_pg_filter(perm)
-    assert "sensitivity = 'public'" in clause
-    assert "team_id = ANY" in clause
-    assert "doc_id = ANY" in clause
-    assert ["team:dev"] in params
-    assert ["doc:review"] in params
+def test_prune_drops_descendants():
+    assert prune_to_top_folders(["/a", "/a/b", "/a/b/c", "/x"]) == ["/a", "/x"]
+
+
+def test_prune_no_false_prefix():
+    assert prune_to_top_folders(["/a", "/ab"]) == ["/a", "/ab"]
 
 
 @pytest.mark.asyncio
-async def test_get_permission_returns_cached():
+async def test_get_readable_folders_returns_cached():
     cache = InMemoryCacheBackend()
-    perm = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
-    await cache.set("u1", perm, ttl_seconds=60)
+    await cache.set("u1", ["/company", "/engineering"], ttl_seconds=60)
     client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
 
-    with patch.object(client, "_fetch_from_fga", new=AsyncMock()) as mock_fetch:
-        result = await client.get_permission("u1")
+    with patch.object(client, "list_readable_folders", new=AsyncMock()) as mock_list:
+        result = await client.get_readable_folders("u1")
 
-    mock_fetch.assert_not_called()
-    assert result.teams == ["team:dev"]
+    mock_list.assert_not_called()  # 캐시 히트 → ListObjects 안 때림
+    assert result == ["/company", "/engineering"]
 
 
 @pytest.mark.asyncio
-async def test_get_permission_calls_fga_on_cache_miss():
+async def test_get_readable_folders_fetches_prunes_and_caches_on_miss():
     cache = InMemoryCacheBackend()
     client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
-    expected = UserPermission(user_id="u2", teams=["team:hr"], personal_docs=["doc:eval"])
 
-    with patch.object(client, "_fetch_from_fga", new=AsyncMock(return_value=expected)):
-        result = await client.get_permission("u2")
+    with patch.object(
+        client, "list_readable_folders",
+        new=AsyncMock(return_value=["/company", "/engineering", "/engineering/ops"]),
+    ):
+        result = await client.get_readable_folders("u2")
 
-    assert result.teams == ["team:hr"]
-    cached = await cache.get("u2")
-    assert cached is not None
-    assert cached.teams == ["team:hr"]
-
-
-@pytest.mark.asyncio
-async def test_write_tuples_invalidates_cache():
-    cache = InMemoryCacheBackend()
-    perm = UserPermission(user_id="owner1", teams=["team:dev"], personal_docs=[])
-    await cache.set("owner1", perm, ttl_seconds=60)
-    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
-
-    with patch.object(client, "_write_fga_tuples", new=AsyncMock()):
-        await client.write_tuples("doc:x", "owner1", "team:dev", "internal")
-
-    assert await cache.get("owner1") is None
-
-
-def test_filter_sources_public_always_accessible():
-    client = _client()
-    perm = UserPermission(user_id="u1", teams=[], personal_docs=[])
-    src = SourceRef(source="pub.md", sensitivity="public")
-    assert client._is_accessible(src, perm) is True
-
-
-def test_filter_sources_internal_requires_team():
-    client = _client()
-    perm_member = UserPermission(user_id="u1", teams=["team:dev"], personal_docs=[])
-    perm_non_member = UserPermission(user_id="u2", teams=[], personal_docs=[])
-    src = SourceRef(source="int.md", sensitivity="internal", team_id="team:dev")
-    assert client._is_accessible(src, perm_member) is True
-    assert client._is_accessible(src, perm_non_member) is False
-
-
-def test_filter_sources_secret_requires_personal_doc():
-    client = _client()
-    perm_allowed = UserPermission(user_id="u1", teams=[], personal_docs=["doc:salary"])
-    perm_denied = UserPermission(user_id="u2", teams=[], personal_docs=[])
-    src = SourceRef(source="sec.md", sensitivity="secret", document_id="doc:salary")
-    assert client._is_accessible(src, perm_allowed) is True
-    assert client._is_accessible(src, perm_denied) is False
+    assert result == ["/company", "/engineering"]  # ops 추려짐
+    assert await cache.get("u2") == ["/company", "/engineering"]  # 캐시에 적재

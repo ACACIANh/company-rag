@@ -5,12 +5,6 @@ app.state를 mock으로 초기화해 lifespan/DB 없이 API 테스트가 동작�
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from core.models import SourceRef
-
-
-async def _passthrough_filter(sources, uid):
-    return [s if isinstance(s, SourceRef) else SourceRef(source=str(s)) for s in sources]
-
 
 @pytest.fixture(autouse=True)
 def setup_app_state():
@@ -18,8 +12,8 @@ def setup_app_state():
     from app.api.chat import app
 
     mock_fga = MagicMock()
-    mock_fga.filter_sources = AsyncMock(side_effect=_passthrough_filter)
-    mock_fga.build_pg_filter = MagicMock(return_value=("sensitivity = 'public'", []))
+    mock_fga.build_pg_filter = MagicMock(return_value=("path = $1 OR path LIKE $2", ["/company", "/company/%"]))
+    mock_fga.get_readable_folders = AsyncMock(return_value=["/company"])
 
     mock_session = AsyncMock()
     mock_session.list_sessions = AsyncMock(return_value=[])

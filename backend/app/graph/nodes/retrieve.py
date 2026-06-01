@@ -1,7 +1,6 @@
 import asyncio
 
 from core.fga.client import FGAClient
-from core.fga.models import UserPermission
 from core.models import SearchResult
 from core.reranker.base import Reranker
 from core.reranker.noop_reranker import NoOpReranker
@@ -34,12 +33,7 @@ async def retrieve_node(
     retrieve_top_k: int = 20,
     top_k: int = 5,
 ) -> dict:
-    perm = UserPermission(
-        user_id=state.get("user_id", "anonymous"),
-        teams=state.get("user_teams", []),
-        personal_docs=state.get("personal_doc_ids", []),
-    )
-    where_clause, params = fga_client.build_pg_filter(perm)
+    where_clause, params = fga_client.build_pg_filter(state.get("allowed_folders", []))
 
     multi_queries: list[str] = state.get("multi_queries") or []
 

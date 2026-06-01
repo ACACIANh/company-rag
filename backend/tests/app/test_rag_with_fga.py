@@ -1,148 +1,92 @@
+"""FGA folder 권한별 검색 통합 테스트 (path prefix pre-filter).
+
+permission_node(get_readable_folders→prune) → retrieve_node(build_pg_filter→path prefix)를
+mock retriever로 엮어 검증한다. 상속 폴더(/engineering/ops)가 부모 권한으로 잡히는지가 핵심.
 """
-FGA 권한별 PostgreSQL 검색 통합 테스트.
-AsyncMock retriever + InMemoryCacheBackend + FGA API mock 사용.
-"""
-import time
 from unittest.mock import AsyncMock
 
 from core.fga.cache.memory import InMemoryCacheBackend
 from core.fga.client import FGAClient
-from core.fga.models import FGAConfig, UserPermission
+from core.fga.models import FGAConfig
 from core.models import Chunk, SearchResult
+from app.graph.nodes.permission import permission_node
+from app.graph.nodes.retrieve import retrieve_node
 
 
-def _make_fga_client(teams=None, personal_docs=None) -> FGAClient:
-    config = FGAConfig(api_url="http://localhost", store_id="test")
-    cache = InMemoryCacheBackend()
-    perm = UserPermission(user_id="u1", teams=teams or [], personal_docs=personal_docs or [])
-    # InMemoryCacheBackend는 내부적으로 dict를 사용 — 직접 seeding
-    cache._store["u1"] = (perm, time.time() + 3600)
-    return FGAClient(config=config, cache=cache)
+def _fga_with_folders(folders: list[str]) -> FGAClient:
+    client = FGAClient(
+        config=FGAConfig(api_url="http://localhost", store_id="test"),
+        cache=InMemoryCacheBackend(),
+    )
+    # ListObjects 없이 동작하도록 raw 폴더 목록을 주입 (prune은 실제 로직 사용)
+    client.list_readable_folders = AsyncMock(return_value=folders)
+    return client
 
 
 def _mock_retriever(chunks: list[dict]):
-    """
-    pg filter 기반 retriever mock.
-    where_clause / params 로 sensitivity 필터링을 직접 시뮬레이션.
-    """
+    """build_pg_filter가 만든 (where_clause, params)의 path prefix를 시뮬레이션."""
     mock = AsyncMock()
 
     async def fake_retrieve(query, top_k=5, where_clause="", params=None):
         params = params or []
-        results = []
-        for c in chunks:
-            sensitivity = c["sensitivity"]
-            team_id = c.get("team_id", "")
-            doc_id = c.get("doc_id", f"doc:{c['source']}")
-
-            if sensitivity == "public":
-                pass
-            elif sensitivity == "internal":
-                allowed_teams = params[0] if len(params) >= 1 else []
-                if team_id not in allowed_teams:
-                    continue
-            elif sensitivity == "secret":
-                allowed_docs = params[-1] if params else []
-                if doc_id not in allowed_docs:
-                    continue
-            else:
-                continue
-
-            results.append(SearchResult(
+        allowed = [params[i] for i in range(0, len(params), 2)]  # [folder, folder/%, ...]
+        results = [
+            SearchResult(
                 chunk=Chunk(text=c["text"], source=c["source"], chunk_id=c["source"]),
                 score=0.9,
-            ))
+            )
+            for c in chunks
+            if any(c["path"] == f or c["path"].startswith(f + "/") for f in allowed)
+        ]
         return results[:top_k]
 
     mock.retrieve = fake_retrieve
     return mock
 
 
-async def test_public_doc_accessible_to_all():
-    fga = _make_fga_client(teams=[], personal_docs=[])
+async def _run(fga, retriever, question="질문"):
+    state = {"user_id": "u1", "question": question}
+    state.update(await permission_node(state, fga_client=fga))
+    return await retrieve_node(state, retriever=retriever, fga_client=fga)
+
+
+async def test_engineering_user_sees_inherited_ops():
+    fga = _fga_with_folders(["/company", "/engineering", "/engineering/ops"])
     retriever = _mock_retriever([
-        {"text": "공개 내용", "source": "public.md", "sensitivity": "public"},
+        {"text": "배포", "source": "engineering/ops/deploy.md", "path": "/engineering/ops"},
+        {"text": "공개", "source": "company/benefits.md", "path": "/company"},
+        {"text": "인사", "source": "hr/perf.md", "path": "/hr"},
     ])
-
-    from app.graph.nodes.permission import permission_node
-    from app.graph.nodes.retrieve import retrieve_node
-
-    state = {"user_id": "u1", "question": "공개 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = await permission_node(state, fga_client=fga)
-    state.update(perm_result)
-    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
-
-    assert len(result["documents"]) == 1
-    assert result["documents"][0].chunk.source == "public.md"
+    sources = [r.chunk.source for r in (await _run(fga, retriever, "배포 절차"))["documents"]]
+    assert "engineering/ops/deploy.md" in sources  # 상속 폴더가 /engineering prefix로 잡힘
+    assert "company/benefits.md" in sources
+    assert "hr/perf.md" not in sources
 
 
-async def test_internal_doc_blocked_without_team():
-    fga = _make_fga_client(teams=[], personal_docs=[])
+async def test_hr_user_sees_hr_not_engineering():
+    fga = _fga_with_folders(["/company", "/hr"])
     retriever = _mock_retriever([
-        {"text": "내부 내용", "source": "internal.md", "sensitivity": "internal", "team_id": "team:dev"},
+        {"text": "인사", "source": "hr/perf.md", "path": "/hr"},
+        {"text": "배포", "source": "engineering/ops/deploy.md", "path": "/engineering/ops"},
     ])
-
-    from app.graph.nodes.permission import permission_node
-    from app.graph.nodes.retrieve import retrieve_node
-
-    state = {"user_id": "u1", "question": "내부 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = await permission_node(state, fga_client=fga)
-    state.update(perm_result)
-    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
-
-    assert len(result["documents"]) == 0
+    sources = [r.chunk.source for r in (await _run(fga, retriever))["documents"]]
+    assert "hr/perf.md" in sources
+    assert "engineering/ops/deploy.md" not in sources
 
 
-async def test_internal_doc_accessible_with_correct_team():
-    fga = _make_fga_client(teams=["team:dev"], personal_docs=[])
+async def test_company_only_user_no_engineering():
+    fga = _fga_with_folders(["/company"])
     retriever = _mock_retriever([
-        {"text": "팀 내부", "source": "internal.md", "sensitivity": "internal", "team_id": "team:dev"},
-        {"text": "공개", "source": "public.md", "sensitivity": "public"},
+        {"text": "공개", "source": "company/benefits.md", "path": "/company"},
+        {"text": "배포", "source": "engineering/ops/deploy.md", "path": "/engineering/ops"},
     ])
-
-    from app.graph.nodes.permission import permission_node
-    from app.graph.nodes.retrieve import retrieve_node
-
-    state = {"user_id": "u1", "question": "팀 문서", "user_teams": [], "personal_doc_ids": []}
-    perm_result = await permission_node(state, fga_client=fga)
-    state.update(perm_result)
-    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
-
-    sources = [r.chunk.source for r in result["documents"]]
-    assert "internal.md" in sources
-    assert "public.md" in sources
+    sources = [r.chunk.source for r in (await _run(fga, retriever))["documents"]]
+    assert sources == ["company/benefits.md"]
 
 
-async def test_secret_doc_accessible_only_with_personal_doc_id():
-    fga = _make_fga_client(teams=[], personal_docs=["doc:salary.md"])
+async def test_no_folders_returns_nothing():
+    fga = _fga_with_folders([])
     retriever = _mock_retriever([
-        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret", "doc_id": "doc:salary.md"},
+        {"text": "공개", "source": "company/benefits.md", "path": "/company"},
     ])
-
-    from app.graph.nodes.permission import permission_node
-    from app.graph.nodes.retrieve import retrieve_node
-
-    state = {"user_id": "u1", "question": "급여", "user_teams": [], "personal_doc_ids": []}
-    perm_result = await permission_node(state, fga_client=fga)
-    state.update(perm_result)
-    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
-
-    assert len(result["documents"]) == 1
-    assert result["documents"][0].chunk.source == "salary.md"
-
-
-async def test_secret_doc_blocked_without_personal_doc_id():
-    fga = _make_fga_client(teams=[], personal_docs=[])
-    retriever = _mock_retriever([
-        {"text": "급여 내역", "source": "salary.md", "sensitivity": "secret", "doc_id": "doc:salary.md"},
-    ])
-
-    from app.graph.nodes.permission import permission_node
-    from app.graph.nodes.retrieve import retrieve_node
-
-    state = {"user_id": "u1", "question": "급여", "user_teams": [], "personal_doc_ids": []}
-    perm_result = await permission_node(state, fga_client=fga)
-    state.update(perm_result)
-    result = await retrieve_node(state, retriever=retriever, fga_client=fga)
-
-    assert len(result["documents"]) == 0
+    assert (await _run(fga, retriever))["documents"] == []

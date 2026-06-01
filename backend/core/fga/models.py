@@ -1,11 +1,4 @@
-from dataclasses import dataclass, field
-
-
-@dataclass
-class UserPermission:
-    user_id: str
-    teams: list[str] = field(default_factory=list)
-    personal_docs: list[str] = field(default_factory=list)
+from dataclasses import dataclass
 
 
 @dataclass

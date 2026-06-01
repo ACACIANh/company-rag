@@ -50,21 +50,10 @@ def test_chunk_with_metadata():
     assert c.metadata == {"k": "v"}
 
 
-def test_source_ref_defaults():
+def test_source_ref_holds_source_path():
     from core.models import SourceRef
-    ref = SourceRef(source="doc.md")
-    assert ref.source == "doc.md"
-    assert ref.document_id == ""
-    assert ref.sensitivity == "public"
-    assert ref.team_id == ""
-
-
-def test_source_ref_with_all_fields():
-    from core.models import SourceRef
-    ref = SourceRef(source="salary.md", document_id="doc:123", sensitivity="secret", team_id="team:dev")
-    assert ref.document_id == "doc:123"
-    assert ref.sensitivity == "secret"
-    assert ref.team_id == "team:dev"
+    ref = SourceRef(source="engineering/ops/deploy.md")
+    assert ref.source == "engineering/ops/deploy.md"
 
 
 def test_answer_sources_are_source_refs():

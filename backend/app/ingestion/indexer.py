@@ -2,9 +2,6 @@ import asyncpg
 from pgvector.asyncpg import register_vector
 
 from core.config import load_config
-from core.fga.cache import make_cache_backend
-from core.fga.client import FGAClient
-from core.fga.models import FGAConfig
 from core.indexer.indexer import Indexer
 from core.loader import MarkdownLoader
 from core.vector_store.factory import create_vector_store
@@ -24,26 +21,11 @@ async def build_index(docs_path: str) -> None:
     pool = await asyncpg.create_pool(config.postgres_dsn, init=_init_conn)
     store = create_vector_store(config, pool)
 
-    fga_client = None
-    if config.fga_store_id:
-        fga_config = FGAConfig(
-            api_url=config.fga_api_url,
-            store_id=config.fga_store_id,
-            api_key=config.fga_api_key,
-            cache_ttl_seconds=config.fga_cache_ttl_seconds,
-        )
-        fga_client = FGAClient(
-            config=fga_config,
-            cache=make_cache_backend(config.fga_cache_backend, pool),
-            pg_pool=pool,
-        )
-
     await Indexer(
         loader=loader,
         chunker=chunker,
         embedder=embedder,
         store=store,
-        fga_client=fga_client,
     ).index(docs_path)
 
     await pool.close()

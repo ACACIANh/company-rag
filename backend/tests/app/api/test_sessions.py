@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -105,8 +105,8 @@ async def test_delete_session_404_for_other_user():
     assert res.status_code == 404
 
 
-async def test_get_messages_filters_inaccessible_sources():
-    """권한이 취소된 문서 source는 세션 이력 로드 시 제거된다."""
+async def test_get_messages_returns_stored_sources_as_is():
+    """post-filter 제거 — 이력의 source는 그대로 반환된다 (권한 경계는 pre-filter 담당)."""
     from app.api.chat import app
     store = InMemorySessionStore()
     await store.create_session("sess1", "user-alice", "질문")
@@ -115,25 +115,9 @@ async def test_get_messages_filters_inaccessible_sources():
         "sess1",
         "assistant",
         "답변입니다",
-        [
-            SourceRef(source="pub.md", sensitivity="public"),
-            SourceRef(source="secret.md", sensitivity="internal", team_id="team:restricted"),
-        ],
+        [SourceRef(source="pub.md"), SourceRef(source="engineering/ops/deploy.md")],
     )
     app.state.session_store = store
-
-    alice_teams = ["team:general"]
-
-    async def _filtered_filter(sources, uid):
-        return [
-            s for s in sources
-            if s.sensitivity == "public"
-            or (s.sensitivity == "internal" and s.team_id in alice_teams)
-        ]
-
-    mock_fga = MagicMock()
-    mock_fga.filter_sources = AsyncMock(side_effect=_filtered_filter)
-    app.state.fga_client = mock_fga
 
     client = TestClient(app)
     token = _token(client)
@@ -144,4 +128,4 @@ async def test_get_messages_filters_inaccessible_sources():
 
     assert len(msgs) == 2
     assert msgs[1]["role"] == "assistant"
-    assert msgs[1]["sources"] == ["pub.md"]
+    assert msgs[1]["sources"] == ["pub.md", "engineering/ops/deploy.md"]
