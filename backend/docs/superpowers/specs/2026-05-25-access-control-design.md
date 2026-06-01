@@ -402,4 +402,4 @@ type document
 - [ ] 통합 테스트: 팀/개인/public 문서 권한별 검색 검증
 - [ ] `tests/eval/runner.py` 회귀 점수 이전 Phase 이상 유지
 - [ ] CLAUDE.md ADR 섹션에 캐시 전략 변경 (Redis → PostgreSQL) 반영
-- [ ] ADR 파일 생성: `docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md`
+- [ ] ADR 파일 생성: `docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md`

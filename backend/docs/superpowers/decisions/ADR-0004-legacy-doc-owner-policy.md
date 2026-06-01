@@ -1,4 +1,4 @@
-# Decision: 구문서 소유자 미지정 시 일괄 처리 방침
+# ADR-0004: 구문서 소유자 미지정 시 일괄 처리 방침
 
 > **⚠️ SUPERSEDED (2026-06-01)**: 권한 모델이 폴더 트리 기반으로 전환되어 owner/team/sensitivity 개념이 제거됨. 본 정책은 더 이상 유효하지 않다. → [2026-06-01-folder-tree-access-model.md](2026-06-01-folder-tree-access-model.md)
 

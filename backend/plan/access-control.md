@@ -167,7 +167,7 @@ def migrate_batch(docs, batch_size=50):
 
 | 항목 | 결정 | ADR |
 |---|---|---|
-| OpenFGA 호스팅 | Auth0 FGA (포트폴리오/개발) → 실운영 시 로컬 Docker 전환 | [2026-05-23-openfga-hosting.md](../docs/superpowers/decisions/2026-05-23-openfga-hosting.md) |
-| `listObjects` 캐싱 | PostgreSQL TTL 캐시 (기존 POSTGRES_DSN 재사용, Redis 미도입) | [2026-05-25-fga-cache-postgresql.md](../docs/superpowers/decisions/2026-05-25-fga-cache-postgresql.md) |
-| LLM | 현재 구현 유지 (Claude, langchain-anthropic) — 추상화로 교체 가능 | [2026-05-23-llm-selection.md](../docs/superpowers/decisions/2026-05-23-llm-selection.md) |
-| 구문서 소유자 미지정 | 팀장 → CEO → super admin 순 fallback owner 지정 | [2026-05-23-legacy-doc-owner-policy.md](../docs/superpowers/decisions/2026-05-23-legacy-doc-owner-policy.md) |
+| OpenFGA 호스팅 | Auth0 FGA (포트폴리오/개발) → 실운영 시 로컬 Docker 전환 | [ADR-0006-openfga-hosting.md](../docs/superpowers/decisions/ADR-0006-openfga-hosting.md) |
+| `listObjects` 캐싱 | PostgreSQL TTL 캐시 (기존 POSTGRES_DSN 재사용, Redis 미도입) | [ADR-0009-fga-cache-postgresql.md](../docs/superpowers/decisions/ADR-0009-fga-cache-postgresql.md) |
+| LLM | 현재 구현 유지 (Claude, langchain-anthropic) — 추상화로 교체 가능 | [ADR-0005-llm-selection.md](../docs/superpowers/decisions/ADR-0005-llm-selection.md) |
+| 구문서 소유자 미지정 | 팀장 → CEO → super admin 순 fallback owner 지정 | [ADR-0004-legacy-doc-owner-policy.md](../docs/superpowers/decisions/ADR-0004-legacy-doc-owner-policy.md) |

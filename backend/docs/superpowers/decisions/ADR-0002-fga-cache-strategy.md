@@ -1,4 +1,4 @@
-# Decision: listObjects 캐싱 전략
+# ADR-0002: listObjects 캐싱 전략
 
 **Date**: 2026-05-23
 **Context**: OpenFGA `listObjects` 호출 성능 한계 발생 시 캐싱 레이어 도입 방식 결정

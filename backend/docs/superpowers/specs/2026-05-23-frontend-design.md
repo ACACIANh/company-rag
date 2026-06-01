@@ -2,7 +2,7 @@
 
 **Date**: 2026-05-23
 **Status**: Approved by user (brainstorming session)
-**Related ADR**: [2026-05-23-frontend-architecture.md](../decisions/2026-05-23-frontend-architecture.md)
+**Related ADR**: [ADR-0003-frontend-architecture.md](../decisions/ADR-0003-frontend-architecture.md)
 
 ## 1. 목표와 범위
 

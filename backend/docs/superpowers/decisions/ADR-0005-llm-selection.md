@@ -1,4 +1,4 @@
-# Decision: RAG LLM 선택
+# ADR-0005: RAG LLM 선택
 
 **Date**: 2026-05-23
 **Context**: 접근 권한 제어 파이프라인에서 사용할 LLM 결정
