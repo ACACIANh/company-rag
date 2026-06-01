@@ -15,7 +15,9 @@ class MarkdownLoader(DocumentLoader):
                     continue
                 full = os.path.join(dirpath, filename)
                 rel = os.path.relpath(full, path)
+                folder = os.path.dirname(rel)
+                doc_path = "/" + folder.replace(os.sep, "/") if folder else "/"
                 with open(full, encoding="utf-8") as f:
                     text = f.read()
-                docs.append(Document(text=text, source=rel))
+                docs.append(Document(text=text, source=rel, metadata={"path": doc_path}))
         return docs
