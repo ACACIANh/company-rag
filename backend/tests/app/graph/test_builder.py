@@ -398,3 +398,34 @@ async def test_stream_answer_saves_session():
 
     mock_store.create_session.assert_called_once_with("sess-2", "alice", "안녕")
     assert mock_store.add_message.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_empty_answer_skips_tokens_but_sends_done():
+    """빈 answer일 때 token 없이 sources/done은 정상 방출."""
+    from app.graph.builder import stream_answer
+
+    mock_final = {"answer": "", "citations": []}
+    mock_graph = MagicMock()
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
+    mock_graph.ainvoke = AsyncMock(return_value=mock_final)
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=mock_graph,
+        question="q",
+        config={"configurable": {"thread_id": "t1"}},
+        user_id="alice",
+        token_queue=queue,
+        session_store=AsyncMock(),
+        session_id="s1",
+        is_new_session=False,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    types = [e["type"] for e in events]
+    assert "token" not in types
+    assert types[-1] == "done"
