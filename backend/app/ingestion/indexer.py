@@ -1,3 +1,5 @@
+import os
+
 import asyncpg
 from pgvector.asyncpg import register_vector
 
@@ -11,7 +13,9 @@ from app.ingestion.embedder import get_embedder
 
 async def build_index(docs_path: str) -> None:
     config = load_config()
-    loader = MarkdownLoader()
+    # 코퍼스 루트 디렉토리명이 곧 최상위 폴더 path (docs/company → /company).
+    base_path = "/" + os.path.basename(docs_path.rstrip("/"))
+    loader = MarkdownLoader(base_path=base_path)
     chunker = get_chunker()
     embedder = get_embedder(config.embedding_model)
 

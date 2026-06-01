@@ -2,19 +2,6 @@ from core.fga.base import PermissionCacheBackend
 from core.fga.models import FGAConfig
 
 
-def prune_to_top_folders(paths: list[str]) -> list[str]:
-    """상속으로 펼쳐진 폴더 목록에서 상위 노드만 남긴다.
-
-    부모가 목록에 있으면 그 자식 경로는 path prefix로 이미 커버되므로 버린다.
-    예: ["/a", "/a/b", "/a/b/c", "/x"] → ["/a", "/x"]
-    """
-    tops: list[str] = []
-    for p in sorted(set(paths)):
-        if not any(p.startswith(top + "/") for top in tops):
-            tops.append(p)
-    return tops
-
-
 class FGAClient:
     def __init__(
         self,
@@ -28,34 +15,30 @@ class FGAClient:
 
     # ── 순수 함수 ────────────────────────────────────────────
     def build_pg_filter(self, allowed_folders: list[str]) -> tuple[str, list]:
-        """allowed_folders(추려진 상위 폴더) → path prefix WHERE절. 파라미터는 $1부터 순서대로.
+        """allowed_folders(ListObjects가 상속까지 푼 가시 폴더 목록) → path 정확 매칭 WHERE절.
 
         빈 목록이면 접근 가능 폴더가 없으므로 아무 행도 통과하지 않는 절(FALSE)을 반환한다
         (빈 IN으로 전체가 통과되는 사고 방지).
-        path 전용 컬럼(idx_documents_path, text_pattern_ops)을 prefix 매칭한다.
+
+        path-prefix(LIKE) 확장은 하지 않는다: 새 권한 모델은 private_flag로 하위 폴더를
+        선택적으로 차단할 수 있어 상위 가시성이 하위 가시성을 함의하지 않는다. 각 청크 path가
+        가시 폴더 목록에 정확히 포함될 때만 통과시킨다. (path 컬럼 인덱스로 ANY 매칭)
         """
         if not allowed_folders:
             return "FALSE", []
-
-        clauses: list[str] = []
-        params: list = []
-        for folder in allowed_folders:
-            eq_idx = len(params) + 1
-            like_idx = eq_idx + 1
-            # path = folder  OR  path LIKE folder/%  ('/' 경계로 /engineering 가 /engineeringX 를 안 잡게)
-            clauses.append(f"(path = ${eq_idx} OR path LIKE ${like_idx})")
-            params.append(folder)
-            params.append(folder + "/%")
-
-        return " OR ".join(clauses), params
+        return "path = ANY($1)", [allowed_folders]
 
     # ── 캐시 + FGA 연동 (async) ───────────────────────────────
     async def get_readable_folders(self, user_id: str) -> list[str]:
-        """추려진 allowed_folders. 캐시 우선, miss 시 ListObjects→상위노드 추림→캐시."""
+        """가시 폴더 목록(ListObjects가 상속까지 푼 그대로). 캐시 우선, miss 시 조회→캐시.
+
+        prune하지 않는다: 정확 매칭 pre-filter(build_pg_filter)가 각 폴더를 개별로 쓰므로,
+        상위로 합치면 private 하위가 prefix로 새어버린다.
+        """
         cached = await self._cache.get(user_id)
         if cached is not None:
             return cached
-        folders = prune_to_top_folders(await self.list_readable_folders(user_id))
+        folders = await self.list_readable_folders(user_id)
         await self._cache.set(user_id, folders, self._config.cache_ttl_seconds)
         return folders
 

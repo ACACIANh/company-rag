@@ -1,5 +1,7 @@
 # ADR-0010: Karpathy Guidelines 적용 감사 보고서
 
+> **Status**: 🟢 적용완료 — 감사 결과가 CLAUDE.md 코딩 원칙에 반영됨
+
 **Date**: 2026-05-26  
 **Source**: https://github.com/multica-ai/andrej-karpathy-skills  
 **대상**: `/Users/acacian/vscode/company-rag` (company-rag 프로젝트 CLAUDE.md)

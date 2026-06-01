@@ -1,16 +1,15 @@
 users:
-  # admin: /admin 엔드포인트(재색인 등) 운영용. RAG 검색에서 전 폴더를 보려면
-  # 모든 부서에 소속시킨다 (제안 — 운영 정책에 따라 조정 가능).
+  # admin: /admin 엔드포인트(재색인 등) 운영용. roles 는 앱 인증(admin API)용.
+  # FGA 권한은 c_level 역할 → super_reader 로 전사 열람(private 포함).
   - username: admin
     password: admin123
     user_id: user-admin
     roles:
       - admin
       - user
-    departments:
-      - all
-      - engineering
-      - hr
+    fga_roles:
+      - c_level
+  # alice: 엔지니어링 부서. 공개 문서 + /company/engineering/ops(private, eng 전용) 열람.
   - username: alice
     password: alice123
     user_id: user-alice
@@ -18,7 +17,7 @@ users:
       - user
     departments:
       - engineering
-      - all
+  # bob: 인사 부서. 공개 문서 + /company/hr(private, hr 전용) 열람.
   - username: bob
     password: bob123
     user_id: user-bob
@@ -26,12 +25,10 @@ users:
       - user
     departments:
       - hr
-      - all
-  # carol: 기존 restricted 유저를 재정의. 전사 폴더(/company)만 접근.
+  # carol: 무소속. 전체공개(public) 문서만 열람, private 폴더는 차단.
   - username: carol
     password: carol123
     user_id: user-carol
     roles:
       - user
-    departments:
-      - all
+    departments: []

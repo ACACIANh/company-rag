@@ -39,6 +39,8 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 ## 결정 기록 규칙
 `AskUserQuestion`으로 설계·방향·도구 선택 발생 시 즉시 ADR 생성.
 경로: `docs/superpowers/decisions/ADR-NNNN-<topic>.md` (NNNN = 날짜순 일련번호, 기존 최대값+1) / 템플릿: `docs/superpowers/decisions/_template.md`
+- **Status 배지**: 모든 ADR은 제목 바로 아래 `> **Status**: <배지>` 한 줄을 둔다. 어휘(6단계): 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기. 대체됨은 `→ [ADR-NNNN](...)` 링크 포함.
+- **인덱스 자동 갱신**: ADR을 추가하거나 상태를 바꾼 뒤 `python -m scripts.gen_adr_index` 실행 → `decisions/README.md` 재생성. README는 자동 생성물이니 직접 편집하지 않는다.
 
 ## DoD (Definition of Done)
 1. 단위 테스트 추가

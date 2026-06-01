@@ -1,5 +1,7 @@
 # ADR-0002: listObjects 캐싱 전략
 
+> **Status**: 🟢 적용완료 — 저장소 구체화는 [ADR-0009](ADR-0009-fga-cache-postgresql.md)로 갱신
+
 **Date**: 2026-05-23
 **Context**: OpenFGA `listObjects` 호출 성능 한계 발생 시 캐싱 레이어 도입 방식 결정
 

@@ -3,6 +3,10 @@ model
 
 type user
 
+type role
+  relations
+    define member: [user]          # c_level 같은 전사 역할
+
 type department
   relations
     define member: [user]
@@ -10,5 +14,19 @@ type department
 type folder
   relations
     define parent: [folder]
-    define viewer: [department#member]
-    define can_read: viewer or can_read from parent
+
+    # 부서 명시 권한 (private 폴더에 복수 부여 가능)
+    define dept_viewer: [department#member]
+    define dept_access: dept_viewer or dept_access from parent
+
+    # 전 직원 공개 (루트 user:* → 상속)
+    define public_viewer: [user:*]
+    define public_access: public_viewer or public_access from parent
+
+    # private 표식 (이 서브트리는 공개 차단)
+    define private_flag: [user:*] or private_flag from parent
+
+    # 전사 상위 열람권 (private도 뚫음, 루트에 부여하면 서브트리 상속)
+    define super_reader: [role#member] or super_reader from parent
+
+    define can_read: super_reader or dept_access or (public_access but not private_flag)

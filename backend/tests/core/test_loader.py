@@ -33,3 +33,25 @@ def test_loader_empty_dir(tmp_path):
 def test_loader_missing_dir_raises(tmp_path):
     with pytest.raises(FileNotFoundError):
         MarkdownLoader().load(str(tmp_path / "nope"))
+
+
+def test_loader_default_path_has_no_prefix(tmp_path):
+    sub = tmp_path / "engineering"
+    sub.mkdir()
+    (sub / "spec.md").write_text("x", encoding="utf-8")
+    docs = MarkdownLoader().load(str(tmp_path))
+    assert docs[0].metadata["path"] == "/engineering"
+
+
+def test_loader_base_path_prefixes_subfolder(tmp_path):
+    sub = tmp_path / "engineering"
+    sub.mkdir()
+    (sub / "spec.md").write_text("x", encoding="utf-8")
+    docs = MarkdownLoader(base_path="/company").load(str(tmp_path))
+    assert docs[0].metadata["path"] == "/company/engineering"
+
+
+def test_loader_base_path_root_file_is_base(tmp_path):
+    (tmp_path / "top.md").write_text("x", encoding="utf-8")
+    docs = MarkdownLoader(base_path="/company").load(str(tmp_path))
+    assert docs[0].metadata["path"] == "/company"

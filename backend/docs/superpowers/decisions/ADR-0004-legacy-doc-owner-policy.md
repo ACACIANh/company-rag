@@ -1,6 +1,6 @@
 # ADR-0004: 구문서 소유자 미지정 시 일괄 처리 방침
 
-> **⚠️ SUPERSEDED (2026-06-01)**: 권한 모델이 폴더 트리 기반으로 전환되어 owner/team/sensitivity 개념이 제거됨. 본 정책은 더 이상 유효하지 않다. → [2026-06-01-folder-tree-access-model.md](2026-06-01-folder-tree-access-model.md)
+> **Status**: 🟣 대체됨 → [ADR-0011](ADR-0011-folder-tree-access-model.md) — 권한 모델이 폴더 트리 기반으로 전환되어 owner/team/sensitivity 개념이 제거됨. 본 정책은 더 이상 유효하지 않다.
 
 **Date**: 2026-05-23
 **Context**: 마이그레이션 대상 구문서 중 소유자 정보가 없는 경우 OpenFGA owner 튜플을 누구에게 부여할지 결정

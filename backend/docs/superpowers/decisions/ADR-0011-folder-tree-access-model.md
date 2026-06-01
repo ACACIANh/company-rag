@@ -1,5 +1,7 @@
 # ADR-0011: 접근 권한 모델 — 문서/팀/민감도 → 폴더 트리 pre-filter 전환
 
+> **Status**: 🟣 대체됨 → [ADR-0015](ADR-0015-fga-public-private-super-reader.md) — 단일 `viewer` 축 모델을 public/private/dept/super_reader 4축 모델로 확장. pre-filter는 path 정확 매칭으로 전환.
+
 **Date**: 2026-06-01
 **Context**: 기존 권한 모델(document/team + sensitivity 등급 + 개인 grant 기반 2-tier pre-filter)을 폴더 트리 상속 기반으로 전면 교체. 목표 설계는 `DESIGN.md` 참조.
 
