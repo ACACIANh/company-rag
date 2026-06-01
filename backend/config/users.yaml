@@ -1,23 +1,37 @@
 users:
+  # admin: /admin 엔드포인트(재색인 등) 운영용. RAG 검색에서 전 폴더를 보려면
+  # 모든 부서에 소속시킨다 (제안 — 운영 정책에 따라 조정 가능).
   - username: admin
     password: admin123
     user_id: user-admin
     roles:
       - admin
       - user
-    allowed_doc_ids: []
+    departments:
+      - all
+      - engineering
+      - hr
   - username: alice
     password: alice123
     user_id: user-alice
     roles:
       - user
-    allowed_doc_ids: []
-    teams:
-      - general
-  - username: restricted
-    password: restricted123
-    user_id: user-restricted
+    departments:
+      - engineering
+      - all
+  - username: bob
+    password: bob123
+    user_id: user-bob
     roles:
       - user
-    allowed_doc_ids:
-      - docs/company/hr_policy.md
+    departments:
+      - hr
+      - all
+  # carol: 기존 restricted 유저를 재정의. 전사 폴더(/company)만 접근.
+  - username: carol
+    password: carol123
+    user_id: user-carol
+    roles:
+      - user
+    departments:
+      - all
