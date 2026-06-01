@@ -6,6 +6,9 @@
 
 ## High
 
+- `#bug` **환각 검사 오탐 → 무력한 재생성 루프** — 문서 기반의 멀쩡한 답변을 `check_hallucination_node`가 반복적으로 `hallucination_passed=False`로 판정. **LangSmith 트레이스로 확인**(project `company-rag`): "배포는 어떤 절차로 진행해?"에서 `generate`가 retry_count 상한(3)까지 4회 실행, 매번 환각 검사 실패, 각 `generate` output은 정상적인 배포 절차 답변. **원인**: 여러 문서(deployment-guide·incident-response·engineering-standards 등)를 종합·의역한 답변은 어느 문서에도 글자 그대로 없어, "문서에 없는 내용이면 NO"라는 엄격한 이진 검사가 false positive를 냄. 게다가 재생성 시 *"더 보수적으로"* 같은 피드백이 프롬프트에 없어 비슷한 답변이 반복 생성 → 루프가 교정 기능을 못 함. (부차: `passed = "YES" in response`라 LLM이 장문/한국어로 답하면 파싱 실패로 NO 처리될 여지 — 단 LLM raw 응답은 아래 `#dx` 갭으로 트레이스 미계측이라 미확정.) **수정 후보**: (a) 종합·요약을 허용하도록 환각 프롬프트 완화 또는 청크 단위 근거 매칭, (b) 재생성 시 직전 실패 사유를 프롬프트에 피드백, (c) 환각 임계/판정을 점수화. 관련: `app/graph/nodes/check_hallucination.py`, `app/graph/prompts.py`(`CHECK_HALLUCINATION`), `edges.py`(`route_after_hallucination`).
+- `#bug` **스트리밍 답변 중복 출력 (재생성 ↔ 토큰 큐)** — 위 재생성 루프와 결합된 UX 버그. 프론트(`/chat/stream`)에서 동일 답변이 재시도 횟수만큼(~3-4회) 반복 표시됨. 비스트리밍 `POST /chat`은 마지막 `answer`만 반환해 정상이라 curl에서는 안 잡힘. **원인**: `generate_node`가 매 재생성마다 같은 `token_queue`에 토큰을 다시 흘리는데 이전 답변을 무효화하는 신호가 없어 프론트가 누적. **수정 후보**: (a) 재생성 직전 큐에 `reset`/`regenerate` 이벤트 방출 → 프론트 버퍼 클리어, (b) 중간 재생성은 큐에 흘리지 않고 최종본만 스트림. 관련: `app/graph/nodes/generate.py`, `app/graph/builder.py`, `web/src/api/client.ts`(`streamChat`). (근본 원인은 위 환각 오탐 — 그쪽이 해결되면 빈도 급감)
+- `#dx` **LLM 호출 LangSmith 미계측** — `LANGCHAIN_TRACING_V2=true`로 LangGraph 노드 state는 트레이스에 잡히나, `core/llm`이 OpenAI SDK를 직접 호출(`chat.completions.create`)하고 `ChatOpenAI`/`wrap_openai`를 안 써서 **LLM run(프롬프트·raw 응답·토큰/비용)이 트레이스에 없음**. 환각 검사 LLM이 실제로 뭐라 답했는지 등 디버깅 정보가 가려짐. **수정 후보**: `langsmith.wrappers.wrap_openai`로 SDK 클라이언트 래핑 또는 노드에 `@traceable`. 관련: `core/llm/openai_client.py`, `core/llm/anthropic_client.py`.
 - `#perf` Hybrid Search (C-9) — 현재 Vector Only, BM25 결합으로 recall 향상 / 별도 BM25 인덱스 검토
 
 ### 🔍 Query Rewriting (멀티턴 검색 품질 개선) — ref: SKT Enterprise 블로그
