@@ -238,5 +238,5 @@ erDiagram
 ## 부록 — 참조
 
 - 백엔드 내부 상세 구성도: [backend-internals.md](./backend-internals.md)
-- 권한 RAG 설계: `backend/DESIGN.md`
+- 권한 RAG 설계: ADR-0011(→ADR-0015) `docs/superpowers/decisions/ADR-0015-fga-public-private-super-reader.md`
 - 결정 기록: `backend/docs/superpowers/decisions/` (ADR-0009 FGA 캐시, ADR-0013 다중 포맷 인제스천 등)
