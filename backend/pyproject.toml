@@ -28,7 +28,6 @@ dependencies = [
     "tavily-python>=0.5,<1",
     "duckduckgo-search>=6.0",
     "sentence-transformers>=2.0,<6",
-    "pypdf>=4.0,<6",
 ]
 
 [project.optional-dependencies]

@@ -17,9 +17,13 @@
 | [0010](ADR-0010-karpathy-guidelines-audit.md) | Karpathy Guidelines 적용 감사 보고서 | 🟢 적용완료 |
 | [0011](ADR-0011-folder-tree-access-model.md) | 접근 권한 모델 — 문서/팀/민감도 → 폴더 트리 pre-filter 전환 | 🟣 대체됨 |
 | [0012](ADR-0012-document-index-sync.md) | 문서 인덱스 동기화 — 버전 스냅샷 + 최신 프로젝션 | 🟢 적용완료 |
-| [0013](ADR-0013-multi-format-ingestion.md) | 다중 포맷 문서 인제스천 — 파서 격리 + 통일 중간표현(Markdown) | 🟢 적용완료 |
+| [0013](ADR-0013-multi-format-ingestion.md) | 다중 포맷 문서 인제스천 — 파서 격리 + 통일 중간표현(Markdown) | 🟣 대체됨 |
 | [0014](ADR-0014-manual-test-seed-rebuild.md) | 수동 테스트용 시드 데이터 전면 재구성 | 🟢 적용완료 |
 | [0015](ADR-0015-fga-public-private-super-reader.md) | FGA 권한 모델 확장 — public/private/dept/super_reader 4축 모델 | 🟢 적용완료 |
+| [0016](ADR-0016-identity-risk-sql-gate.md) | 신원 × 위험도 교차 게이트로 자율 SQL 도구를 통제한다 | ⚪ 제안됨 |
+| [0017](ADR-0017-sql-risk-classification.md) | SQL 위험도 분류 — AST 확정 + LLM 보강 | ⚪ 제안됨 |
+| [0018](ADR-0018-decision-audit-log.md) | 게이트 결정·SQL 실행 감사 로그 인프라 | ⚪ 제안됨 |
+| [0019](ADR-0019-scope-down-ingestion.md) | 기획 축소 — 다중 포맷·원본 보관·다운로드 철회, Markdown 단일 인제스천 복귀 | 🟢 적용완료 |
 
 ## 상태 범례
 

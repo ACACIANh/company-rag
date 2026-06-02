@@ -1,0 +1,246 @@
+# 시스템 구성도 — 백엔드 내부 상세 (소분류)
+
+> [system-overview.md](./system-overview.md)의 ③요청 흐름·②레이어를 백엔드 내부 관점에서 펼친 상세 구성도.
+> 세 축으로 나눈다: **A. RAG 오케스트레이션 그래프**, **B. FGA 권한제어**, **C. 다중 포맷 인제스천**.
+
+모든 다이어그램은 코드(`app/graph/`, `core/`) 기준이며, 근거 파일은 각 절 끝에 명시한다.
+
+---
+
+## A. RAG 오케스트레이션 그래프 (LangGraph)
+
+`app/graph/`는 13개 노드로 이루어진 `StateGraph`다. Self-RAG(재시도 루프) + 환각 검증 루프 + HITL(도구 실행 확인) 패턴을 결합한다.
+
+### A.1 그래프 토폴로지
+
+```mermaid
+flowchart TD
+    START([START]) --> LM[load_memory<br/>대화이력 윈도우]
+    LM --> RW[rewrite_query<br/>검색 최적화 재작성]
+    RW --> RT{router<br/>route + strategy}
+
+    RT -->|doc_search + multi_query| MQ[multi_query<br/>하위쿼리 분해]
+    RT -->|doc_search| PERM[permission<br/>FGA 폴더 조회]
+    RT -->|tool_call| CF{confirm<br/>interrupt 사용자확인}
+
+    MQ --> PERM
+    PERM --> RET[retrieve<br/>벡터검색 + rerank]
+    RET --> GD{grade_documents<br/>관련성 점수}
+
+    GD -->|score≥0.5 또는 retry≥2| GEN[generate<br/>RAG 답변생성]
+    GD -->|else| INC[increment_retry] --> RW
+
+    CF -->|confirmed| TE[tool_executor] --> GEN
+    CF -->|거절| E1([END])
+
+    GEN --> CH{check_hallucination}
+    CH -->|passed 또는 retry≥3| SM[save_memory] --> E2([END])
+    CH -->|else| GEN
+```
+
+### A.2 AgentState (TypedDict, 17개 필드)
+
+`MessagesState`나 임의 dict 금지 — 명시적 `AgentState`만 사용한다.
+
+| 필드 | 타입 | 의미 |
+|------|------|------|
+| `question` | str | 사용자 원본 질문 |
+| `rewritten_question` | str | 검색 최적화 재작성 질문 |
+| `chat_history` | list[dict] | 대화 이력(최대 10턴 윈도우) |
+| `route` | `"doc_search" \| "tool_call"` | 라우팅 결정 |
+| `rewrite_strategy` | `none \| contextual \| multi_query \| None` | 쿼리 재작성 전략 |
+| `multi_queries` | list[str] | 분해된 하위 쿼리 |
+| `documents` | list[SearchResult] | 검색·랭크된 청크 |
+| `relevance_score` | float | 문서 관련성 (0~1) |
+| `retry_count` | int | 재시도 횟수(Self-RAG) |
+| `answer` | str | 최종 답변 |
+| `citations` | list[SourceRef] | 답변 출처 |
+| `hallucination_passed` | bool | 환각 검증 통과 여부 |
+| `confirmed` | bool | 도구 실행 사용자 확인 |
+| `tool_input` | str | 도구 입력 |
+| `user_id` | str | 권한 검사용 사용자 ID |
+| `allowed_folders` | list[str] | 읽기 가능 폴더(permission 노드가 채움) |
+
+### A.3 조건부 분기 (4개)와 임계값
+
+| 분기 함수 | 위치 | 규칙 |
+|-----------|------|------|
+| `route_after_router` | `edges.py` | `doc_search`+`multi_query`전략 → multi_query / `doc_search` → permission / `tool_call` → confirm |
+| `route_after_grade` | `edges.py` | `relevance_score ≥ 0.5` **또는** `retry_count ≥ 2` → generate, 아니면 increment_retry→rewrite_query 루프 |
+| `route_after_hallucination` | `edges.py` | `hallucination_passed` **또는** `retry_count ≥ 3` → save_memory, 아니면 generate 재시도 |
+| `route_after_confirm` | `edges.py` | `confirmed` → tool_executor, 거절 → END |
+
+임계값: `_RELEVANCE_THRESHOLD = 0.5`, `_MAX_GRADE_RETRIES = 2`, `_MAX_TOTAL_RETRIES = 3`.
+
+### A.4 노드 → core 모듈 호출 맵
+
+```mermaid
+flowchart LR
+    subgraph nodes["app/graph/nodes (순수 함수)"]
+        n_rw[rewrite_query]
+        n_rt[router]
+        n_mq[multi_query]
+        n_pm[permission]
+        n_re[retrieve]
+        n_gd[grade_documents]
+        n_cf[confirm]
+        n_ge[generate]
+        n_ch[check_hallucination]
+    end
+
+    n_rw & n_rt & n_mq & n_gd & n_ge & n_ch --> LLM[core.llm.LLMClient]
+    n_pm --> FGA[core.fga.FGAClient]
+    n_re --> RETR[core.retriever.Retriever]
+    n_re --> RERANK[core.reranker.Reranker]
+    n_re --> FGA
+    n_cf --> INT["langgraph.types.interrupt()"]
+    n_ge --> COST[core.observability.cost_tracker]
+```
+
+- `load_memory`·`increment_retry`·`save_memory`·`tool_executor`는 core 호출 없는 순수 상태 변환(`tool_executor`는 현재 Mock).
+- `permission`·`retrieve`·`generate`는 async 노드.
+
+### A.5 HITL과 체크포인터
+
+- **HITL**: `tool_call` 경로의 `confirm_node`에서만 `interrupt()`로 사용자 확인을 받는다(`nodes/confirm.py`). 확인 응답에 따라 `tool_executor` 진입 또는 END.
+- **Checkpointer**: 그래프 컴파일 시 필수. 기본 `MemorySaver`, 운영은 `lifespan`에서 `AsyncPostgresSaver`(`langgraph_checkpoints` 테이블) 주입. interrupt 후 상태 복구·재개에 사용.
+- **진입/종료**: `START → load_memory`, 정상 종료 `save_memory → END`, 조건부 종료 `confirm 거절 → END`.
+
+> 근거: `app/graph/state.py`, `app/graph/builder.py`, `app/graph/edges.py`, `app/graph/nodes/*.py`
+
+---
+
+## B. FGA 권한제어 (폴더 트리 pre-filter)
+
+권한 주체는 **부서(department) 단위**다. 개인 단위 메타데이터·sensitivity 없음. 검색 전에 사용자가 읽을 수 있는 폴더로 청크를 미리 거르는 **pre-filter** 방식.
+
+### B.1 OpenFGA department/folder 트리 모델
+
+```mermaid
+flowchart TD
+    U["user:alice"] -->|member| D["department:eng"]
+    D -->|"viewer = department#member"| F1["folder:/projects"]
+    F1 -->|parent| F2["folder:/projects/friday"]
+    F2 -. "can_read = viewer<br/>or can_read from parent" .-> INH["트리 상속"]
+```
+
+```
+type user
+type department
+  relations
+    define member: [user]
+type folder
+  relations
+    define parent: [folder]
+    define viewer: [department#member]
+    define can_read: viewer or can_read from parent   # 상위→하위 상속
+```
+
+### B.2 권한 → 검색 pre-filter 흐름
+
+```mermaid
+sequenceDiagram
+    participant N1 as permission_node
+    participant FC as core.fga.FGAClient
+    participant CA as PostgreSQL TTL 캐시
+    participant FGA as OpenFGA
+    participant N2 as retrieve_node
+    participant VS as vector_store (documents)
+
+    N1->>FC: get_readable_folders(user_id)
+    FC->>CA: 캐시 조회 (TTL 60s)
+    alt 캐시 miss
+        FC->>FGA: ListObjects(user, can_read, folder)
+        FGA-->>FC: ["/projects", "/reports/q1", ...]
+        FC->>CA: set(folders, expires_at)
+    end
+    FC-->>N1: allowed_folders
+    Note over N1: state.allowed_folders 기록
+    N2->>FC: build_pg_filter(allowed_folders)
+    FC-->>N2: ("path = ANY($1)", [folders])
+    N2->>VS: retrieve(query, where_clause, params)
+    VS-->>N2: 권한 통과 청크만
+```
+
+### B.3 핵심 규칙
+
+| 항목 | 내용 |
+|------|------|
+| 폴더 목록 획득 | `ListObjects(user, can_read, folder)` — 부서 멤버십·트리 상속이 모두 풀려서 평면 목록으로 반환 |
+| pre-filter SQL | `WHERE path = ANY($1)` **정확 매칭**. (상위 가시성이 하위를 항상 함의하지 않으므로 prefix가 아닌 정확 매칭) |
+| 접근 불가 | `allowed_folders`가 비면 `build_pg_filter`가 `"FALSE"` 반환 → 0건 |
+| 캐시 | PostgreSQL `fga_permission_cache`, TTL 60초. `set`은 `ON CONFLICT` 갱신, 권한 변경 시 `invalidate`로 즉시 무효화 (Redis 미사용, ADR-0009) |
+| 호출 위치 | `permission_node`(폴더 조회) → `retrieve_node`(pre-filter 적용). 다운로드 엔드포인트도 동일 권한 검사 |
+
+> 근거: `backend/DESIGN.md`, `core/fga/client.py`, `core/fga/cache/postgres.py`, `app/graph/nodes/permission.py`, `app/graph/nodes/retrieve.py`
+
+---
+
+## C. 다중 포맷 인제스천 (ADR-0013)
+
+문서를 청크로 변환해 벡터 저장소에 인덱싱하고, **원본 파일(bytea)을 별도 보관**한다. 포맷 의존성은 **파서 단계에만 격리**되고 이후 단계는 Markdown 문자열만 다룬다.
+
+### C.1 파이프라인
+
+```mermaid
+flowchart TD
+    IN["파일 입력 (docs/company/)"] --> LD[MultiFormatLoader<br/>재귀탐색 + 확장자 필터<br/>raw bytes + mime]
+    LD --> PF{ParserFactory<br/>확장자별 파서 선택}
+    PF -->|.md| MP[MarkdownParser<br/>통과]
+    PF -->|.pdf| PP[PdfParser<br/>텍스트 추출]
+    MP --> DOC[Document<br/>text=Markdown, source,<br/>metadata.path, raw, mime]
+    PP --> DOC
+    DOC --> CK[FixedSizeChunker<br/>500자 + 50자 overlap<br/>chunk_id = MD5]
+    CK --> EM[Embedder<br/>OpenAI / SentenceTransformer]
+    EM --> IDX[Indexer 병렬 저장]
+    IDX --> VS[("documents<br/>청크+임베딩 (pgvector)")]
+    IDX --> OS[("document_originals<br/>bytea 원본 + SHA-256")]
+```
+
+### C.2 포맷 격리 (ADR-0013 D1)
+
+| 확장자 | 파서 | 변환 |
+|--------|------|------|
+| `.md` | `MarkdownParser` | Markdown → Markdown (no-op) |
+| `.pdf` | `PdfParser` | PDF → 페이지별 텍스트 추출 |
+
+새 포맷 추가 = `core/parser/{format}_parser.py` 작성 + `ParserFactory` 등록만 필요. 청킹·임베딩·검색 단계는 무수정(포맷 의존성이 파서에 갇혀 있음).
+
+### C.3 청크 vs 원본 (테이블 분리)
+
+```mermaid
+flowchart LR
+    subgraph chunk["documents — 검색용 청크"]
+        c1["chunk_id (MD5)"]
+        c2["content (청크 텍스트)"]
+        c3["embedding (벡터)"]
+        c4["path (권한경계)"]
+    end
+    subgraph orig["document_originals — 원본 보관"]
+        o1["document_id = folder_path/filename"]
+        o2["version (content_hash 변경 시 +1)"]
+        o3["original_file (BYTEA, 불변)"]
+        o4["content_hash (SHA-256)"]
+        o5["mime, filename"]
+    end
+    chunk -. "동일 path 체계" .- orig
+```
+
+- **documents**: 검색 대상 청크 + 임베딩. RAG가 읽는다.
+- **document_originals**: 변형 없는 원본 bytes. `/documents/download` 다운로드와 증빙에 사용.
+- **버전 관리**: 동일 `content_hash`면 재저장 skip, 변경되면 `version +1`로 이력 보관.
+
+### C.4 진입점
+
+- 배치 스크립트: `python -m scripts.build_index` → `app/ingestion/indexer.py:build_index()` → `docs/company/` 처리.
+- 운영 트리거: `POST /admin/index/rebuild` (백그라운드 인덱싱, admin 권한).
+
+> 근거: `scripts/build_index.py`, `app/ingestion/indexer.py`, `core/loader/multi_format_loader.py`, `core/parser/factory.py`, `core/parser/{pdf,markdown}_parser.py`, `core/document_original/postgres_store.py`, ADR-0013
+
+---
+
+## 참조
+
+- 전체 시스템 구성도: [system-overview.md](./system-overview.md)
+- 권한 RAG 설계: `backend/DESIGN.md`
+- ADR: `backend/docs/superpowers/decisions/` (ADR-0009 FGA 캐시 · ADR-0013 다중 포맷 인제스천)

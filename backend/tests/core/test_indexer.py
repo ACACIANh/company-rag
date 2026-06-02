@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import ANY, AsyncMock, MagicMock
 
 from core.indexer.indexer import Indexer
@@ -73,48 +72,3 @@ async def test_indexer_skips_fga_when_no_fga_client():
     indexer = Indexer(loader=loader, chunker=chunker, embedder=embedder, store=store)
     await indexer.index("/doc")  # no fga_client → no error, no FGA call
     store.add.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_index_saves_originals_when_store_given():
-    from unittest.mock import AsyncMock, MagicMock
-
-    from core.indexer.indexer import Indexer
-    from core.models import Chunk, Document
-
-    loader = MagicMock()
-    loader.load = MagicMock(return_value=[
-        Document(text="hello", source="eng/a.pdf", metadata={"path": "/c/eng"},
-                 raw=b"raw", mime="application/pdf"),
-    ])
-    chunker = MagicMock()
-    chunker.chunk = MagicMock(return_value=[Chunk(text="hello", source="eng/a.pdf", chunk_id="1")])
-    embedder = MagicMock()
-    embedder.embed_batch = MagicMock(return_value=[[0.1]])
-    store = AsyncMock()
-    original_store = AsyncMock()
-
-    await Indexer(loader, chunker, embedder, store, original_store=original_store).index("p")
-
-    original_store.save.assert_awaited_once_with(
-        "/c/eng/a.pdf", "/c/eng", "a.pdf", "application/pdf", b"raw"
-    )
-
-
-@pytest.mark.asyncio
-async def test_index_without_original_store_does_not_fail():
-    from unittest.mock import AsyncMock, MagicMock
-
-    from core.indexer.indexer import Indexer
-    from core.models import Chunk, Document
-
-    loader = MagicMock()
-    loader.load = MagicMock(return_value=[Document(text="x", source="a.md", metadata={"path": "/c"})])
-    chunker = MagicMock()
-    chunker.chunk = MagicMock(return_value=[Chunk(text="x", source="a.md", chunk_id="1")])
-    embedder = MagicMock()
-    embedder.embed_batch = MagicMock(return_value=[[0.1]])
-    store = AsyncMock()
-
-    n = await Indexer(loader, chunker, embedder, store).index("p")
-    assert n == 1
