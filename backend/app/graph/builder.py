@@ -16,6 +16,7 @@ from core.retriever.base import Retriever
 from core.fga.client import FGAClient
 from app.graph.edges import (
     route_after_confirm,
+    route_after_gate,
     route_after_grade,
     route_after_hallucination,
     route_after_router,
@@ -32,7 +33,11 @@ from app.graph.nodes.rewrite_query import rewrite_query_node
 from app.graph.nodes.router import router_node
 from app.graph.nodes.save_memory import save_memory_node
 from app.graph.nodes.multi_query import multi_query_node
-from app.graph.nodes.tool_executor import tool_executor_node
+from app.graph.nodes.sql_generate import sql_generate_node
+from app.graph.nodes.classify_risk import classify_risk_node
+from app.graph.nodes.gate import gate_node
+from app.graph.nodes.sql_execute import sql_execute_node
+from app.graph.nodes.sql_reject import sql_reject_node
 from app.graph.state import AgentState
 
 _STREAM_CHUNK_SIZE = 3  # 의사 스트리밍 청크 크기(글자). 타이핑 효과용.
@@ -46,6 +51,8 @@ def build_graph(
     retrieve_top_k: int = 20,
     top_k: int = 5,
     checkpointer: BaseCheckpointSaver | None = None,
+    audit_sink: Any = None,
+    sql_pool: Any = None,
 ) -> CompiledStateGraph:
     if fga_client is None:
         raise ValueError("fga_client is required")
@@ -66,8 +73,12 @@ def build_graph(
     g.add_node("grade_documents", partial(grade_documents_node, llm=llm))
     g.add_node("increment_retry", increment_retry_node)
     g.add_node("multi_query", partial(multi_query_node, llm=llm))
+    g.add_node("sql_generate", partial(sql_generate_node, llm=llm))
+    g.add_node("classify_risk", partial(classify_risk_node, llm=llm))
+    g.add_node("gate", partial(gate_node, fga_client=fga_client, audit_sink=audit_sink))
     g.add_node("confirm", confirm_node)
-    g.add_node("tool_executor", tool_executor_node)
+    g.add_node("sql_execute", partial(sql_execute_node, sql_pool=sql_pool, audit_sink=audit_sink))
+    g.add_node("sql_reject", sql_reject_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
     g.add_node("save_memory", save_memory_node)
@@ -82,7 +93,7 @@ def build_graph(
         {
             "doc_search": "permission",
             "multi_query": "multi_query",
-            "tool_call": "confirm",
+            "tool_call": "sql_generate",
         },
     )
     g.add_edge("multi_query", "permission")
@@ -96,12 +107,21 @@ def build_graph(
         {"generate": "generate", "rewrite_retry": "increment_retry"},
     )
 
+    # tool_call → SQL 게이트 서브루틴 (ADR-0016)
+    g.add_edge("sql_generate", "classify_risk")
+    g.add_edge("classify_risk", "gate")
+    g.add_conditional_edges(
+        "gate",
+        route_after_gate,
+        {"sql_execute": "sql_execute", "confirm": "confirm", "sql_reject": "sql_reject"},
+    )
     g.add_conditional_edges(
         "confirm",
         route_after_confirm,
-        {"tool_executor": "tool_executor", "end": END},
+        {"sql_execute": "sql_execute", "sql_reject": "sql_reject"},
     )
-    g.add_edge("tool_executor", "generate")
+    g.add_edge("sql_execute", "generate")
+    g.add_edge("sql_reject", "save_memory")
 
     g.add_edge("generate", "check_hallucination")
     g.add_conditional_edges(

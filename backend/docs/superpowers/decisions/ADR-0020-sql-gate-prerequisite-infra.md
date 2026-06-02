@@ -1,6 +1,6 @@
 # ADR-0020: 신원×위험도 SQL 게이트의 전제 인프라
 
-> **Status**: 🔵 승인됨
+> **Status**: 🟢 적용완료
 
 **Date**: 2026-06-02
 **Context**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)(신원×위험도 게이트)·[ADR-0017](ADR-0017-sql-risk-classification.md)(위험도 분류)·[ADR-0018](ADR-0018-decision-audit-log.md)(감사 로그)는 각자 "미해결/후속(착수 전 전제)"로 공통 인프라를 가리킨다. 이들은 개별 ADR의 본문 결정이 아니라 **세 ADR이 공유하는 토대**이므로, 흩어진 전제를 하나의 결정으로 승격해 먼저 못 박는다.

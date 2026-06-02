@@ -25,6 +25,7 @@ from core.retriever import BasicRetriever
 from core.session.factory import create_session_store
 from core.vector_store.factory import create_vector_store
 from core.document_version.postgres_store import PostgresDocumentVersionStore
+from core.observability.audit.postgres_sink import PostgresAuditSink
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from app.graph.builder import answer_question, build_graph, stream_answer
@@ -69,6 +70,12 @@ async def lifespan(app: FastAPI):
 
     await PostgresDocumentVersionStore(pool).ensure_table()
 
+    # 게이트 감사 로그(ADR-0018)는 운영 DB(app)에 둔다 — SQL 도구 대상(business)과 분리.
+    audit_sink = PostgresAuditSink(pool)
+    await audit_sink.ensure_table()
+    # SQL 도구 전용 read-only 제한계정 풀(ADR-0020). 미설정 시 SQL 게이트 비활성.
+    sql_pool = await asyncpg.create_pool(config.sql_tool_dsn) if config.sql_tool_dsn else None
+
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
     reranker = create_reranker(config)
@@ -83,7 +90,7 @@ async def lifespan(app: FastAPI):
         await checkpointer.setup()
         graph = build_graph(
             retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client,
-            checkpointer=checkpointer,
+            checkpointer=checkpointer, audit_sink=audit_sink, sql_pool=sql_pool,
         )
 
         app.state.pool = pool
@@ -94,6 +101,8 @@ async def lifespan(app: FastAPI):
 
         yield
 
+        if sql_pool is not None:
+            await sql_pool.close()
         await pool.close()
 
 
