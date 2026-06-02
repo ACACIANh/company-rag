@@ -25,6 +25,9 @@
 | [0018](ADR-0018-decision-audit-log.md) | 게이트 결정·SQL 실행 감사 로그 인프라 | 🟢 적용완료 |
 | [0019](ADR-0019-scope-down-ingestion.md) | 기획 축소 — 다중 포맷·원본 보관·다운로드 철회, Markdown 단일 인제스천 복귀 | 🟢 적용완료 |
 | [0020](ADR-0020-sql-gate-prerequisite-infra.md) | 신원×위험도 SQL 게이트의 전제 인프라 | 🟢 적용완료 |
+| [0021](ADR-0021-sql-schema-value-hints.md) | NL→SQL 생성 — 카테고리형 컬럼 값 힌트(value hints) | ⚪ 제안됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0022](ADR-0022-router-route-discrimination.md) | 라우터 doc_search↔tool_call 분류 정확도 개선 | ⚪ 제안됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0027](ADR-0027-justify-and-approve-self-service-gate.md) | DBA 부재 가정 — `NEEDS_APPROVAL`을 `JUSTIFY_AND_APPROVE`(사유 기재 자가승인)로 개정 | 🔵 승인됨 |
 
 ## 상태 범례
 

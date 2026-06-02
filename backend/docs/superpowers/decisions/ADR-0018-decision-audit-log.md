@@ -3,7 +3,7 @@
 > **Status**: 🟢 적용완료
 
 **Date**: 2026-06-02
-**Context**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)는 "모든 게이트 결정이 감사 로그에 남아 그대로 시연 자료가 된다"를 전제했으나, **현재 코드에 권한/실행 감사 로그 인프라가 없다**(`core/observability/`의 cost_tracker는 비용 추적 전용). 신원 × 위험도 게이트가 ALLOW/DENY/NEEDS_APPROVAL 중 무엇을, 왜, 누구에게 내렸는지 사후에 재구성할 수 없으면 게이트의 신뢰성 주장 자체가 검증 불가다.
+**Context**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)는 "모든 게이트 결정이 감사 로그에 남아 그대로 시연 자료가 된다"를 전제했으나, **현재 코드에 권한/실행 감사 로그 인프라가 없다**(`core/observability/`의 cost_tracker는 비용 추적 전용). 신원 × 위험도 게이트가 ALLOW/DENY/NEEDS_APPROVAL(현 명칭 `JUSTIFY_AND_APPROVE` — [ADR-0027](ADR-0027-justify-and-approve-self-service-gate.md)) 중 무엇을, 왜, 누구에게 내렸는지 사후에 재구성할 수 없으면 게이트의 신뢰성 주장 자체가 검증 불가다.
 
 ## Options
 
