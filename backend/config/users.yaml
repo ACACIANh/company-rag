@@ -1,34 +1,73 @@
 users:
-  # admin: /admin 엔드포인트(재색인 등) 운영용. roles 는 앱 인증(admin API)용.
-  # FGA 권한은 c_level 역할 → super_reader 로 전사 열람(private 포함).
+  # admin: /admin 엔드포인트(재색인 등) 운영용. FGA 권한은 c_level 역할 → super_reader 전사 열람.
   - username: admin
     password: admin123
     user_id: user-admin
-    roles:
-      - admin
-      - user
-    fga_roles:
-      - c_level
-  # alice: 엔지니어링 부서. 공개 문서 + /company/engineering/ops(private, eng 전용) 열람.
+    roles: [admin, user]
+    fga_roles: [c_level]
+  # alice: 엔지니어링. 공개 + /company/engineering/ops(private) 열람.
   - username: alice
     password: alice123
     user_id: user-alice
-    roles:
-      - user
-    departments:
-      - engineering
-  # bob: 인사 부서. 공개 문서 + /company/hr(private, hr 전용) 열람.
+    roles: [user]
+    departments: [engineering]
+  # bob: 인사. 공개 + /company/hr(private) 열람.
   - username: bob
     password: bob123
     user_id: user-bob
-    roles:
-      - user
-    departments:
-      - hr
-  # carol: 무소속. 전체공개(public) 문서만 열람, private 폴더는 차단.
+    roles: [user]
+    departments: [hr]
+  # carol: 무소속. 전체공개(public)만, private 차단.
   - username: carol
     password: carol123
     user_id: user-carol
-    roles:
-      - user
+    roles: [user]
     departments: []
+  # dave: 프로덕트(public).
+  - username: dave
+    password: dave123
+    user_id: user-dave
+    roles: [user]
+    departments: [product]
+  # erin: 디자인(public).
+  - username: erin
+    password: erin123
+    user_id: user-erin
+    roles: [user]
+    departments: [design]
+  # frank: 세일즈(public).
+  - username: frank
+    password: frank123
+    user_id: user-frank
+    roles: [user]
+    departments: [sales]
+  # grace: 재무. 공개 + /company/finance(private).
+  - username: grace
+    password: grace123
+    user_id: user-grace
+    roles: [user]
+    departments: [finance]
+  # heidi: 법무. 공개 + /company/legal(private).
+  - username: heidi
+    password: heidi123
+    user_id: user-heidi
+    roles: [user]
+    departments: [legal]
+  # ivan: 교차부서 — 엔지니어링+프로덕트. 공개 + eng/ops(private).
+  - username: ivan
+    password: ivan123
+    user_id: user-ivan
+    roles: [user]
+    departments: [engineering, product]
+  # judy: 교차부서 — 세일즈+재무. 공개 + finance(private).
+  - username: judy
+    password: judy123
+    user_id: user-judy
+    roles: [user]
+    departments: [sales, finance]
+  # karl: 교차부서 — 인사+법무. 공개 + hr + legal(두 private).
+  - username: karl
+    password: karl123
+    user_id: user-karl
+    roles: [user]
+    departments: [hr, legal]
