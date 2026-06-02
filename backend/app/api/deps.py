@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from core.auth.base import AuthUser
 from core.auth.jwt_handler import decode_token
 from core.config import load_config
+from core.document_original.base import DocumentOriginalStore
 from core.fga.client import FGAClient
 from core.rate_limiter.in_memory import InMemoryRateLimiter
 from core.session.base import SessionStore
@@ -27,6 +28,10 @@ def get_fga_client(request: Request) -> FGAClient:
 
 def get_session_store(request: Request) -> SessionStore:
     return request.app.state.session_store
+
+
+def get_original_store(request: Request) -> DocumentOriginalStore:
+    return request.app.state.original_store
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:

@@ -1,6 +1,6 @@
 # ADR-0013: 다중 포맷 문서 인제스천 — 파서 격리 + 통일 중간표현(Markdown)
 
-> **Status**: 🟡 보류 — 미구현 (현재 Markdown 인제스천만)
+> **Status**: 🟢 적용완료 — D1~D5 적용 (PDF 파서 격리 + 원본 bytea 보관 + 권한검증 다운로드). 페이지 단위 역추적·S3 이전은 후속.
 
 > 상태: **제안됨(Proposed)** / 작성일: 2026-06-01 / 관련: 역기획서 §3, §7.6, §7.1, §7.3
 
@@ -72,27 +72,26 @@
 
 ---
 
-## 4. 데이터 모델 변경 (제안)
+## 4. 데이터 모델 (실제 구현)
+
+> 최초 제안은 documents에 원본+content를 통합했으나, 실제 `documents`는 청크 테이블(pgvector)이라
+> 원본은 신규 `document_originals` 테이블에 분리 보관한다.
 
 ```
-documents
-├── id
-├── original_file   bytea   ← 원본, 불변 (D4)
-├── content         text    ← 통일표현(Markdown) (D2)
-├── source_path     text    ← 권한 경계용 폴더 path (NFR-1과 연결)
-└── metadata        jsonb   ← 포맷, 페이지 수, 파서 버전 등
+document_originals  (원본 보관, 불변, D4)
+├── document_id   TEXT   ← folder_path + "/" + filename (안정 키)
+├── version       INT    ← content_hash 변경 시 +1
+├── folder_path   TEXT   ← 권한 경계용 (documents.path와 동일 체계, 정확 매칭)
+├── filename      TEXT   ← Content-Disposition
+├── mime          TEXT
+├── original_file BYTEA  ← 원본, 불변
+├── content_hash  TEXT   ← SHA-256, 변경 감지/중복 방지
+└── PRIMARY KEY (document_id, version)
 
-chunks
-├── id
-├── document_id     FK
-├── chunk_text      text
-├── embedding       vector  ← pgvector (기존 PostgresVectorStore)
-├── source_ref      jsonb   ← 원본 식별자 + 페이지/위치 (D4)
-└── enrichment      jsonb   ← 파생 데이터 + 생성 버전 (D5)
+documents (기존 청크 테이블, 무변경): chunk_id, content(청크), embedding, path, source
 ```
 
-- 벡터 저장은 기존 `PostgresVectorStore`(pgvector, HNSW 코사인) 그대로 사용(NFR-3).
-- `source_path`는 기존 OpenFGA path-prefix 권한 필터(§7.5)와 동일 체계를 따른다.
+- 원본 다운로드는 `GET /documents/download?document_id=...` 로 제공하며, 검색과 동일한 OpenFGA `get_readable_folders` 정확 매칭으로 권한을 재검증한다(§5).
 
 ---
 
