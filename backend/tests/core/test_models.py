@@ -62,19 +62,3 @@ def test_answer_sources_are_source_refs():
     answer = Answer(text="답변", sources=refs)
     assert len(answer.sources) == 2
     assert answer.sources[0].source == "a.md"
-
-
-def test_document_raw_mime_default_none():
-    from core.models import Document
-
-    d = Document(text="t", source="s")
-    assert d.raw is None
-    assert d.mime is None
-
-
-def test_document_accepts_raw_mime():
-    from core.models import Document
-
-    d = Document(text="t", source="s", raw=b"\x01\x02", mime="application/pdf")
-    assert d.raw == b"\x01\x02"
-    assert d.mime == "application/pdf"

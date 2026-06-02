@@ -6,8 +6,6 @@ class Document:
     text: str
     source: str
     metadata: dict = field(default_factory=dict)
-    raw: bytes | None = None
-    mime: str | None = None
 
 
 @dataclass
