@@ -29,6 +29,10 @@ def get_session_store(request: Request) -> SessionStore:
     return request.app.state.session_store
 
 
+def get_original_store(request: Request):
+    return request.app.state.original_store
+
+
 def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:
     try:
         payload = decode_token(token, secret=_config.jwt_secret)
