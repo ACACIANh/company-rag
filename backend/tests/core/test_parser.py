@@ -58,3 +58,45 @@ def test_pdf_parser_extracts_text():
 
     out = PdfParser().parse(_make_pdf_bytes("HelloPdf"))
     assert "HelloPdf" in out
+
+
+def test_factory_returns_markdown_parser_for_md():
+    from core.parser.factory import ParserFactory
+    from core.parser.markdown_parser import MarkdownParser
+
+    assert isinstance(ParserFactory().get_parser(".md"), MarkdownParser)
+
+
+def test_factory_returns_pdf_parser_for_pdf():
+    from core.parser.factory import ParserFactory
+    from core.parser.pdf_parser import PdfParser
+
+    assert isinstance(ParserFactory().get_parser(".pdf"), PdfParser)
+
+
+def test_factory_normalizes_uppercase_extension():
+    from core.parser.factory import ParserFactory
+    from core.parser.pdf_parser import PdfParser
+
+    assert isinstance(ParserFactory().get_parser(".PDF"), PdfParser)
+
+
+def test_factory_unsupported_extension_raises():
+    from core.parser.factory import ParserFactory
+
+    with pytest.raises(ValueError):
+        ParserFactory().get_parser(".txt")
+
+
+def test_factory_supported_extensions():
+    from core.parser.factory import ParserFactory
+
+    assert set(ParserFactory().supported_extensions()) == {".md", ".pdf"}
+
+
+def test_factory_mime_for():
+    from core.parser.factory import ParserFactory
+
+    f = ParserFactory()
+    assert f.mime_for(".md") == "text/markdown"
+    assert f.mime_for(".PDF") == "application/pdf"
