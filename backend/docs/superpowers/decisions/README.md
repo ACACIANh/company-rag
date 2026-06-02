@@ -24,6 +24,7 @@
 | [0017](ADR-0017-sql-risk-classification.md) | SQL 위험도 분류 — AST 확정 + LLM 보강 | ⚪ 제안됨 |
 | [0018](ADR-0018-decision-audit-log.md) | 게이트 결정·SQL 실행 감사 로그 인프라 | ⚪ 제안됨 |
 | [0019](ADR-0019-scope-down-ingestion.md) | 기획 축소 — 다중 포맷·원본 보관·다운로드 철회, Markdown 단일 인제스천 복귀 | 🟢 적용완료 |
+| [0020](ADR-0020-sql-gate-prerequisite-infra.md) | 신원×위험도 SQL 게이트의 전제 인프라 | 🔵 승인됨 |
 
 ## 상태 범례
 

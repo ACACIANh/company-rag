@@ -156,6 +156,9 @@ async def answer_question(
         "tool_input": "",
         "user_id": user_id,
         "allowed_folders": [],
+        "generated_sql": "",
+        "sql_risk": "",
+        "gate_decision": "",
     }
     final = await graph.ainvoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])
@@ -196,6 +199,9 @@ async def stream_answer(
             "tool_input": "",
             "user_id": user_id,
             "allowed_folders": [],
+            "generated_sql": "",
+            "sql_risk": "",
+            "gate_decision": "",
         }
 
         final = await graph.ainvoke(initial, config=config)
