@@ -48,7 +48,7 @@ SQL 도구       ──> business 스키마 (read-only 제한계정·RO 트랜�
 - **전제를 결정으로 승격**: 세 ADR에 흩어진 "착수 전 전제"를 한 곳에서 못 박아, 0016 착수 시 빠진 토대로 인한 함정을 제거한다.
 - **단일 Postgres 재사용**: 스키마 + 계정 권한 조합으로 신규 외부 의존 없이 논리 분리와 격리를 동시에 얻는다(ADR-0009의 "Redis 대신 Postgres" 기조와 일치). 물리 분리는 포트폴리오 규모에 과하다고 판단.
 - **격리는 권한과 독립**: 게이트(ADR-0016)가 뚫려도 제한계정·read-only가 영향 범위를 `business` 스키마 읽기로 한정한다 — 방어 심층화.
-- **resume 내구성은 이미 확보**: NEEDS_APPROVAL은 사람이 임의 시점에 승인하므로 그 사이 프로세스 재시작을 견뎌야 하는데, 프로덕션 경로의 체크포인트가 이미 `AsyncPostgresSaver`로 Postgres에 영속화되어 있어 이 전제는 충족 상태다.
+- **resume 내구성은 이미 확보**: NEEDS_APPROVAL(현 명칭 `JUSTIFY_AND_APPROVE` — [ADR-0027](ADR-0027-justify-and-approve-self-service-gate.md))은 사람이 임의 시점에 승인하므로 그 사이 프로세스 재시작을 견뎌야 하는데, 프로덕션 경로의 체크포인트가 이미 `AsyncPostgresSaver`로 Postgres에 영속화되어 있어 이 전제는 충족 상태다.
 
 ## 미해결 / 후속
 

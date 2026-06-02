@@ -30,6 +30,8 @@
 
 ### 권한 매트릭스 (출발점, 등급 경계는 조정 가능)
 
+> **개정됨**: 명칭 `NEEDS_APPROVAL` → `JUSTIFY_AND_APPROVE` 및 c_level 대량·PII 셀이 [ADR-0027](ADR-0027-justify-and-approve-self-service-gate.md)에서 갱신되었다. 아래 매트릭스·본문의 `NEEDS_APPROVAL`은 본 ADR 결정 당시의 명칭(역사 기록)이며, **현행 명칭·매트릭스는 ADR-0027을 따른다.**
+
 신원 축은 신규 권한주체 도입 없이 기존 모델로 매핑한다 — `일반 부서원`(특수 역할 없는 department member) / `engineering`(기술 부서원) / `c_level`(super_reader 역할).
 
 | SQL 위험도 | 일반 부서원 | engineering | c_level |
