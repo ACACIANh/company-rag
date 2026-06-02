@@ -90,15 +90,15 @@ questions:
     expected_route: "doc_search"
   # ── 검색 함정: 동음이의 + 권한 분산 ─────────────────────────
   - question: "계약 검토는 법무에서 며칠 걸려?"
-    expected_keywords: ["계약", "검토"]
+    expected_keywords: ["계약", "영업일"]
     expected_source: "contract-review.md"
     expected_route: "doc_search"
   - question: "표준 계약서 양식 어디 있어?"
-    expected_keywords: ["계약서", "양식"]
+    expected_keywords: ["계약서", "표준"]
     expected_source: "contract-template.md"
     expected_route: "doc_search"
   - question: "50만원 넘는 비용 쓰려면 누구 승인 받아?"
-    expected_keywords: ["비용", "승인"]
+    expected_keywords: ["비용", "50만원"]
     expected_source: "expense-approval.md"
     expected_route: "doc_search"
   - question: "개인정보 파기 규정이 뭐야?"
