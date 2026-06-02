@@ -172,7 +172,7 @@ sequenceDiagram
 | 캐시 | PostgreSQL `fga_permission_cache`, TTL 60초. `set`은 `ON CONFLICT` 갱신, 권한 변경 시 `invalidate`로 즉시 무효화 (Redis 미사용, ADR-0009) |
 | 호출 위치 | `permission_node`(폴더 조회) → `retrieve_node`(pre-filter 적용). 다운로드 엔드포인트도 동일 권한 검사 |
 
-> 근거: `backend/DESIGN.md`, `core/fga/client.py`, `core/fga/cache/postgres.py`, `app/graph/nodes/permission.py`, `app/graph/nodes/retrieve.py`
+> 근거: `core/fga/client.py`, `core/fga/cache/postgres.py`, `app/graph/nodes/permission.py`, `app/graph/nodes/retrieve.py` (결정: ADR-0011→ADR-0015)
 
 ---
 
@@ -242,5 +242,5 @@ flowchart LR
 ## 참조
 
 - 전체 시스템 구성도: [system-overview.md](./system-overview.md)
-- 권한 RAG 설계: `backend/DESIGN.md`
+- 권한 RAG 설계: ADR-0011(→ADR-0015) `docs/superpowers/decisions/ADR-0015-fga-public-private-super-reader.md`
 - ADR: `backend/docs/superpowers/decisions/` (ADR-0009 FGA 캐시 · ADR-0013 다중 포맷 인제스천)
