@@ -13,6 +13,18 @@ folders:
   /company/engineering/ops:
     private: true              # 배포·인시던트 운영 문서 — 공개 차단
     dept_viewers: [engineering]
+  /company/product:
+    # 상속 — 프로덕트 공개 문서
+  /company/design:
+    # 상속 — 디자인 공개 문서
+  /company/sales:
+    # 상속 — 세일즈 공개 문서
   /company/hr:
     private: true              # 인사 문서 — 공개 차단
     dept_viewers: [hr]
+  /company/finance:
+    private: true              # 재무 문서 — 공개 차단
+    dept_viewers: [finance]
+  /company/legal:
+    private: true              # 법무 문서 — 공개 차단
+    dept_viewers: [legal]

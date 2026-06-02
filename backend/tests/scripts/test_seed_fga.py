@@ -60,3 +60,24 @@ def test_no_legacy_viewer_relation_emitted():
     # 신규 모델엔 'viewer' relation이 없다. dept_viewers로만 부서 권한을 표현.
     tuples = _build_tuples([], {"/company/hr": {"dept_viewers": ["hr"]}})
     assert not _find(tuples, relation="viewer")
+
+
+# ── TechCorp 재구성: 신규 private 부서 폴더 ──────────────────
+def test_finance_private_and_dept_viewer():
+    folders = {"/company/finance": {"private": True, "dept_viewers": ["finance"]}}
+    tuples = _build_tuples([], folders)
+    assert _find(tuples, user="user:*", relation="private_flag", object="folder:/company/finance")
+    assert _find(
+        tuples, user="department:finance#member", relation="dept_viewer",
+        object="folder:/company/finance",
+    )
+
+
+def test_legal_private_and_dept_viewer():
+    folders = {"/company/legal": {"private": True, "dept_viewers": ["legal"]}}
+    tuples = _build_tuples([], folders)
+    assert _find(tuples, user="user:*", relation="private_flag", object="folder:/company/legal")
+    assert _find(
+        tuples, user="department:legal#member", relation="dept_viewer",
+        object="folder:/company/legal",
+    )

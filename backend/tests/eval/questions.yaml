@@ -1,190 +1,126 @@
 questions:
-  # ── doc_search: vacation-policy.md ────────────────────────────────────
+  # ── common (전사공통, 기존 재사용 문서) ──────────────────────
   - question: "연차는 며칠이야?"
     expected_keywords: ["연차", "일"]
     expected_source: "vacation-policy.md"
     expected_route: "doc_search"
-
   - question: "입사 2년 차 직원 연차 일수가 몇 일이야?"
     expected_keywords: ["연차", "15일"]
     expected_source: "vacation-policy.md"
     expected_route: "doc_search"
-
-  - question: "미사용 연차는 언제까지 이월할 수 있어?"
-    expected_keywords: ["이월", "연차"]
-    expected_source: "vacation-policy.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: code-review-guide.md ──────────────────────────────────
-  - question: "코드 리뷰할 때 주의사항이 뭐야?"
-    expected_keywords: ["리뷰", "PR"]
-    expected_source: "code-review-guide.md"
-    expected_route: "doc_search"
-
-  - question: "PR 머지 Approve 최소 몇 명 필요해?"
-    expected_keywords: ["Approve", "머지"]
-    expected_source: "code-review-guide.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: team-structure.md ─────────────────────────────────────
-  - question: "팀 구조가 어떻게 돼?"
-    expected_keywords: ["팀", "구조"]
-    expected_source: "team-structure.md"
-    expected_route: "doc_search"
-
-  - question: "AI/ML팀 인원이 몇 명이야?"
-    expected_keywords: ["AI", "ML"]
-    expected_source: "team-structure.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: security-policy.md ────────────────────────────────────
-  - question: "보안 정책에서 비밀번호 규정이 뭐야?"
-    expected_keywords: ["비밀번호", "보안"]
-    expected_source: "security-policy.md"
-    expected_route: "doc_search"
-
-  - question: "기기 분실했을 때 어떻게 해야 해?"
-    expected_keywords: ["분실", "IT팀"]
-    expected_source: "security-policy.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: onboarding.md ─────────────────────────────────────────
   - question: "온보딩 절차가 어떻게 돼?"
     expected_keywords: ["온보딩", "입사"]
     expected_source: "onboarding.md"
     expected_route: "doc_search"
-
-  - question: "사내 시스템 접근 권한 신청하면 며칠 걸려?"
-    expected_keywords: ["접근", "권한"]
-    expected_source: "onboarding.md"
+  - question: "기기 분실했을 때 어떻게 해야 해?"
+    expected_keywords: ["분실", "IT팀"]
+    expected_source: "security-policy.md"
     expected_route: "doc_search"
-
-  # ── doc_search: expense-policy.md ─────────────────────────────────────
-  - question: "출장 비용 처리 절차가 어떻게 돼?"
-    expected_keywords: ["출장", "비용"]
-    expected_source: "expense-policy.md"
-    expected_route: "doc_search"
-
-  - question: "해외 출장 식비 하루 한도가 얼마야?"
-    expected_keywords: ["해외", "식비"]
-    expected_source: "expense-policy.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: remote-work-policy.md ─────────────────────────────────
-  - question: "재택근무 신청은 어떻게 해?"
-    expected_keywords: ["재택", "신청"]
+  - question: "재택근무 정책이 어떻게 돼?"
+    expected_keywords: ["재택", "근무"]
     expected_source: "remote-work-policy.md"
     expected_route: "doc_search"
-
-  - question: "해외 원격 근무 연간 최대 며칠까지 가능해?"
-    expected_keywords: ["해외", "원격"]
-    expected_source: "remote-work-policy.md"
+  - question: "복지 혜택에 뭐가 있어?"
+    expected_keywords: ["복지", "혜택"]
+    expected_source: "benefits.md"
     expected_route: "doc_search"
-
-  # ── doc_search: incident-response.md ──────────────────────────────────
-  - question: "인시던트 발생 시 대응 절차는?"
-    expected_keywords: ["인시던트", "대응"]
-    expected_source: "incident-response.md"
+  # ── team-structure (갱신 문서) ──────────────────────────────
+  - question: "회사 부서 구조가 어떻게 돼?"
+    expected_keywords: ["부서", "팀"]
+    expected_source: "team-structure.md"
     expected_route: "doc_search"
-
-  - question: "P0 장애 발생하면 누구한테 보고해야 해?"
-    expected_keywords: ["P0", "CTO"]
-    expected_source: "incident-response.md"
+  # ── engineering ────────────────────────────────────────────
+  - question: "코드 리뷰할 때 주의사항이 뭐야?"
+    expected_keywords: ["리뷰", "PR"]
+    expected_source: "code-review-guide.md"
     expected_route: "doc_search"
-
-  # ── doc_search: tools-and-access.md ───────────────────────────────────
-  - question: "사내 API 접근 권한 받는 방법이 뭐야?"
-    expected_keywords: ["권한", "API"]
-    expected_source: "tools-and-access.md"
+  - question: "온콜 로테이션 주기가 어떻게 돼?"
+    expected_keywords: ["온콜", "1주"]
+    expected_source: "oncall-rotation.md"
     expected_route: "doc_search"
-
-  - question: "VPN 클라이언트가 뭐야?"
-    expected_keywords: ["VPN", "Tailscale"]
-    expected_source: "tools-and-access.md"
+  - question: "우리 기술 스택이 뭐야?"
+    expected_keywords: ["기술", "스택"]
+    expected_source: "tech-stack.md"
     expected_route: "doc_search"
-
-  # ── doc_search: performance-review.md ─────────────────────────────────
-  - question: "성과 평가 주기와 기준이 어떻게 돼?"
+  # ── engineering/ops (private) ──────────────────────────────
+  - question: "배포 절차가 어떻게 돼?"
+    expected_keywords: ["배포", "절차"]
+    expected_source: "deployment-guide.md"
+    expected_route: "doc_search"
+  - question: "모니터링 알람은 어디서 봐?"
+    expected_keywords: ["모니터링", "알람"]
+    expected_source: "monitoring-runbook.md"
+    expected_route: "doc_search"
+  # ── product ────────────────────────────────────────────────
+  - question: "릴리스 체크리스트가 뭐야?"
+    expected_keywords: ["릴리스", "체크리스트"]
+    expected_source: "release-process.md"
+    expected_route: "doc_search"
+  - question: "피처 플래그 어떻게 써?"
+    expected_keywords: ["피처 플래그", "롤아웃"]
+    expected_source: "feature-flags.md"
+    expected_route: "doc_search"
+  # ── design ─────────────────────────────────────────────────
+  - question: "디자인 시스템 컴포넌트 어디 있어?"
+    expected_keywords: ["디자인 시스템", "컴포넌트"]
+    expected_source: "design-system.md"
+    expected_route: "doc_search"
+  # ── sales ──────────────────────────────────────────────────
+  - question: "연간 결제하면 할인 얼마야?"
+    expected_keywords: ["할인", "20%"]
+    expected_source: "pricing.md"
+    expected_route: "doc_search"
+  - question: "영업 쿼터랑 커미션 어떻게 정해져?"
+    expected_keywords: ["쿼터", "커미션"]
+    expected_source: "quota-policy.md"
+    expected_route: "doc_search"
+  # ── hr ─────────────────────────────────────────────────────
+  - question: "채용 면접은 몇 단계야?"
+    expected_keywords: ["면접", "3단계"]
+    expected_source: "hiring-process.md"
+    expected_route: "doc_search"
+  - question: "성과 평가는 어떻게 진행돼?"
     expected_keywords: ["성과", "평가"]
     expected_source: "performance-review.md"
     expected_route: "doc_search"
-
-  - question: "S 등급 성과급이 얼마야?"
-    expected_keywords: ["성과급", "S"]
-    expected_source: "performance-review.md"
+  # ── finance ────────────────────────────────────────────────
+  - question: "부서 예산 신청 마감이 언제야?"
+    expected_keywords: ["예산", "2주"]
+    expected_source: "budget-process.md"
     expected_route: "doc_search"
-
-  # ── doc_search: api-spec.md (신규) ────────────────────────────────────
-  - question: "내부 API 인증 방식이 뭐야?"
-    expected_keywords: ["Bearer", "Authorization"]
-    expected_source: "api-spec.md"
+  # ── 검색 함정: 동음이의 + 권한 분산 ─────────────────────────
+  - question: "계약 검토는 법무에서 며칠 걸려?"
+    expected_keywords: ["계약", "영업일"]
+    expected_source: "contract-review.md"
     expected_route: "doc_search"
-
-  - question: "API 요청 한도 초과하면 어떤 에러 코드가 나와?"
-    expected_keywords: ["429", "한도"]
-    expected_source: "api-spec.md"
+  - question: "표준 계약서 양식 어디 있어?"
+    expected_keywords: ["계약서", "표준"]
+    expected_source: "contract-template.md"
     expected_route: "doc_search"
-
-  # ── doc_search: benefits.md (신규) ────────────────────────────────────
-  - question: "복지 포인트 연간 얼마야?"
-    expected_keywords: ["복지", "포인트"]
-    expected_source: "benefits.md"
+  - question: "50만원 넘는 비용 쓰려면 누구 승인 받아?"
+    expected_keywords: ["비용", "50만원"]
+    expected_source: "expense-approval.md"
     expected_route: "doc_search"
-
-  - question: "자격증 응시료 지원해줘?"
-    expected_keywords: ["자격증", "응시료"]
-    expected_source: "benefits.md"
+  - question: "개인정보 파기 규정이 뭐야?"
+    expected_keywords: ["개인정보", "파기"]
+    expected_source: "data-privacy.md"
     expected_route: "doc_search"
-
-  # ── doc_search: deployment-guide.md (신규) ────────────────────────────
-  - question: "프로덕션 배포 절차가 어떻게 돼?"
-    expected_keywords: ["배포", "production"]
-    expected_source: "deployment-guide.md"
-    expected_route: "doc_search"
-
-  - question: "배포 금지 시간대가 언제야?"
-    expected_keywords: ["배포", "금지"]
-    expected_source: "deployment-guide.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: engineering-standards.md (신규) ───────────────────────
-  - question: "신규 코드 테스트 커버리지 기준이 몇 퍼센트야?"
-    expected_keywords: ["커버리지", "80%"]
-    expected_source: "engineering-standards.md"
-    expected_route: "doc_search"
-
-  # ── doc_search: meeting-culture.md (신규) ─────────────────────────────
-  - question: "회의에서 지각하면 벌금 얼마야?"
-    expected_keywords: ["지각", "벌금"]
-    expected_source: "meeting-culture.md"
-    expected_route: "doc_search"
-
-  - question: "회의록은 언제까지 Confluence에 올려야 해?"
-    expected_keywords: ["회의록", "24시간"]
-    expected_source: "meeting-culture.md"
-    expected_route: "doc_search"
-
-  # ── tool_call ─────────────────────────────────────────────────────────
+  # ── tool_call (코퍼스 독립 — 기존 유지) ─────────────────────
   - question: "다음 주 월요일 회의실 A 예약해줘"
     expected_keywords: ["회의실", "예약"]
     expected_route: "tool_call"
-
   - question: "팀 전체에 슬랙으로 공지 보내줘"
     expected_keywords: ["슬랙", "공지"]
     expected_route: "tool_call"
-
   - question: "내 연차 잔여일 인사 시스템에서 조회해줘"
     expected_keywords: ["연차", "잔여"]
     expected_route: "tool_call"
-
   - question: "김철수 대리에게 메일 보내줘"
     expected_keywords: ["메일"]
     expected_route: "tool_call"
-
   - question: "오늘 오후 2시 캘린더에 미팅 잡아줘"
     expected_keywords: ["캘린더", "미팅"]
     expected_route: "tool_call"
-
   - question: "내 Jira 미완료 티켓 목록 보여줘"
     expected_keywords: ["Jira", "티켓"]
     expected_route: "tool_call"

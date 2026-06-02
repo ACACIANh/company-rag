@@ -96,3 +96,68 @@ async def test_no_folders_returns_nothing():
         {"text": "공개", "source": "common/benefits.md", "path": "/company/common"},
     ])
     assert (await _run(fga, retriever))["documents"] == []
+
+
+# ── TechCorp 재구성: 교차부서·무소속·super_reader 매트릭스 ──────────────
+async def test_cross_dept_user_sees_both_private_folders():
+    # karl(hr+legal): 두 private 폴더 모두 가시, finance(타 private)는 차단.
+    fga = _fga_with_folders(
+        ["/company", "/company/common", "/company/sales", "/company/hr", "/company/legal"]
+    )
+    retriever = _mock_retriever([
+        {"text": "인사", "source": "hr/perf.md", "path": "/company/hr"},
+        {"text": "법무", "source": "legal/nda.md", "path": "/company/legal"},
+        {"text": "재무", "source": "finance/budget.md", "path": "/company/finance"},
+    ])
+    sources = [r.chunk.source for r in (await _run(fga, retriever))["documents"]]
+    assert "hr/perf.md" in sources
+    assert "legal/nda.md" in sources
+    assert "finance/budget.md" not in sources  # 타 부서 private 차단
+
+
+async def test_cross_dept_public_plus_one_private():
+    # judy(sales+finance): public(sales) + finance(private) 가시, hr(타 private) 차단.
+    fga = _fga_with_folders(
+        ["/company", "/company/common", "/company/sales", "/company/finance"]
+    )
+    retriever = _mock_retriever([
+        {"text": "영업", "source": "sales/pricing.md", "path": "/company/sales"},
+        {"text": "재무", "source": "finance/budget.md", "path": "/company/finance"},
+        {"text": "인사", "source": "hr/perf.md", "path": "/company/hr"},
+    ])
+    sources = [r.chunk.source for r in (await _run(fga, retriever))["documents"]]
+    assert "sales/pricing.md" in sources
+    assert "finance/budget.md" in sources
+    assert "hr/perf.md" not in sources
+
+
+async def test_super_reader_sees_all_private():
+    # admin(c_level): 모든 private 관통. ListObjects가 전 폴더를 반환.
+    all_folders = [
+        "/company", "/company/common", "/company/engineering", "/company/engineering/ops",
+        "/company/product", "/company/design", "/company/sales",
+        "/company/hr", "/company/finance", "/company/legal",
+    ]
+    fga = _fga_with_folders(all_folders)
+    retriever = _mock_retriever([
+        {"text": "인사", "source": "hr/perf.md", "path": "/company/hr"},
+        {"text": "재무", "source": "finance/budget.md", "path": "/company/finance"},
+        {"text": "법무", "source": "legal/nda.md", "path": "/company/legal"},
+        {"text": "운영", "source": "engineering/ops/deploy.md", "path": "/company/engineering/ops"},
+    ])
+    sources = [r.chunk.source for r in (await _run(fga, retriever, "전사 조회"))["documents"]]
+    assert set(sources) == {
+        "hr/perf.md", "finance/budget.md", "legal/nda.md", "engineering/ops/deploy.md"
+    }
+
+
+async def test_public_only_user_blocked_from_all_new_privates():
+    # carol(무소속): 신규 private(finance·legal)도 prefix 누수 없이 차단 — ADR-0015 회귀.
+    fga = _fga_with_folders(["/company", "/company/common", "/company/sales"])
+    retriever = _mock_retriever([
+        {"text": "영업", "source": "sales/pricing.md", "path": "/company/sales"},
+        {"text": "재무", "source": "finance/budget.md", "path": "/company/finance"},
+        {"text": "법무", "source": "legal/nda.md", "path": "/company/legal"},
+    ])
+    sources = [r.chunk.source for r in (await _run(fga, retriever))["documents"]]
+    assert sources == ["sales/pricing.md"]  # 신규 private 차단

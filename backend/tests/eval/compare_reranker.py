@@ -17,12 +17,12 @@ from openai import OpenAI
 from pgvector.asyncpg import register_vector
 
 from core.config import load_config
-from core.embedder import SentenceTransformerEmbedder
 from core.llm.factory import create_llm
 from core.reranker.llm_reranker import LLMReranker
 from core.vector_store.factory import create_vector_store
 from core.retriever import BasicRetriever
 from app.graph.builder import answer_question, build_graph
+from app.ingestion.embedder import get_embedder
 from tests.eval.runner import load_questions, run_eval
 
 _DOC_SEARCH_YAML = os.path.join(os.path.dirname(__file__), "questions.yaml")
@@ -34,9 +34,12 @@ def _make_run(loop, graph):
     return run
 
 
+# TODO: build_graph 가 fga_client 를 요구하므로(app/graph/builder.py) 아래 main 은
+# 현재 ValueError 로 실패한다. eval_rag_basic.py 처럼 fga_client 배선 + source basename
+# 채점 보정이 필요(ADR-0014 'eval 하니스 복구' 후속 과제). 임베더 픽스만 선반영됨.
 def main() -> None:
     config = load_config()
-    embedder = SentenceTransformerEmbedder(config.embedding_model)
+    embedder = get_embedder(config.embedding_model)
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
