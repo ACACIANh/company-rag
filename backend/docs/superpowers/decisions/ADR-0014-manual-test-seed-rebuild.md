@@ -1,6 +1,6 @@
 # Decision: 수동 테스트용 시드 데이터 전면 재구성
 
-> **Status**: 🟡 보류 — 구현 미착수 (FGA 모델 확정(ADR-0015) 후 진행 가능)
+> **Status**: 🟢 적용완료 — TechCorp 7부서/12명/46문서 재구성 (spec: `specs/2026-06-02-techcorp-seed-rebuild-design.md`)
 
 **Date**: 2026-06-01
 **Context**: 실사용 환경처럼 체감하며 테스트하기 위해 부서·사원·문서를 대폭 늘린다. 기존 코어(13문서/4명/3부서) 위에 "추가 레이어"로 쌓을지, 전면 재구성할지 결정.
@@ -24,4 +24,19 @@
 - **테스트코드만으로 불충분**: 테스트코드는 예상한 케이스만 검증한다. 권한 경계(권한 0 사용자, 교차 부서), `prune_to_top_folders`, multi_query·RRF·리랭킹의 효과는 실사용 규모 데이터에서만 체감·검증된다. 따라서 풍부한 시드 데이터(실사용 결함 발견)와 테스트코드(회귀 안전망)는 대체재가 아니라 보완재로 둘 다 둔다.
 
 ## Status
-**보류 중 (구현 미착수)** — FGA 모델 변경 작업이 진행 중이므로, 본 ADR은 방향 결정만 기록한다. 조직 구체안(부서명·사원 매핑·문서 목록)과 구현은 FGA 모델 변경 완료 후 별도 spec/plan으로 확정한다.
+**적용완료 (2026-06-02)** — ADR-0015(FGA 4축 모델) 확정으로 보류 해제. 조직 구체안·구현을 `specs/2026-06-02-techcorp-seed-rebuild-design.md` + `plans/2026-06-02-techcorp-seed-rebuild.md`로 확정·실행.
+
+## 구현 결과 (2026-06-02)
+
+**규모**: 부서 7개(engineering·product·design·sales·hr·finance·legal) + 전사공통 common. 사원 12명(c_level 1·무소속 1·교차부서 3·단일 7). 문서 46개(기존 15 재사용 + 신규 31). private 서브트리 4개(engineering/ops·hr·finance·legal) — ops는 public 부모 밑 서브트리 private로 ADR-0015 상속차단 경계를 자극.
+
+**조직 구체안**: 기존 매핑(alice=engineering, bob=hr, carol=무소속, admin=c_level) 보존으로 API 인증 fixture churn 0. 신규 8명·5부서·31문서는 additive.
+
+**검증**:
+- 단위테스트 324 통과(기존 318 + 권한 매트릭스 6: 교차부서·무소속·super_reader 관통 — `tests/app/test_rag_with_fga.py`).
+- 재시드(FGA 33 튜플) → 재인덱싱(89 청크 / 46 distinct source) 로컬 인프라에서 실행 완료.
+- eval baseline(신 코퍼스, `user-admin` 전사 열람권 기준): **recall@1=0.700 · recall@3=0.733 · recall@5=0.733 · mrr=0.717 · kw=0.767 (errors=0/30)**.
+  - aggregate에는 tool_call 6문항(expected_source 없음 → 구조상 recall 0)이 포함됨. doc_search 24문항만 보면 recall@1≈0.875 · recall@5≈0.917.
+  - 실질 검색 미스 2건: `기기 분실`→security-policy(미검색), `배포 절차`→deployment-guide(동음이의 "배포"가 product/release-process 등에 분산돼 top-5 밖). **ADR-0014가 노린 "실사용 규모에서만 드러나는 검색 함정"이 그대로 관측됨** — 향후 리랭킹·multi_query 개선의 회귀 측정 토대.
+
+**부수 발견 — eval 하니스 복구**: 신 코퍼스 eval 측정 중, eval 스크립트가 그래프 진화에 뒤처져 깨져 있던 것을 발견(데이터 재구성과 무관한 선재 버그). `eval_rag_basic.py`·`compare_reranker.py`가 (1) OpenAI 임베딩 모델을 SentenceTransformer로 하드코딩, (2) `build_graph`가 요구하는 `fga_client` 미주입. eval 측정을 위해 `get_embedder()` 팩토리 일치 + fga_client 배선(`user-admin` 전사 열람) + 인용 source basename 채점 보정을 적용(`fix(eval)` 커밋들). 지표 계층(`recall_at_k`가 `list[SourceRef]`를 받는 타입 불일치, source 폴더상대 vs basename)은 eval 스크립트 경계에서만 보정하고 프로덕션 `core/observability/eval/`는 미변경 — 근본 수정은 별도 후속 과제.
