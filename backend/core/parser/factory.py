@@ -1,17 +1,15 @@
 from core.parser.base import DocumentParser
 from core.parser.markdown_parser import MarkdownParser
-from core.parser.pdf_parser import PdfParser
 
 
 class ParserFactory:
-    """파일 확장자로 DocumentParser 구현체를 선택한다 (ADR-0013 D3)."""
+    """파일 확장자로 DocumentParser 구현체를 선택한다 (현재 Markdown 단일)."""
 
-    _MIME = {".md": "text/markdown", ".pdf": "application/pdf"}
+    _MIME = {".md": "text/markdown"}
 
     def __init__(self) -> None:
         self._parsers: dict[str, DocumentParser] = {
             ".md": MarkdownParser(),
-            ".pdf": PdfParser(),
         }
 
     def supported_extensions(self) -> list[str]:
