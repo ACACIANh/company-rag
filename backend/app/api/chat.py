@@ -25,6 +25,7 @@ from core.retriever import BasicRetriever
 from core.session.factory import create_session_store
 from core.vector_store.factory import create_vector_store
 from core.document_version.postgres_store import PostgresDocumentVersionStore
+from core.document_original.postgres_store import PostgresDocumentOriginalStore
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from app.graph.builder import answer_question, build_graph, stream_answer
@@ -32,6 +33,7 @@ from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
 from app.api.deps import check_rate_limit, get_current_user
 from app.api.sessions import router as sessions_router
+from app.api.documents import router as documents_router
 
 init_tracker([FileSink("logs")])
 
@@ -68,6 +70,8 @@ async def lifespan(app: FastAPI):
         await session_store.ensure_tables()
 
     await PostgresDocumentVersionStore(pool).ensure_table()
+    original_store = PostgresDocumentOriginalStore(pool)
+    await original_store.ensure_table()
 
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
@@ -91,6 +95,7 @@ async def lifespan(app: FastAPI):
         app.state.fga_client = fga_client
         app.state.session_store = session_store
         app.state.graph = graph
+        app.state.original_store = original_store
 
         yield
 
@@ -111,6 +116,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(sessions_router)
+app.include_router(documents_router)
 
 
 class ChatRequest(BaseModel):
