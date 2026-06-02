@@ -20,10 +20,11 @@
 | [0013](ADR-0013-multi-format-ingestion.md) | 다중 포맷 문서 인제스천 — 파서 격리 + 통일 중간표현(Markdown) | 🟣 대체됨 |
 | [0014](ADR-0014-manual-test-seed-rebuild.md) | 수동 테스트용 시드 데이터 전면 재구성 | 🟢 적용완료 |
 | [0015](ADR-0015-fga-public-private-super-reader.md) | FGA 권한 모델 확장 — public/private/dept/super_reader 4축 모델 | 🟢 적용완료 |
-| [0016](ADR-0016-identity-risk-sql-gate.md) | 신원 × 위험도 교차 게이트로 자율 SQL 도구를 통제한다 | ⚪ 제안됨 |
-| [0017](ADR-0017-sql-risk-classification.md) | SQL 위험도 분류 — AST 확정 + LLM 보강 | ⚪ 제안됨 |
-| [0018](ADR-0018-decision-audit-log.md) | 게이트 결정·SQL 실행 감사 로그 인프라 | ⚪ 제안됨 |
+| [0016](ADR-0016-identity-risk-sql-gate.md) | 신원 × 위험도 교차 게이트로 자율 SQL 도구를 통제한다 | 🟢 적용완료 |
+| [0017](ADR-0017-sql-risk-classification.md) | SQL 위험도 분류 — AST 확정 + LLM 보강 | 🟢 적용완료 |
+| [0018](ADR-0018-decision-audit-log.md) | 게이트 결정·SQL 실행 감사 로그 인프라 | 🟢 적용완료 |
 | [0019](ADR-0019-scope-down-ingestion.md) | 기획 축소 — 다중 포맷·원본 보관·다운로드 철회, Markdown 단일 인제스천 복귀 | 🟢 적용완료 |
+| [0020](ADR-0020-sql-gate-prerequisite-infra.md) | 신원×위험도 SQL 게이트의 전제 인프라 | 🟢 적용완료 |
 
 ## 상태 범례
 

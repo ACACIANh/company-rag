@@ -34,6 +34,33 @@ def test_build_pg_filter_multiple_folders_exact_match():
 
 
 @pytest.mark.asyncio
+async def test_user_roles_strips_prefix():
+    client = _client()
+    with patch.object(client, "_list_fga_objects",
+                      new=AsyncMock(return_value=["role:c_level", "role:admin"])) as mock_list:
+        roles = await client.user_roles("user-admin")
+    assert roles == ["c_level", "admin"]
+    mock_list.assert_awaited_once_with("user:user-admin", "member", "role")
+
+
+@pytest.mark.asyncio
+async def test_user_departments_strips_prefix():
+    client = _client()
+    with patch.object(client, "_list_fga_objects",
+                      new=AsyncMock(return_value=["department:engineering", "department:product"])) as mock_list:
+        depts = await client.user_departments("user-ivan")
+    assert depts == ["engineering", "product"]
+    mock_list.assert_awaited_once_with("user:user-ivan", "member", "department")
+
+
+@pytest.mark.asyncio
+async def test_user_roles_empty():
+    client = _client()
+    with patch.object(client, "_list_fga_objects", new=AsyncMock(return_value=[])):
+        assert await client.user_roles("user-carol") == []
+
+
+@pytest.mark.asyncio
 async def test_get_readable_folders_returns_cached():
     cache = InMemoryCacheBackend()
     await cache.set("u1", ["/company", "/company/engineering"], ttl_seconds=60)

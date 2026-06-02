@@ -51,13 +51,24 @@ def route_after_router(state: dict) -> str:
     return route
 
 
-def route_after_confirm(state: dict) -> str:
-    """Route based on user confirmation.
-
-    Args:
-        state: Graph state containing confirmed flag
+def route_after_gate(state: dict) -> str:
+    """Route based on the identity×risk gate decision (ADR-0016).
 
     Returns:
-        "tool_executor" if confirmed is True, "end" otherwise
+        "sql_execute" for ALLOW, "confirm" for NEEDS_APPROVAL, "sql_reject" for DENY.
     """
-    return "tool_executor" if state["confirmed"] else "end"
+    decision = state["gate_decision"]
+    if decision == "ALLOW":
+        return "sql_execute"
+    if decision == "NEEDS_APPROVAL":
+        return "confirm"
+    return "sql_reject"
+
+
+def route_after_confirm(state: dict) -> str:
+    """Route after NEEDS_APPROVAL human confirmation (ADR-0016).
+
+    Returns:
+        "sql_execute" if confirmed, "sql_reject" otherwise (user cancelled).
+    """
+    return "sql_execute" if state["confirmed"] else "sql_reject"

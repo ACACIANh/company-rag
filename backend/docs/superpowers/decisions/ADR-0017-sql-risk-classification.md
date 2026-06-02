@@ -1,6 +1,6 @@
 # ADR-0017: SQL 위험도 분류 — AST 확정 + LLM 보강
 
-> **Status**: ⚪ 제안됨
+> **Status**: 🟢 적용완료
 
 **Date**: 2026-06-02
 **Context**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)의 3-state 게이트는 SQL 위험도 등급(일반 SELECT / 대량·PII SELECT / UPDATE·DELETE / DDL)을 입력으로 받는다. 이 분류 노드가 게이트 전체의 **단일 실패점**이다. 위험도를 LLM에 통째로 위임하면 프롬프트 우회(예: `SELECT`로 위장한 서브쿼리, 주석 안에 숨긴 `DROP`)에 뚫린다.

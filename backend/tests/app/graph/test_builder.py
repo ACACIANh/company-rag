@@ -9,11 +9,24 @@ from core.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
 
 
-def _mock_fga_client():
+def _mock_fga_client(roles=None, departments=None):
     mock_fga = MagicMock()
     mock_fga.build_pg_filter = MagicMock(return_value=("path = $1 OR path LIKE $2", ["/company", "/company/%"]))
     mock_fga.get_readable_folders = AsyncMock(return_value=["/company"])
+    mock_fga.user_roles = AsyncMock(return_value=roles or [])
+    mock_fga.user_departments = AsyncMock(return_value=departments or [])
     return mock_fga
+
+
+def _mock_sql_pool(fetch_return=None):
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=fetch_return or [{"name": "alice", "salary": 100}])
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+    return pool
 
 
 def _make_retriever(text: str = "문서", source: str = "doc.md"):
@@ -42,6 +55,9 @@ def _make_initial_state(question: str) -> dict:
         "tool_input": "",
         "user_id": "anonymous",
         "allowed_folders": [],
+        "generated_sql": "",
+        "sql_risk": "",
+        "gate_decision": "",
     }
 
 
@@ -90,63 +106,95 @@ async def test_answer_question_doc_search_retry_on_low_grade():
     assert result.text == "좋은 답변"
 
 
-def test_tool_call_triggers_interrupt():
-    """LangGraph: invoke() returns __interrupt__ key when HITL interrupt fires."""
-    doc_retriever = _make_retriever()
+@pytest.mark.asyncio
+async def test_tool_call_needs_approval_triggers_interrupt():
+    """게이트 NEEDS_APPROVAL(engineering × 대량/PII SELECT)이면 HITL interrupt가 뜬다."""
     llm = MagicMock()
     llm.complete.side_effect = [
-        "회의실 예약 요청",
-        "tool_call",
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # sql_generate (AST: select)
+        "yes",                                              # 대량/PII 보강 → bulk_select
     ]
     graph = build_graph(
-        retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
     )
-    config = {"configurable": {"thread_id": "test-interrupt-1"}}
+    config = {"configurable": {"thread_id": "test-gate-1"}}
 
-    result = graph.invoke(_make_initial_state("회의실 예약해줘"), config=config)
+    result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
     assert len(result["__interrupt__"]) > 0
 
 
 @pytest.mark.asyncio
-async def test_tool_call_completes_after_user_approves():
-    doc_retriever = _make_retriever()
+async def test_tool_call_executes_after_user_approves():
     llm = MagicMock()
     llm.complete.side_effect = [
-        "회의실 예약 요청",
-        "tool_call",
-        "Mock 실행 결과 답변",
-        "YES",
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # sql_generate
+        "yes",                                              # bulk_select
+        "조회 결과 요약 답변",                               # generate (실행 후)
+        "YES",                                              # hallucination
     ]
     graph = build_graph(
-        retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
     )
-    config = {"configurable": {"thread_id": "test-interrupt-2"}}
+    config = {"configurable": {"thread_id": "test-gate-2"}}
 
-    result = await graph.ainvoke(_make_initial_state("회의실 예약해줘"), config=config)
+    result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume=True), config=config)
-    assert final["answer"] == "Mock 실행 결과 답변"
+    assert final["answer"] == "조회 결과 요약 답변"
 
 
-def test_tool_call_ends_when_user_denies():
-    doc_retriever = _make_retriever()
+@pytest.mark.asyncio
+async def test_tool_call_rejects_when_user_denies():
     llm = MagicMock()
     llm.complete.side_effect = [
-        "슬랙 메시지 요청",
-        "tool_call",
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # sql_generate
+        "yes",                                              # bulk_select
     ]
     graph = build_graph(
-        retriever=doc_retriever, llm=llm, fga_client=_mock_fga_client(),
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
     )
-    config = {"configurable": {"thread_id": "test-interrupt-3"}}
+    config = {"configurable": {"thread_id": "test-gate-3"}}
 
-    result = graph.invoke(_make_initial_state("팀에 공지 보내줘"), config=config)
+    result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
-    final = graph.invoke(Command(resume=False), config=config)
-    assert final["answer"] == ""
+    final = await graph.ainvoke(Command(resume=False), config=config)
+    assert "취소" in final["answer"]   # sql_reject 취소 메시지
+
+
+@pytest.mark.asyncio
+async def test_tool_call_deny_blocks_without_interrupt():
+    """일반 부서원 × UPDATE → DENY. interrupt 없이 거부 메시지."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "급여 0으로 변경",                                   # rewrite
+        "tool_call",                                        # router
+        "UPDATE business.employees SET salary = 0",         # sql_generate (AST: update → DENY, LLM 보강 없음)
+    ]
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["sales"]),   # general
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+    )
+    config = {"configurable": {"thread_id": "test-gate-4"}}
+
+    final = await graph.ainvoke(_make_initial_state("전직원 급여 0으로 바꿔"), config=config)
+    assert "__interrupt__" not in final
+    assert "권한" in final["answer"] or "실행할 수 없" in final["answer"]
 
 
 async def test_answer_question_multi_turn_accumulates_chat_history():

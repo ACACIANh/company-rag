@@ -48,6 +48,18 @@ class FGAClient:
         prefix = "folder:"
         return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
 
+    async def user_roles(self, user_id: str) -> list[str]:
+        """user가 member인 role id 목록 (신원 등급 판정용 — ADR-0016). prefix 제거."""
+        objects = await self._list_fga_objects(f"user:{user_id}", "member", "role")
+        prefix = "role:"
+        return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
+
+    async def user_departments(self, user_id: str) -> list[str]:
+        """user가 member인 department id 목록 (신원 등급 판정용 — ADR-0016). prefix 제거."""
+        objects = await self._list_fga_objects(f"user:{user_id}", "member", "department")
+        prefix = "department:"
+        return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
+
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
         from openfga_sdk.client.models import ClientListObjectsRequest

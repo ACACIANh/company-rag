@@ -58,6 +58,13 @@ def test_agent_state_phase3_instantiation():
     assert state["tool_input"] == "회의실 A, 2026-06-01 14:00"
 
 
+def test_agent_state_has_sql_gate_fields():
+    hints = get_type_hints(AgentState, include_extras=True)
+    assert "generated_sql" in hints
+    assert "sql_risk" in hints
+    assert "gate_decision" in hints
+
+
 def test_agent_state_has_multi_query_fields():
     hints = get_type_hints(AgentState, include_extras=True)
     assert "rewrite_strategy" in hints

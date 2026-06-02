@@ -1,4 +1,4 @@
-from app.graph.edges import route_after_confirm, route_after_grade, route_after_hallucination, route_after_router
+from app.graph.edges import route_after_confirm, route_after_gate, route_after_grade, route_after_hallucination, route_after_router
 
 
 # ─── route_after_grade ───
@@ -77,11 +77,25 @@ def test_route_after_router_returns_doc_search_when_no_strategy_key():
     assert route_after_router(state) == "doc_search"
 
 
-# ─── route_after_confirm ───
+# ─── route_after_confirm (SQL 게이트 NEEDS_APPROVAL 전용) ───
 
-def test_route_after_confirm_proceeds_when_confirmed():
-    assert route_after_confirm({"confirmed": True}) == "tool_executor"
+def test_route_after_confirm_executes_when_confirmed():
+    assert route_after_confirm({"confirmed": True}) == "sql_execute"
 
 
-def test_route_after_confirm_ends_when_denied():
-    assert route_after_confirm({"confirmed": False}) == "end"
+def test_route_after_confirm_rejects_when_denied():
+    assert route_after_confirm({"confirmed": False}) == "sql_reject"
+
+
+# ─── route_after_gate (ADR-0016 3-state) ───
+
+def test_route_after_gate_allow_executes():
+    assert route_after_gate({"gate_decision": "ALLOW"}) == "sql_execute"
+
+
+def test_route_after_gate_needs_approval_confirms():
+    assert route_after_gate({"gate_decision": "NEEDS_APPROVAL"}) == "confirm"
+
+
+def test_route_after_gate_deny_rejects():
+    assert route_after_gate({"gate_decision": "DENY"}) == "sql_reject"

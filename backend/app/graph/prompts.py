@@ -74,3 +74,27 @@ MULTI_QUERY_PROMPT = """\
 
 질문: {question}
 하위 쿼리:"""
+
+SQL_GENERATE_PROMPT = """\
+당신은 사내 업무 DB 조회를 돕는 SQL 생성기입니다. 아래 스키마만 사용해 질문에
+답하는 PostgreSQL SQL을 한 문장 생성하세요. SQL 본문만 출력하고 설명·코드펜스는
+넣지 마세요.
+
+스키마:
+- business.employees(emp_id, name, department, position, hire_date, salary, email)
+- business.sales(sale_id, period, department, product, amount, created_at)
+
+질문: {question}
+SQL:"""
+
+SQL_BULK_PII_PROMPT = """\
+다음 SQL은 읽기 전용(SELECT)으로 확정되었습니다. 이 쿼리가 아래 중 하나에
+해당하는지 판정하세요.
+- 풀스캔/대량 조회: 행 제한(WHERE 필터, LIMIT)이 사실상 없어 테이블 전체에
+  가까운 양을 읽음
+- PII 포함: salary(급여), email, 주민/연락처 등 개인식별정보 컬럼을 조회
+
+위 둘 중 하나라도 해당하면 yes, 아니면 no 만 출력하세요. 다른 텍스트 금지.
+
+SQL: {sql}
+출력:"""
