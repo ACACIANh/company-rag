@@ -1,72 +1,59 @@
-"""신원×위험도 게이트 매트릭스 (ADR-0016, 매트릭스 개정 ADR-0027).
+"""capability 게이트 (ADR-0028, 3-state 의미 ADR-0027 유지).
 
-질문자의 신원 등급과 SQL 위험도(core.sql.risk)를 교차해 3-state 결정을 내린다.
-LangGraph를 모르는 순수 정책 로직 — 신원 조회(FGA)·감사 기록은 노드의 책임이다.
+SQL 위험도(core.sql.risk)를 OpenFGA capability:sql 의 2층 relation
+(allow_*/justify_*) Check로 교차해 3-state 결정을 내린다. 게이트 정책은
+코드 매트릭스가 아니라 OpenFGA 튜플에 있다 — 신원 조회·감사 기록은 노드의 책임이다.
 
 DBA 부재 전제(ADR-0027): 회색지대는 외부 결재 대기가 아니라, 질문자 본인이
 사유를 남기고 자기책임으로 통과(JUSTIFY_AND_APPROVE)하는 self-service 흐름이다.
 """
+from typing import Awaitable, Callable, Protocol
+
 from core.sql.risk import (
     RISK_SELECT,
     RISK_BULK_SELECT,
     RISK_UPDATE_DELETE,
     RISK_DDL,
-    RISK_DENY,
 )
 
-# 신원 등급 (기존 권한주체로 매핑 — 신규 권한주체 도입 없음)
-TIER_GENERAL = "general"          # 특수 역할 없는 부서원
-TIER_ENGINEERING = "engineering"  # 기술 부서원
-TIER_C_LEVEL = "c_level"          # super_reader 역할
-
-# 게이트 3-state (회색지대 명칭 개정 ADR-0027: NEEDS_APPROVAL → JUSTIFY_AND_APPROVE)
+# 게이트 3-state (ADR-0027)
 DECISION_ALLOW = "ALLOW"
 DECISION_DENY = "DENY"
 DECISION_JUSTIFY_AND_APPROVE = "JUSTIFY_AND_APPROVE"
 
-# (신원, 위험도) → 결정. ADR-0016 권한 매트릭스(ADR-0027 개정).
-_MATRIX = {
-    RISK_SELECT: {
-        TIER_GENERAL: DECISION_ALLOW,
-        TIER_ENGINEERING: DECISION_ALLOW,
-        TIER_C_LEVEL: DECISION_ALLOW,
-    },
-    RISK_BULK_SELECT: {
-        # 최고 권한일수록 면제가 아니라 기록 — c_level도 PII는 사유 기재(ADR-0027).
-        TIER_GENERAL: DECISION_JUSTIFY_AND_APPROVE,
-        TIER_ENGINEERING: DECISION_JUSTIFY_AND_APPROVE,
-        TIER_C_LEVEL: DECISION_JUSTIFY_AND_APPROVE,
-    },
-    RISK_UPDATE_DELETE: {
-        TIER_GENERAL: DECISION_DENY,
-        TIER_ENGINEERING: DECISION_JUSTIFY_AND_APPROVE,
-        TIER_C_LEVEL: DECISION_JUSTIFY_AND_APPROVE,
-    },
-    RISK_DDL: {
-        TIER_GENERAL: DECISION_DENY,
-        TIER_ENGINEERING: DECISION_DENY,
-        TIER_C_LEVEL: DECISION_DENY,
-    },
-    # 위험도 분류 폴백(파싱 실패·미지원)은 어느 신원이든 차단
-    RISK_DENY: {
-        TIER_GENERAL: DECISION_DENY,
-        TIER_ENGINEERING: DECISION_DENY,
-        TIER_C_LEVEL: DECISION_DENY,
-    },
+# capability 인스턴스 — SQL 권한의 단일 객체
+CAPABILITY_OBJECT = "capability:sql"
+
+# 위험도 → capability relation 접미. 미매핑(RISK_DENY·미지원)은 DENY.
+RISK_TO_RELATION = {
+    RISK_SELECT: "select",
+    RISK_BULK_SELECT: "bulk_select",
+    RISK_UPDATE_DELETE: "update_delete",
+    RISK_DDL: "ddl",
 }
 
 
-def identity_tier(roles: list[str], departments: list[str]) -> str:
-    """신원 등급을 결정. 우선순위: c_level > engineering > general."""
-    if TIER_C_LEVEL in roles:
-        return TIER_C_LEVEL
-    if TIER_ENGINEERING in departments:
-        return TIER_ENGINEERING
-    return TIER_GENERAL
+class CapabilityChecker(Protocol):
+    """gate_decision이 의존하는 최소 인터페이스. FGAClient가 구조적으로 만족한다."""
+    async def check(self, user: str, relation: str, object_: str) -> bool: ...
 
 
-def gate_lookup(tier: str, risk: str) -> tuple[str, str]:
-    """(신원 등급, 위험도) → (결정, 사유). 미지의 조합은 보수적으로 DENY."""
-    decision = _MATRIX.get(risk, {}).get(tier, DECISION_DENY)
-    reason = f"신원={tier} × 위험도={risk} → {decision}"
-    return decision, reason
+async def gate_decision(
+    check: Callable[[str, str, str], Awaitable[bool]],
+    user_id: str,
+    risk: str,
+) -> tuple[str, str]:
+    """(check, user_id, 위험도) → (결정, 사유).
+
+    allow_<risk> 보유 → ALLOW, 없으면 justify_<risk> 보유 → JUSTIFY_AND_APPROVE,
+    둘 다 없으면 DENY. 미지원 위험도(RISK_DENY 등)는 보수적으로 DENY.
+    """
+    suffix = RISK_TO_RELATION.get(risk)
+    if suffix is None:
+        return DECISION_DENY, f"위험도={risk} 미지원 → DENY"
+    user = f"user:{user_id}"
+    if await check(user, f"allow_{suffix}", CAPABILITY_OBJECT):
+        return DECISION_ALLOW, f"capability allow_{suffix} 보유 → ALLOW"
+    if await check(user, f"justify_{suffix}", CAPABILITY_OBJECT):
+        return DECISION_JUSTIFY_AND_APPROVE, f"capability justify_{suffix} 보유 → JUSTIFY_AND_APPROVE"
+    return DECISION_DENY, f"capability {suffix} 미부여 → DENY"
