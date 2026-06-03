@@ -14,9 +14,11 @@ from core.models import Answer
 from core.reranker.base import Reranker
 from core.retriever.base import Retriever
 from core.fga.client import FGAClient
+from core.config import load_config
+from core.llm.factory import create_chat_llm
 from app.graph.edges import (
-    route_after_confirm,
-    route_after_gate,
+    route_after_agent,
+    route_after_tool_gate,
     route_after_grade,
     route_after_hallucination,
     route_after_router,
@@ -33,11 +35,11 @@ from app.graph.nodes.rewrite_query import rewrite_query_node
 from app.graph.nodes.router import router_node
 from app.graph.nodes.save_memory import save_memory_node
 from app.graph.nodes.multi_query import multi_query_node
-from app.graph.nodes.sql_generate import sql_generate_node
-from app.graph.nodes.classify_risk import classify_risk_node
-from app.graph.nodes.gate import gate_node
-from app.graph.nodes.sql_execute import sql_execute_node
-from app.graph.nodes.sql_reject import sql_reject_node
+from app.graph.nodes.agent import agent_node
+from app.graph.nodes.tool_gate import tool_gate_node
+from app.graph.nodes.justify_execute import justify_execute_node
+from app.graph.nodes.agent_answer import agent_answer_node
+from app.graph.tools.registry import build_tool_registry
 from app.graph.state import AgentState
 
 _STREAM_CHUNK_SIZE = 3  # 의사 스트리밍 청크 크기(글자). 타이핑 효과용.
@@ -53,9 +55,14 @@ def build_graph(
     checkpointer: BaseCheckpointSaver | None = None,
     audit_sink: Any = None,
     sql_pool: Any = None,
+    chat_model: Any = None,
 ) -> CompiledStateGraph:
     if fga_client is None:
         raise ValueError("fga_client is required")
+    if chat_model is None:
+        chat_model = create_chat_llm(load_config())
+    registry = build_tool_registry(llm=llm, sql_pool=sql_pool)
+    bound = chat_model.bind_tools(registry.tool_defs)
     g = StateGraph(AgentState)
 
     g.add_node("load_memory", load_memory_node)
@@ -73,12 +80,11 @@ def build_graph(
     g.add_node("grade_documents", partial(grade_documents_node, llm=llm))
     g.add_node("increment_retry", increment_retry_node)
     g.add_node("multi_query", partial(multi_query_node, llm=llm))
-    g.add_node("sql_generate", partial(sql_generate_node, llm=llm))
-    g.add_node("classify_risk", partial(classify_risk_node, llm=llm))
-    g.add_node("gate", partial(gate_node, fga_client=fga_client, audit_sink=audit_sink))
+    g.add_node("agent", partial(agent_node, chat_model=bound))
+    g.add_node("tool_gate", partial(tool_gate_node, registry=registry, fga_client=fga_client, audit_sink=audit_sink))
     g.add_node("confirm", confirm_node)
-    g.add_node("sql_execute", partial(sql_execute_node, sql_pool=sql_pool, audit_sink=audit_sink))
-    g.add_node("sql_reject", sql_reject_node)
+    g.add_node("justify_execute", partial(justify_execute_node, registry=registry, audit_sink=audit_sink))
+    g.add_node("agent_answer", agent_answer_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
     g.add_node("save_memory", save_memory_node)
@@ -93,7 +99,7 @@ def build_graph(
         {
             "doc_search": "permission",
             "multi_query": "multi_query",
-            "tool_call": "sql_generate",
+            "tool_call": "agent",
         },
     )
     g.add_edge("multi_query", "permission")
@@ -107,21 +113,20 @@ def build_graph(
         {"generate": "generate", "rewrite_retry": "increment_retry"},
     )
 
-    # tool_call → SQL 게이트 서브루틴 (ADR-0016)
-    g.add_edge("sql_generate", "classify_risk")
-    g.add_edge("classify_risk", "gate")
+    # tool_call → 게이트된 에이전트 루프 (ADR-0023)
     g.add_conditional_edges(
-        "gate",
-        route_after_gate,
-        {"sql_execute": "sql_execute", "confirm": "confirm", "sql_reject": "sql_reject"},
+        "agent",
+        route_after_agent,
+        {"tool_gate": "tool_gate", "agent_done": "agent_answer"},
     )
     g.add_conditional_edges(
-        "confirm",
-        route_after_confirm,
-        {"sql_execute": "sql_execute", "sql_reject": "sql_reject"},
+        "tool_gate",
+        route_after_tool_gate,
+        {"confirm": "confirm", "agent": "agent"},
     )
-    g.add_edge("sql_execute", "generate")
-    g.add_edge("sql_reject", "save_memory")
+    g.add_edge("confirm", "justify_execute")
+    g.add_edge("justify_execute", "agent")
+    g.add_edge("agent_answer", "save_memory")
 
     g.add_edge("generate", "check_hallucination")
     g.add_conditional_edges(
@@ -180,8 +185,10 @@ async def answer_question(
         "sql_risk": "",
         "gate_decision": "",
         "justification": "",
+        "agent_messages": [],
+        "pending_tool_calls": [],
     }
-    final = await graph.ainvoke(initial, config=config)
+    final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
     return Answer(text=final["answer"], sources=final["citations"])
 
 
@@ -224,9 +231,11 @@ async def stream_answer(
             "sql_risk": "",
             "gate_decision": "",
             "justification": "",
+            "agent_messages": [],
+            "pending_tool_calls": [],
         }
 
-        final = await graph.ainvoke(initial, config=config)
+        final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
         answer = final["answer"]
         for i in range(0, len(answer), _STREAM_CHUNK_SIZE):
             await token_queue.put({"type": "token", "content": answer[i:i + _STREAM_CHUNK_SIZE]})
