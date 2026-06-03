@@ -49,12 +49,33 @@ CHECK_HALLUCINATION = """\
 
 검증 결과 (YES 또는 NO):"""
 
+# 업무 DB 조회 표면 — 라우터(분류)와 SQL 생성이 같은 인식 기반을 공유하도록 단일 출처로 둔다 (ADR-0022).
+_BUSINESS_SCHEMA = """\
+- business.employees(emp_id, name, department, position, hire_date, salary, email)
+- business.sales(sale_id, period, department, product, amount, created_at)"""
+
+# route 구분 축은 "동작 동사"가 아니라 "무엇으로 답하는가(데이터 원천)" — 동사 충돌(조회/예약 등)로 인한
+# 오분류를 막는다. 경계 few-shot으로 "정책 vs 내 수치"를 직접 대조하고, 불확실하면 doc_search로 기운다 (ADR-0022).
 ROUTER_PROMPT = """\
 다음 질문을 분석해 처리 방식을 결정하세요.
 
-route 선택지:
-- doc_search: 사내 문서에서 정보를 찾는 질문 (정책, 절차, 규정, 가이드 등)
-- tool_call: 실제 작업을 수행하는 요청 (예약, 조회, 실행, 전송 등 동작)
+route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니다:
+- doc_search: 정책·규정·절차·가이드 등 사내 문서에 서술된 내용으로 답하는 질문
+- tool_call: 아래 업무 DB 테이블의 특정 레코드·집계 값으로 답하는 질문
+
+업무 DB 스키마(tool_call로 답할 수 있는 범위):
+{schema}
+
+판정 기준: "이 질문이 위 두 테이블의 값으로 답되는가?"
+- 그렇다 → tool_call
+- 규정·방침·방법 등 문서 서술이 필요하다 → doc_search
+- 모호하면 doc_search로 답한다 (tool_call은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
+
+경계 예시:
+- "연차는 며칠까지 쌓을 수 있어?" → doc_search:none (규정 = 문서)
+- "내 연차 며칠 남았어?" → tool_call:none (개인 레코드 값 = DB)
+- "급여 인상 정책 알려줘" → doc_search:none (방침 = 문서)
+- "영업팀이랑 개발팀 평균 급여 비교해줘" → tool_call:none (테이블 집계 = DB)
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
@@ -65,7 +86,7 @@ strategy 선택지 (doc_search에만 적용, 그 외는 none):
 다른 텍스트 없이 위 형식만 출력하세요.
 
 질문: {question}
-출력:"""
+출력:""".replace("{schema}", _BUSINESS_SCHEMA)
 
 MULTI_QUERY_PROMPT = """\
 다음 질문을 사내 문서 검색에 최적화된 2~3개의 독립적인 하위 쿼리로 분해하세요.
@@ -81,11 +102,10 @@ SQL_GENERATE_PROMPT = """\
 넣지 마세요.
 
 스키마:
-- business.employees(emp_id, name, department, position, hire_date, salary, email)
-- business.sales(sale_id, period, department, product, amount, created_at)
+{schema}
 
 질문: {question}
-SQL:"""
+SQL:""".replace("{schema}", _BUSINESS_SCHEMA)
 
 SQL_BULK_PII_PROMPT = """\
 다음 SQL은 읽기 전용(SELECT)으로 확정되었습니다. 이 쿼리가 아래 중 하나에
