@@ -6,7 +6,8 @@ _VALID_STRATEGIES = {"none", "contextual", "multi_query"}
 
 
 def router_node(state: dict, *, llm: LLMClient) -> dict:
-    prompt = ROUTER_PROMPT.format(question=state["rewritten_question"])
+    # 라우팅·도구입력은 원본 질문으로 — rewrite(문서검색 편향) 비결정성 차단 (ADR-0031)
+    prompt = ROUTER_PROMPT.format(question=state["question"])
     response = llm.complete(prompt).strip().lower()
 
     parts = response.split(":")
@@ -15,6 +16,6 @@ def router_node(state: dict, *, llm: LLMClient) -> dict:
 
     route = route_raw if route_raw in _VALID_ROUTES else "doc_search"
     strategy = strategy_raw if strategy_raw in _VALID_STRATEGIES else "none"
-    tool_input = state["rewritten_question"] if route == "agent" else ""
+    tool_input = state["question"] if route == "agent" else ""
 
     return {"route": route, "rewrite_strategy": strategy, "tool_input": tool_input}
