@@ -156,7 +156,9 @@
         "allow_update_delete":   {"this": {}},
         "justify_update_delete": {"this": {}},
         "allow_ddl":             {"this": {}},
-        "justify_ddl":           {"this": {}}
+        "justify_ddl":           {"this": {}},
+        "allow_grant":           {"this": {}},
+        "justify_grant":         {"this": {}}
       },
       "metadata": {
         "relations": {
@@ -210,6 +212,20 @@
             ]
           },
           "justify_ddl": {
+            "directly_related_user_types": [
+              {"type": "user"},
+              {"type": "department", "relation": "member"},
+              {"type": "role", "relation": "member"}
+            ]
+          },
+          "allow_grant": {
+            "directly_related_user_types": [
+              {"type": "user"},
+              {"type": "department", "relation": "member"},
+              {"type": "role", "relation": "member"}
+            ]
+          },
+          "justify_grant": {
             "directly_related_user_types": [
               {"type": "user"},
               {"type": "department", "relation": "member"},
