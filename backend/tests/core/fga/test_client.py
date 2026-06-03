@@ -86,3 +86,37 @@ async def test_get_readable_folders_fetches_and_caches_raw_on_miss():
 
     assert result == raw  # prune으로 합치지 않음
     assert await cache.get("u2") == raw
+
+
+@pytest.mark.asyncio
+async def test_check_returns_allowed_true():
+    client = _client()
+
+    class _Resp:
+        allowed = True
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def check(self, req): return _Resp()
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        result = await client.check("user:alice", "allow_select", "capability:sql")
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_returns_allowed_false():
+    client = _client()
+
+    class _Resp:
+        allowed = False
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def check(self, req): return _Resp()
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        result = await client.check("user:bob", "allow_ddl", "capability:sql")
+    assert result is False

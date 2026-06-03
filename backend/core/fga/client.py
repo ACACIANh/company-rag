@@ -60,6 +60,20 @@ class FGAClient:
         prefix = "department:"
         return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
 
+    async def check(self, user: str, relation: str, object_: str) -> bool:
+        """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
+        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk.client.models import ClientCheckRequest
+        cfg = ClientConfiguration(
+            api_url=self._config.api_url,
+            store_id=self._config.store_id,
+        )
+        async with OpenFgaClient(cfg) as client:
+            resp = await client.check(
+                ClientCheckRequest(user=user, relation=relation, object=object_)
+            )
+            return bool(resp.allowed)
+
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
         from openfga_sdk.client.models import ClientListObjectsRequest
