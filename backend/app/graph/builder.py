@@ -62,7 +62,7 @@ def build_graph(
         raise ValueError("fga_client is required")
     if chat_model is None:
         chat_model = create_chat_llm(load_config())
-    registry = build_tool_registry(llm=llm, sql_pool=sql_pool)
+    registry = build_tool_registry(llm=llm, sql_pool=sql_pool, fga_client=fga_client)
     bound = chat_model.bind_tools(registry.tool_defs)
     g = StateGraph(AgentState)
 
