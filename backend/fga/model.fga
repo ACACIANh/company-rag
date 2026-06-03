@@ -30,3 +30,15 @@ type folder
     define super_reader: [role#member] or super_reader from parent
 
     define can_read: super_reader or dept_access or (public_access but not private_flag)
+
+type capability
+  relations
+    # SQL 권한 2층(ADR-0028): allow_* → ALLOW, justify_* → JUSTIFY_AND_APPROVE
+    define allow_select:          [user:*, department#member, role#member]
+    define justify_select:        [user:*, department#member, role#member]
+    define allow_bulk_select:     [user:*, department#member, role#member]
+    define justify_bulk_select:   [user:*, department#member, role#member]
+    define allow_update_delete:   [user, department#member, role#member]
+    define justify_update_delete: [user, department#member, role#member]
+    define allow_ddl:             [user, department#member, role#member]
+    define justify_ddl:           [user, department#member, role#member]
