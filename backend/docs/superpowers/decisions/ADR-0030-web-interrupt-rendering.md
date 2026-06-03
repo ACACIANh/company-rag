@@ -1,6 +1,6 @@
 # ADR-0030: web interrupt(HITL JUSTIFY) 대화형 렌더링
 
-> **Status**: ⚪ 제안됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
+> **Status**: 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
 
 **Date**: 2026-06-03
 **Context**: ADR-0024가 HITL resume의 API 종단을 메우면서 `{"type":"interrupt", actions}` SSE 이벤트를 방출하지만, "web가 이를 어떻게 렌더링·사유 입력받을지는 web 측 후속"으로 명시 보류했다. SP2b(ADR-0029) `manage_permission`이 grant를 항상 JUSTIFY로 게이트하면서 interrupt가 실서비스에서 자주 발생하는데, web(`/chat/stream`만 사용)은 `interrupt` 이벤트를 처리하지 않아 JUSTIFY가 떠도 화면에 사유 입력 경로가 없다. 이 종단을 web에서 메운다.
