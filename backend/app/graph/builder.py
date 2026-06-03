@@ -100,7 +100,7 @@ def build_graph(
         {
             "doc_search": "permission",
             "multi_query": "multi_query",
-            "tool_call": "agent",
+            "agent": "agent",
         },
     )
     g.add_edge("multi_query", "permission")
@@ -114,7 +114,7 @@ def build_graph(
         {"generate": "generate", "rewrite_retry": "increment_retry"},
     )
 
-    # tool_call → 게이트된 에이전트 루프 (ADR-0023)
+    # agent → 게이트된 에이전트 루프 (ADR-0023)
     g.add_conditional_edges(
         "agent",
         route_after_agent,

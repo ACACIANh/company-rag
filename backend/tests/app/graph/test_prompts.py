@@ -54,7 +54,7 @@ def test_router_prompt_criterion_is_data_source_not_verbs():
 
 def test_router_prompt_has_boundary_fewshot_pairs():
     """'정책(문서) vs 내 수치(DB)' 대조쌍이 들어 있어야 한다."""
-    assert "내 연차 며칠 남았어?" in ROUTER_PROMPT      # → tool_call
+    assert "내 연차 며칠 남았어?" in ROUTER_PROMPT      # → agent
     assert "연차는 며칠까지 쌓을 수 있어?" in ROUTER_PROMPT  # → doc_search
 
 

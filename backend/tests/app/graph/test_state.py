@@ -44,7 +44,7 @@ def test_agent_state_phase3_instantiation():
         "question": "회의실 예약해줘",
         "rewritten_question": "회의실 예약 요청",
         "chat_history": [],
-        "route": "tool_call",
+        "route": "agent",
         "documents": [],
         "relevance_score": 0.0,
         "retry_count": 0,

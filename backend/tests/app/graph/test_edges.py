@@ -58,8 +58,8 @@ def test_route_after_router_returns_doc_search():
     assert route_after_router({"route": "doc_search"}) == "doc_search"
 
 
-def test_route_after_router_returns_tool_call():
-    assert route_after_router({"route": "tool_call"}) == "tool_call"
+def test_route_after_router_returns_agent():
+    assert route_after_router({"route": "agent"}) == "agent"
 
 
 def test_route_after_router_returns_multi_query_when_strategy_set():

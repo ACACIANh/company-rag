@@ -134,13 +134,13 @@ def _tool_call_msg(question="전직원 급여", tc_id="c1"):
 
 
 @pytest.mark.asyncio
-async def test_tool_call_allow_executes_and_answers():
+async def test_agent_allow_executes_and_answers():
     """SELECT(저위험) → 게이트 ALLOW → tool_gate가 실행 → 에이전트가 최종 답변."""
     # llm.complete: rewrite, router, sql_generate(plan), bulk/PII 판정
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 이름 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT name FROM business.employees",              # sql_tool.plan → SQL (AST: select)
         "no",                                               # bulk/PII 판정 → RISK_SELECT 유지 → ALLOW
     ]
@@ -162,12 +162,12 @@ async def test_tool_call_allow_executes_and_answers():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_justify_triggers_interrupt():
+async def test_agent_justify_triggers_interrupt():
     """대량/PII SELECT → 게이트 JUSTIFY_AND_APPROVE → confirm이 HITL interrupt를 띄운다."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → RISK_BULK_SELECT → JUSTIFY
     ]
@@ -188,12 +188,12 @@ async def test_tool_call_justify_triggers_interrupt():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_resume_after_justify_executes_and_answers():
+async def test_agent_resume_after_justify_executes_and_answers():
     """interrupt 후 Command(resume=사유) → justify_execute 실행 → 에이전트 최종 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
     ]
@@ -217,12 +217,12 @@ async def test_tool_call_resume_after_justify_executes_and_answers():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_resume_empty_reason_cancels_then_answers():
+async def test_agent_resume_empty_reason_cancels_then_answers():
     """빈 사유로 resume → justify_execute가 취소 ToolMessage → 에이전트가 취소 사실로 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
     ]
@@ -246,12 +246,12 @@ async def test_tool_call_resume_empty_reason_cancels_then_answers():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_deny_blocks_without_interrupt():
+async def test_agent_deny_blocks_without_interrupt():
     """일반 부서원 × UPDATE → 게이트 DENY. interrupt 없이 거부 ToolMessage → 에이전트가 거부 안내."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "급여 0으로 변경",                                   # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "UPDATE business.employees SET salary = 0",         # plan → SQL (AST: update → DENY, bulk 판정 없음)
     ]
     chat = _mock_chat_model([
@@ -278,7 +278,7 @@ async def test_answer_question_justify_interrupt_then_resume():
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
     ]
@@ -643,7 +643,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
     ]
@@ -707,7 +707,7 @@ async def test_manage_permission_justify_then_resume_executes():
     llm = MagicMock()
     llm.complete.side_effect = [
         "alice 추가",                                                          # rewrite
-        "tool_call",                                                          # router
+        "agent",                                                          # router
         '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # permission plan 파싱
     ]
     chat = _mock_chat_model([
@@ -736,7 +736,7 @@ async def test_manage_permission_deny_for_non_admin():
     llm = MagicMock()
     llm.complete.side_effect = [
         "alice 추가",                                                          # rewrite
-        "tool_call",                                                          # router
+        "agent",                                                          # router
         '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # plan 파싱
     ]
     chat = _mock_chat_model([
@@ -765,7 +765,7 @@ async def test_stream_answer_resume_after_justify():
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
-        "tool_call",                                        # router
+        "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
     ]

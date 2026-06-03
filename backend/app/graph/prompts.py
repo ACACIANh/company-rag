@@ -63,28 +63,28 @@ ROUTER_PROMPT = """\
 
 route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니다:
 - doc_search: 정책·규정·절차·가이드 등 사내 문서에 서술된 내용으로 답하는 질문
-- tool_call: 아래 업무 DB 테이블의 특정 레코드·집계 값으로 답하는 질문
+- agent: 아래 업무 DB 테이블의 특정 레코드·집계 값으로 답하는 질문
 
-업무 DB 스키마(tool_call로 답할 수 있는 범위):
+업무 DB 스키마(agent로 답할 수 있는 범위):
 {schema}
 
 판정 기준: "이 질문이 위 두 테이블의 값으로 답되는가?"
-- 그렇다 → tool_call
+- 그렇다 → agent
 - 규정·방침·방법 등 문서 서술이 필요하다 → doc_search
-- 모호하면 doc_search로 답한다 (tool_call은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
+- 모호하면 doc_search로 답한다 (agent은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
 
 경계 예시:
 - "연차는 며칠까지 쌓을 수 있어?" → doc_search:none (규정 = 문서)
-- "내 연차 며칠 남았어?" → tool_call:none (개인 레코드 값 = DB)
+- "내 연차 며칠 남았어?" → agent:none (개인 레코드 값 = DB)
 - "급여 인상 정책 알려줘" → doc_search:none (방침 = 문서)
-- "영업팀이랑 개발팀 평균 급여 비교해줘" → tool_call:none (테이블 집계 = DB)
+- "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none (테이블 집계 = DB)
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
 - multi_query: 질문이 복잡하거나 여러 항목 비교/열거 → 하위 쿼리로 분해 검색
 
 출력 형식: <route>:<strategy>
-예시: doc_search:none, doc_search:multi_query, tool_call:none
+예시: doc_search:none, doc_search:multi_query, agent:none
 다른 텍스트 없이 위 형식만 출력하세요.
 
 질문: {question}

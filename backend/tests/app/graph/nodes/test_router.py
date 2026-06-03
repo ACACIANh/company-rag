@@ -13,13 +13,13 @@ def test_router_sets_doc_search_route():
     assert result["tool_input"] == ""
 
 
-def test_router_sets_tool_call_route_and_tool_input():
+def test_router_sets_agent_route_and_tool_input():
     mock_llm = MagicMock()
-    mock_llm.complete.return_value = "tool_call"
+    mock_llm.complete.return_value = "agent"
 
     result = router_node({"rewritten_question": "회의실 예약해줘"}, llm=mock_llm)
 
-    assert result["route"] == "tool_call"
+    assert result["route"] == "agent"
     assert result["tool_input"] == "회의실 예약해줘"
 
 
