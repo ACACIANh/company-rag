@@ -228,37 +228,54 @@ async def stream_answer(
     try:
         config = _ensure_thread_id(config)
         existing = await graph.aget_state(config)
-        chat_history = (existing.values or {}).get("chat_history", [])
-        if not chat_history and not is_new_session:
-            stored = await session_store.get_messages(session_id)
-            chat_history = [{"role": m.role, "content": m.content} for m in stored]
 
-        initial: AgentState = {
-            "question": question,
-            "rewritten_question": "",
-            "chat_history": chat_history,
-            "route": "doc_search",
-            "rewrite_strategy": None,
-            "multi_queries": [],
-            "documents": [],
-            "relevance_score": 0.0,
-            "retry_count": 0,
-            "answer": "",
-            "citations": [],
-            "hallucination_passed": False,
-            "confirmed": False,
-            "tool_input": "",
-            "user_id": user_id,
-            "allowed_folders": [],
-            "generated_sql": "",
-            "sql_risk": "",
-            "gate_decision": "",
-            "justification": "",
-            "agent_messages": [],
-            "pending_tool_calls": [],
-        }
+        # 이전 호출이 interrupt로 멈춘 thread면, 이번 question을 사유로 보고 resume한다.
+        if existing.next and existing.tasks and any(
+            getattr(t, "interrupts", None) for t in existing.tasks
+        ):
+            final = await graph.ainvoke(
+                Command(resume=question), config={**config, "recursion_limit": 25}
+            )
+        else:
+            chat_history = (existing.values or {}).get("chat_history", [])
+            if not chat_history and not is_new_session:
+                stored = await session_store.get_messages(session_id)
+                chat_history = [{"role": m.role, "content": m.content} for m in stored]
 
-        final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
+            initial: AgentState = {
+                "question": question,
+                "rewritten_question": "",
+                "chat_history": chat_history,
+                "route": "doc_search",
+                "rewrite_strategy": None,
+                "multi_queries": [],
+                "documents": [],
+                "relevance_score": 0.0,
+                "retry_count": 0,
+                "answer": "",
+                "citations": [],
+                "hallucination_passed": False,
+                "confirmed": False,
+                "tool_input": "",
+                "user_id": user_id,
+                "allowed_folders": [],
+                "generated_sql": "",
+                "sql_risk": "",
+                "gate_decision": "",
+                "justification": "",
+                "agent_messages": [],
+                "pending_tool_calls": [],
+            }
+
+            final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
+
+        if "__interrupt__" in final:
+            actions = final["__interrupt__"][0].value.get("actions", []) if isinstance(
+                final["__interrupt__"][0].value, dict
+            ) else []
+            await token_queue.put({"type": "interrupt", "actions": actions})
+            await token_queue.put({"type": "done", "session_id": session_id})
+            return
         answer = final["answer"]
         for i in range(0, len(answer), _STREAM_CHUNK_SIZE):
             await token_queue.put({"type": "token", "content": answer[i:i + _STREAM_CHUNK_SIZE]})

@@ -627,3 +627,129 @@ async def test_stream_answer_no_duplicate_on_hallucination_retry():
     assert "첫 번째 답변" not in joined
     types = [e["type"] for e in events]
     assert types[-1] == "done"
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_justify_emits_interrupt_event():
+    """stream_answer: JUSTIFY interrupt → 큐에 interrupt + done 이벤트 방출. (ADR-0024)"""
+    from app.graph.builder import stream_answer
+
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "stream-justify-1"}}
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=graph,
+        question="전직원 급여 보여줘",
+        config=config,
+        user_id="bob",
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-justify",
+        is_new_session=False,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    types = [e["type"] for e in events]
+    # interrupt 이벤트가 방출되어야 함
+    assert "interrupt" in types
+    interrupt_event = next(e for e in events if e["type"] == "interrupt")
+    assert "actions" in interrupt_event
+    assert isinstance(interrupt_event["actions"], list)
+    # done 이벤트로 마무리
+    assert types[-1] == "done"
+    # token/sources는 방출되지 않음 (interrupt path)
+    assert "token" not in types
+    assert "sources" not in types
+    # session_store에 기록하지 않음 (interrupt 중 저장 안 함)
+    mock_store.create_session.assert_not_called()
+    mock_store.add_message.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_resume_after_justify():
+    """stream_answer: interrupt 후 같은 config로 사유 제출 → resume 경로로 최종 답변 방출. (ADR-0024)"""
+    from app.graph.builder import stream_answer
+
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+        AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "stream-resume-1"}}
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+    queue1: asyncio.Queue = asyncio.Queue()
+
+    # 1차: interrupt 방출
+    await stream_answer(
+        graph=graph,
+        question="전직원 급여 보여줘",
+        config=config,
+        user_id="bob",
+        token_queue=queue1,
+        session_store=mock_store,
+        session_id="sess-resume",
+        is_new_session=False,
+    )
+    events1 = []
+    while not queue1.empty():
+        events1.append(queue1.get_nowait())
+    assert any(e["type"] == "interrupt" for e in events1)
+
+    # 2차: 같은 config로 사유 → resume 경로 → 최종 답변
+    queue2: asyncio.Queue = asyncio.Queue()
+    await stream_answer(
+        graph=graph,
+        question="감사 목적",
+        config=config,
+        user_id="bob",
+        token_queue=queue2,
+        session_store=mock_store,
+        session_id="sess-resume",
+        is_new_session=False,
+    )
+    events2 = []
+    while not queue2.empty():
+        events2.append(queue2.get_nowait())
+
+    types2 = [e["type"] for e in events2]
+    assert "token" in types2
+    assert "interrupt" not in types2
+    token_content = "".join(e["content"] for e in events2 if e["type"] == "token")
+    assert token_content == "급여 분포 요약 답변"
+    assert types2[-1] == "done"
