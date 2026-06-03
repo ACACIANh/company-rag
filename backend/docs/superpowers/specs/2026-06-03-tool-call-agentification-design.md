@@ -27,7 +27,7 @@
 `LLMClient`(core)는 문자열 in/out 전용(`complete`/`stream`)으로 네이티브 tool-calling이 없다. 도구 호출 표현으로 **LangChain `Tool` + `bind_tools` chat 모델**을 채택한다(`core/llm/factory.py`의 기존 `create_chat_llm()` 정식 사용).
 
 결과:
-1. **새 의존성 `langchain-anthropic`**(+필요 시 `langchain-openai`) 설치. 메모리의 "미사용 deps 제거" 판단을 되돌린다. DoD상 ADR 대상.
+1. **의존성**: `langchain-anthropic`·`langchain-openai`는 **이미 `pyproject.toml`에 선언**돼 있다. `langchain-openai`는 설치됨(기본 provider=openai/gpt-4o-mini라 `create_chat_llm()`가 지금도 동작), `langchain-anthropic`만 미설치. 따라서 신규 의존성 *선언*이 아니라 (anthropic 사용 시) 미설치분 설치 + 기존 `create_chat_llm()`의 정식 사용이다. 메모리의 "미사용 deps 제거" 판단을 되돌린다. DoD상 ADR은 새 *패턴*(chat 모델 tool-calling 도입) 차원에서 기록.
 2. **프리빌트 `langgraph.prebuilt.create_react_agent`는 쓰지 않는다** — 도구를 자동 실행해 게이트가 끼어들 틈이 없다. **커스텀 그래프**로 agent↔gate↔execute 루프를 직접 구성한다.
 3. **`AgentState` 확장** — 에이전트 내부 도구 대화를 담을 타입 필드. `MessagesState` 금지 규칙(CLAUDE.md)은 준수하고 `AgentState(TypedDict)` 확장만 한다.
 4. **`tool_call_id` 매칭** — 네이티브 tool-calling은 한 턴에 도구 여러 개를 반환할 수 있으므로 게이트·HITL을 per-tool_call_id로 처리한다.
@@ -107,5 +107,5 @@ router[tool_call] → agent ─(tool_calls 있음)→ gate(per tool_call)
 
 - **SP2**: `fga_grant_revoke` 권한 관리 도구(고위험) 등록 — 별도 스펙.
 - **멀티 병렬 tool_call의 완전한 HITL**(여러 JUSTIFY 동시 대기) — SP1은 단일 JUSTIFY 기본 가정, 구조만 멀티 대응. 실제 병렬 JUSTIFY UX는 필요 시 후속.
-- **`langchain-openai` 정리**: anthropic만 설치할지, 양 provider 모두 둘지 ADR-0023에서 확정.
+- **provider 설치 범위**: `langchain-openai`는 설치됨, `langchain-anthropic` 미설치. 운영 provider(현재 openai)만 설치 유지할지 양쪽 다 설치할지 ADR-0023에서 확정.
 - **eval 라우팅 지표**(ADR-0022 보류분)와 무관하게 진행.
