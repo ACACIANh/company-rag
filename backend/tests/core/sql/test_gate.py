@@ -19,7 +19,7 @@ from core.sql.risk import (
 # 반환하는 결과를 set으로 시뮬레이션한다.
 GENERAL = {"allow_select", "justify_bulk_select"}              # 일반 부서원
 ENGINEERING = GENERAL | {"justify_update_delete"}             # engineering 부서
-C_LEVEL = GENERAL | {"justify_update_delete"}                 # c_level 역할
+C_LEVEL = GENERAL | {"justify_update_delete"}                 # c_level 역할 — 현재 매트릭스상 ENGINEERING과 동일(SQL 권한 동일) — ADR-0028
 
 
 def _checker(granted: set):

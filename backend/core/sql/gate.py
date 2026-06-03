@@ -7,7 +7,7 @@ SQL 위험도(core.sql.risk)를 OpenFGA capability:sql 의 2층 relation
 DBA 부재 전제(ADR-0027): 회색지대는 외부 결재 대기가 아니라, 질문자 본인이
 사유를 남기고 자기책임으로 통과(JUSTIFY_AND_APPROVE)하는 self-service 흐름이다.
 """
-from typing import Awaitable, Callable, Protocol
+from typing import Awaitable, Callable
 
 from core.sql.risk import (
     RISK_SELECT,
@@ -33,11 +33,6 @@ RISK_TO_RELATION = {
 }
 
 
-class CapabilityChecker(Protocol):
-    """gate_decision이 의존하는 최소 인터페이스. FGAClient가 구조적으로 만족한다."""
-    async def check(self, user: str, relation: str, object_: str) -> bool: ...
-
-
 async def gate_decision(
     check: Callable[[str, str, str], Awaitable[bool]],
     user_id: str,
@@ -45,7 +40,7 @@ async def gate_decision(
 ) -> tuple[str, str]:
     """(check, user_id, 위험도) → (결정, 사유).
 
-    allow_<risk> 보유 → ALLOW, 없으면 justify_<risk> 보유 → JUSTIFY_AND_APPROVE,
+    allow_<suffix> 보유 → ALLOW, 없으면 justify_<suffix> 보유 → JUSTIFY_AND_APPROVE,
     둘 다 없으면 DENY. 미지원 위험도(RISK_DENY 등)는 보수적으로 DENY.
     """
     suffix = RISK_TO_RELATION.get(risk)
