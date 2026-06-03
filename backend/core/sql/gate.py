@@ -21,15 +21,16 @@ DECISION_ALLOW = "ALLOW"
 DECISION_DENY = "DENY"
 DECISION_JUSTIFY_AND_APPROVE = "JUSTIFY_AND_APPROVE"
 
-# capability 인스턴스 — SQL 권한의 단일 객체
-CAPABILITY_OBJECT = "capability:sql"
+# 권한 쓰기 위험도 — SQL AST risk(core.sql.risk)가 아니라 게이트 도메인 상수.
+RISK_GRANT = "grant"
 
-# 위험도 → capability relation 접미. 미매핑(RISK_DENY·미지원)은 DENY.
-RISK_TO_RELATION = {
-    RISK_SELECT: "select",
-    RISK_BULK_SELECT: "bulk_select",
-    RISK_UPDATE_DELETE: "update_delete",
-    RISK_DDL: "ddl",
+# 위험도 → (capability 객체, relation 베이스). 미매핑(RISK_DENY·미지원)은 DENY.
+_RISK_GATE = {
+    RISK_SELECT:        ("capability:sql",   "select"),
+    RISK_BULK_SELECT:   ("capability:sql",   "bulk_select"),
+    RISK_UPDATE_DELETE: ("capability:sql",   "update_delete"),
+    RISK_DDL:           ("capability:sql",   "ddl"),
+    RISK_GRANT:         ("capability:admin", "grant"),
 }
 
 
@@ -40,15 +41,16 @@ async def gate_decision(
 ) -> tuple[str, str]:
     """(check, user_id, 위험도) → (결정, 사유).
 
-    allow_<suffix> 보유 → ALLOW, 없으면 justify_<suffix> 보유 → JUSTIFY_AND_APPROVE,
-    둘 다 없으면 DENY. 미지원 위험도(RISK_DENY 등)는 보수적으로 DENY.
+    allow_<base>@<obj> 보유 → ALLOW, 없으면 justify_<base>@<obj> 보유 →
+    JUSTIFY_AND_APPROVE, 둘 다 없으면 DENY. 미지원 위험도는 보수적으로 DENY.
     """
-    suffix = RISK_TO_RELATION.get(risk)
-    if suffix is None:
+    entry = _RISK_GATE.get(risk)
+    if entry is None:
         return DECISION_DENY, f"위험도={risk} 미지원 → DENY"
+    obj, base = entry
     user = f"user:{user_id}"
-    if await check(user, f"allow_{suffix}", CAPABILITY_OBJECT):
-        return DECISION_ALLOW, f"capability allow_{suffix} 보유 → ALLOW"
-    if await check(user, f"justify_{suffix}", CAPABILITY_OBJECT):
-        return DECISION_JUSTIFY_AND_APPROVE, f"capability justify_{suffix} 보유 → JUSTIFY_AND_APPROVE"
-    return DECISION_DENY, f"capability {suffix} 미부여 → DENY"
+    if await check(user, f"allow_{base}", obj):
+        return DECISION_ALLOW, f"capability allow_{base}@{obj} 보유 → ALLOW"
+    if await check(user, f"justify_{base}", obj):
+        return DECISION_JUSTIFY_AND_APPROVE, f"capability justify_{base}@{obj} 보유 → JUSTIFY_AND_APPROVE"
+    return DECISION_DENY, f"capability {base}@{obj} 미부여 → DENY"
