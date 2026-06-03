@@ -1,4 +1,10 @@
-from app.graph.prompts import RAG_GENERATE, CHECK_HALLUCINATION
+from app.graph.prompts import (
+    RAG_GENERATE,
+    CHECK_HALLUCINATION,
+    ROUTER_PROMPT,
+    SQL_GENERATE_PROMPT,
+    _BUSINESS_SCHEMA,
+)
 
 
 def test_rag_generate_keeps_format_fields():
@@ -23,3 +29,42 @@ def test_check_hallucination_judges_factual_claims_not_style():
     """문체가 아니라 사실 주장 기준임이 명시되어야 한다."""
     assert "사실" in CHECK_HALLUCINATION
     assert "YES" in CHECK_HALLUCINATION and "NO" in CHECK_HALLUCINATION
+
+
+# ── ROUTER_PROMPT: 데이터 원천 기준 + 경계 few-shot + 폴백 (ADR-0022) ──
+def test_router_prompt_keeps_question_placeholder():
+    """{question}만 남고 {schema}는 정의 시점에 치환되어야 한다."""
+    assert "{question}" in ROUTER_PROMPT
+    assert "{schema}" not in ROUTER_PROMPT
+
+
+def test_router_prompt_exposes_business_schema():
+    """라우터가 SQL 생성과 같은 스키마 인식을 공유한다(데이터 원천 기준)."""
+    assert _BUSINESS_SCHEMA in ROUTER_PROMPT
+    assert "business.employees" in ROUTER_PROMPT
+    assert "business.sales" in ROUTER_PROMPT
+
+
+def test_router_prompt_criterion_is_data_source_not_verbs():
+    """판정 축이 동작 동사가 아니라 '테이블 값으로 답되는가'여야 한다."""
+    assert "테이블의 값으로 답되는가" in ROUTER_PROMPT
+    # 옛 동사 나열("예약, 조회, 실행, 전송 등 동작")이 제거되어야 한다.
+    assert "예약, 조회, 실행, 전송" not in ROUTER_PROMPT
+
+
+def test_router_prompt_has_boundary_fewshot_pairs():
+    """'정책(문서) vs 내 수치(DB)' 대조쌍이 들어 있어야 한다."""
+    assert "내 연차 며칠 남았어?" in ROUTER_PROMPT      # → tool_call
+    assert "연차는 며칠까지 쌓을 수 있어?" in ROUTER_PROMPT  # → doc_search
+
+
+def test_router_prompt_leans_doc_search_when_ambiguous():
+    """불확실 구간은 doc_search로 기운다는 폴백 지침이 있어야 한다."""
+    assert "모호하면 doc_search" in ROUTER_PROMPT
+
+
+def test_sql_generate_shares_same_schema_constant():
+    """스키마 drift 방지 — 라우터와 SQL 생성이 같은 단일 출처를 쓴다."""
+    assert _BUSINESS_SCHEMA in SQL_GENERATE_PROMPT
+    assert "{question}" in SQL_GENERATE_PROMPT
+    assert "{schema}" not in SQL_GENERATE_PROMPT
