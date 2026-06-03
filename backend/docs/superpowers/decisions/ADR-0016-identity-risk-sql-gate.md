@@ -1,6 +1,8 @@
 # ADR-0016: 신원 × 위험도 교차 게이트로 자율 SQL 도구를 통제한다
 
-> **Status**: 🟢 적용완료
+> **Status**: 🟣 대체됨 → [ADR-0028](ADR-0028-capability-permission-model.md)
+>
+> 게이트 *메커니즘*(코드 `_MATRIX`/`gate_lookup`/`identity_tier`)만 OpenFGA capability Check로 대체됐다. 위험도 분류(ADR-0017)와 3-state 어휘(ADR-0027 `JUSTIFY_AND_APPROVE`)는 그대로 유지된다.
 
 **Date**: 2026-06-02
 **Context**: `tool_call` 자율 도구 루프에 첫 실(實)DB 도구인 **"DB 질의(자연어 → SQL 생성·실행)"**를 추가한다. SQL 실행은 read-only가 아니므로 — `DROP`/`UPDATE` 한 번이 돌이킬 수 없으며, **누가** 질의했느냐에 따라 같은 SQL도 허용·차단이 갈려야 한다. 모든 실행을 신원 × 위험도 교차로 `ALLOW / DENY / NEEDS_APPROVAL` 3-state 게이팅한다. 기존 자산(OpenFGA 부서·c_level 트리 · `interrupt` HITL · AsyncPostgresSaver 체크포인트)을 재사용한다.

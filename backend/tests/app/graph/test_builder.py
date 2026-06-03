@@ -20,12 +20,18 @@ def _mock_chat_model(ai_messages):
     return chat
 
 
-def _mock_fga_client(roles=None, departments=None):
+def _mock_fga_client(roles=None, departments=None, capabilities=()):
     mock_fga = MagicMock()
     mock_fga.build_pg_filter = MagicMock(return_value=("path = $1 OR path LIKE $2", ["/company", "/company/%"]))
     mock_fga.get_readable_folders = AsyncMock(return_value=["/company"])
     mock_fga.user_roles = AsyncMock(return_value=roles or [])
     mock_fga.user_departments = AsyncMock(return_value=departments or [])
+    caps = set(capabilities)
+
+    async def check(user, relation, object_):
+        return relation in caps
+
+    mock_fga.check = check
     return mock_fga
 
 
@@ -144,7 +150,7 @@ async def test_tool_call_allow_executes_and_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["sales"]),   # general → SELECT는 ALLOW
+        fga_client=_mock_fga_client(departments=["sales"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -170,7 +176,7 @@ async def test_tool_call_justify_triggers_interrupt():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -197,7 +203,7 @@ async def test_tool_call_resume_after_justify_executes_and_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -226,7 +232,7 @@ async def test_tool_call_resume_empty_reason_cancels_then_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -282,7 +288,7 @@ async def test_answer_question_justify_interrupt_then_resume():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -646,7 +652,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )
@@ -705,7 +711,7 @@ async def test_stream_answer_resume_after_justify():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"]),
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
         chat_model=chat,
     )

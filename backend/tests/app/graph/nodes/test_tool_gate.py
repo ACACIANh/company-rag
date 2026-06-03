@@ -5,10 +5,16 @@ from langchain_core.messages import AIMessage, ToolMessage
 from app.graph.nodes.tool_gate import tool_gate_node
 
 
-def _fga(roles, depts):
+def _fga(roles, depts, capabilities=()):
     fga = AsyncMock()
     fga.user_roles = AsyncMock(return_value=roles)
     fga.user_departments = AsyncMock(return_value=depts)
+    caps = set(capabilities)
+
+    async def check(user, relation, object_):
+        return relation in caps
+
+    fga.check = check
     return fga
 
 
@@ -38,7 +44,7 @@ async def test_allow_executes_and_appends_tool_message():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["sales"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["sales"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
     )
     msgs = out["agent_messages"]
     tool_msgs = [m for m in msgs if isinstance(m, ToolMessage)]
@@ -73,7 +79,7 @@ async def test_justify_records_pending_without_executing():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["sales"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["sales"], capabilities=["justify_bulk_select"]), audit_sink=AsyncMock(),
     )
     assert out["pending_tool_calls"]
     pend = out["pending_tool_calls"][0]

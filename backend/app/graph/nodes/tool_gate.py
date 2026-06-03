@@ -11,7 +11,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from core.fga.client import FGAClient
 from core.observability.audit.base import AuditRecord, AuditSink
 from core.sql.gate import (
-    identity_tier, gate_lookup,
+    gate_decision,
     DECISION_ALLOW, DECISION_DENY, DECISION_JUSTIFY_AND_APPROVE,
 )
 
@@ -29,7 +29,6 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
     user_id = state["user_id"]
     roles = await fga_client.user_roles(user_id)
     departments = await fga_client.user_departments(user_id)
-    tier = identity_tier(roles, departments)
 
     _, tool_calls = _last_tool_calls(state.get("agent_messages") or [])
     new_messages: list = []
@@ -41,7 +40,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             new_messages.append(ToolMessage(content="알 수 없는 도구", tool_call_id=tc["id"]))
             continue
         planned_action, risk = handler.plan(tc["args"])
-        decision, reason = gate_lookup(tier, risk)
+        decision, reason = await gate_decision(fga_client.check, user_id, risk)
 
         await audit_sink.record(AuditRecord(
             user_id=user_id,

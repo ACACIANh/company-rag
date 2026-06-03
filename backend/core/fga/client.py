@@ -60,6 +60,26 @@ class FGAClient:
         prefix = "department:"
         return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
 
+    async def check(self, user: str, relation: str, object_: str) -> bool:
+        """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
+        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk.client.models import ClientCheckRequest
+        cfg = ClientConfiguration(
+            api_url=self._config.api_url,
+            store_id=self._config.store_id,
+        )
+        if self._config.api_key:
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
+                configuration=CredentialConfiguration(api_token=self._config.api_key),
+            )
+        async with OpenFgaClient(cfg) as client:
+            resp = await client.check(
+                ClientCheckRequest(user=user, relation=relation, object=object_)
+            )
+            return resp.allowed is True
+
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
         from openfga_sdk.client.models import ClientListObjectsRequest
@@ -69,9 +89,9 @@ class FGAClient:
             store_id=self._config.store_id,
         )
         if self._config.api_key:
-            from openfga_sdk.credentials import CredentialConfiguration, CredentialMethod
-            cfg.credentials = CredentialConfiguration(
-                method=CredentialMethod.API_TOKEN,
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
                 configuration=CredentialConfiguration(api_token=self._config.api_key),
             )
         try:

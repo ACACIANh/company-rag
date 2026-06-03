@@ -86,3 +86,64 @@ async def test_get_readable_folders_fetches_and_caches_raw_on_miss():
 
     assert result == raw  # prune으로 합치지 않음
     assert await cache.get("u2") == raw
+
+
+@pytest.mark.asyncio
+async def test_check_returns_allowed_true():
+    client = _client()
+
+    class _Resp:
+        allowed = True
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def check(self, req):
+            assert req.user == "user:alice"
+            assert req.relation == "allow_select"
+            assert getattr(req, "object") == "capability:sql"
+            return _Resp()
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        result = await client.check("user:alice", "allow_select", "capability:sql")
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_with_api_key_builds_credentials():
+    config = FGAConfig(api_url="http://localhost:8080", store_id="s", api_key="secret-token")
+    client = FGAClient(config=config, cache=InMemoryCacheBackend())
+
+    class _Resp:
+        allowed = True
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def check(self, req): return _Resp()
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        # api_key 경로(Credentials 생성)를 타면서 예외 없이 통과해야 한다
+        result = await client.check("user:alice", "allow_select", "capability:sql")
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_check_returns_allowed_false():
+    client = _client()
+
+    class _Resp:
+        allowed = False
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def check(self, req):
+            assert req.user == "user:bob"
+            assert req.relation == "allow_ddl"
+            assert getattr(req, "object") == "capability:sql"
+            return _Resp()
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        result = await client.check("user:bob", "allow_ddl", "capability:sql")
+    assert result is False
