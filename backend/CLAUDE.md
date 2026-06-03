@@ -15,10 +15,11 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 
 ## 핵심 아키텍처 결정
 - State: `AgentState(TypedDict)`. `MessagesState` 및 임의 dict 금지.
-- 라우터: `router_node` — `route` 필드로 doc_search/tool_call 분기 (`app/graph/nodes/router.py`)
-- HITL: `interrupt()` — tool_call 경로에만, `MemorySaver` checkpointer 필수 (`app/graph/nodes/confirm.py`)
+- 라우터: `router_node` — `route` 필드로 doc_search/agent 분기 (`app/graph/nodes/router.py`)
+- HITL: `interrupt()` — agent(도구 호출) 경로에만, `MemorySaver` checkpointer 필수 (`app/graph/nodes/confirm.py`)
 - FGA: 폴더 트리 pre-filter. `ListObjects(can_read, folder)`로 읽을 수 있는 폴더 목록을 받아, 그 폴더에 정확 매칭(`path = ANY`)되는 청크만 검색(prefix 확장 안 함 — private 하위 누수 방지). 권한 주체는 부서(department) 단위 — 개인 단위 메타데이터·sensitivity 없음. 상세: ADR-0015.
 - FGA 캐시: PostgreSQL TTL 캐시 (Redis 미사용).
+- 명명 원칙: 외부 경계 노출 이름은 역할(role), 내부 구현은 how 허용(캡슐화). 상세: ADR-0033.
 
 ## 작업 규칙
 1. **새 노드/엣지 추가 전**: `docs/langgraph-guide/INDEX.md` 먼저 읽기.

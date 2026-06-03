@@ -54,7 +54,7 @@
 
 ## A. RAG 오케스트레이션 그래프 (LangGraph)
 
-`app/graph/`는 13개 노드로 이루어진 `StateGraph`다. Self-RAG(재시도 루프) + 환각 검증 루프 + HITL(도구 실행 확인) 패턴을 결합한다.
+`app/graph/`는 16개 노드로 이루어진 `StateGraph`다. Self-RAG(재시도 루프) + 환각 검증 루프 + HITL(도구 실행 확인) 패턴을 결합한다.
 
 ### A.1 그래프 토폴로지
 
@@ -66,7 +66,7 @@ flowchart TD
 
     RT -->|doc_search + multi_query| MQ[multi_query<br/>하위쿼리 분해]
     RT -->|doc_search| PERM[permission<br/>FGA 폴더 조회]
-    RT -->|tool_call| CF{confirm<br/>interrupt 사용자확인}
+    RT -->|agent| AG[agent<br/>ReAct + 도구 바인딩]
 
     MQ --> PERM
     PERM --> RET[retrieve<br/>벡터검색 + rerank]
@@ -75,12 +75,21 @@ flowchart TD
     GD -->|score≥0.5 또는 retry≥2| GEN[generate<br/>RAG 답변생성]
     GD -->|else| INC[increment_retry] --> RW
 
-    CF -->|confirmed| TE[tool_executor] --> GEN
-    CF -->|거절| E1([END])
+    AG -->|tool_calls 있음| TG[tool_gate<br/>권한·위험도 게이트]
+    AG -->|tool_calls 없음| AA[agent_answer<br/>최종 답변]
+
+    TG -->|JUSTIFY 대기 있음| CF[confirm<br/>interrupt HITL]
+    TG -->|JUSTIFY 없음| AG
+
+    CF --> JE[justify_execute<br/>사유 입력 후 실행]
+    JE --> AG
+
+    AA --> SM[save_memory]
 
     GEN --> CH{check_hallucination}
-    CH -->|passed 또는 retry≥3| SM[save_memory] --> E2([END])
+    CH -->|passed 또는 retry≥3| SM
     CH -->|else| GEN
+    SM --> E([END])
 ```
 
 ### A.2 AgentState (TypedDict, 17개 필드)
@@ -92,7 +101,7 @@ flowchart TD
 | `question` | str | 사용자 원본 질문 |
 | `rewritten_question` | str | 검색 최적화 재작성 질문 |
 | `chat_history` | list[dict] | 대화 이력(최대 10턴 윈도우) |
-| `route` | `"doc_search" \| "tool_call"` | 라우팅 결정 |
+| `route` | `"doc_search" \| "agent"` | 라우팅 결정 |
 | `rewrite_strategy` | `none \| contextual \| multi_query \| None` | 쿼리 재작성 전략 |
 | `multi_queries` | list[str] | 분해된 하위 쿼리 |
 | `documents` | list[SearchResult] | 검색·랭크된 청크 |
@@ -106,14 +115,15 @@ flowchart TD
 | `user_id` | str | 권한 검사용 사용자 ID |
 | `allowed_folders` | list[str] | 읽기 가능 폴더(permission 노드가 채움) |
 
-### A.3 조건부 분기 (4개)와 임계값
+### A.3 조건부 분기 (5개)와 임계값
 
 | 분기 함수 | 위치 | 규칙 |
 |-----------|------|------|
-| `route_after_router` | `edges.py` | `doc_search`+`multi_query`전략 → multi_query / `doc_search` → permission / `tool_call` → confirm |
+| `route_after_router` | `edges.py` | `doc_search`+`multi_query`전략 → multi_query / `doc_search` → permission / `agent` → agent |
 | `route_after_grade` | `edges.py` | `relevance_score ≥ 0.5` **또는** `retry_count ≥ 2` → generate, 아니면 increment_retry→rewrite_query 루프 |
 | `route_after_hallucination` | `edges.py` | `hallucination_passed` **또는** `retry_count ≥ 3` → save_memory, 아니면 generate 재시도 |
-| `route_after_confirm` | `edges.py` | `confirmed` → tool_executor, 거절 → END |
+| `route_after_agent` | `edges.py` | 최신 메시지에 `tool_calls` 있음 → tool_gate, 없음 → agent_answer |
+| `route_after_tool_gate` | `edges.py` | `pending_tool_calls` 있음(JUSTIFY 대기) → confirm, 없음 → agent |
 
 임계값: `_RELEVANCE_THRESHOLD = 0.5`, `_MAX_GRADE_RETRIES = 2`, `_MAX_TOTAL_RETRIES = 3`.
 
@@ -128,28 +138,34 @@ flowchart LR
         n_pm[permission]
         n_re[retrieve]
         n_gd[grade_documents]
+        n_ag[agent]
+        n_tg[tool_gate]
         n_cf[confirm]
+        n_je[justify_execute]
         n_ge[generate]
         n_ch[check_hallucination]
     end
 
     n_rw & n_rt & n_mq & n_gd & n_ge & n_ch --> LLM[core.llm.LLMClient]
+    n_ag --> LLM
     n_pm --> FGA[core.fga.FGAClient]
+    n_tg --> FGA
     n_re --> RETR[core.retriever.Retriever]
     n_re --> RERANK[core.reranker.Reranker]
     n_re --> FGA
     n_cf --> INT["langgraph.types.interrupt()"]
+    n_je --> TOOLS[app.graph.tools.registry]
     n_ge --> COST[core.observability.cost_tracker]
 ```
 
-- `load_memory`·`increment_retry`·`save_memory`·`tool_executor`는 core 호출 없는 순수 상태 변환(`tool_executor`는 현재 Mock).
+- `load_memory`·`increment_retry`·`save_memory`·`agent_answer`는 core 호출 없는 순수 상태 변환.
 - `permission`·`retrieve`·`generate`는 async 노드.
 
 ### A.5 HITL과 체크포인터
 
-- **HITL**: `tool_call` 경로의 `confirm_node`에서만 `interrupt()`로 사용자 확인을 받는다(`nodes/confirm.py`). 확인 응답에 따라 `tool_executor` 진입 또는 END.
+- **HITL**: `agent`(도구 호출) 경로의 `confirm_node`에서만 `interrupt()`로 사용자 확인을 받는다(`nodes/confirm.py`). `tool_gate`가 JUSTIFY 판정한 도구 호출에 대해 사용자 사유 입력을 기다리고, 사유 입력 후 `justify_execute_node`가 실제 실행한다. 이후 다시 `agent`로 복귀.
 - **Checkpointer**: 그래프 컴파일 시 필수. 기본 `MemorySaver`, 운영은 `lifespan`에서 `AsyncPostgresSaver`(`langgraph_checkpoints` 테이블) 주입. interrupt 후 상태 복구·재개에 사용.
-- **진입/종료**: `START → load_memory`, 정상 종료 `save_memory → END`, 조건부 종료 `confirm 거절 → END`.
+- **진입/종료**: `START → load_memory`, 정상 종료 `save_memory → END`.
 
 > 근거: `app/graph/state.py`, `app/graph/builder.py`, `app/graph/edges.py`, `app/graph/nodes/*.py`
 
@@ -217,7 +233,7 @@ sequenceDiagram
 | 캐시 | PostgreSQL `fga_permission_cache`, TTL 60초. `set`은 `ON CONFLICT` 갱신, 권한 변경 시 `invalidate`로 즉시 무효화 (Redis 미사용, ADR-0009) |
 | 호출 위치 | `permission_node`(폴더 조회) → `retrieve_node`(pre-filter 적용). 다운로드 엔드포인트도 동일 권한 검사 |
 
-> 근거: `backend/DESIGN.md`, `core/fga/client.py`, `core/fga/cache/postgres.py`, `app/graph/nodes/permission.py`, `app/graph/nodes/retrieve.py`
+> 근거: `core/fga/client.py`, `core/fga/cache/postgres.py`, `app/graph/nodes/permission.py`, `app/graph/nodes/retrieve.py` (결정: ADR-0011→ADR-0015)
 
 ---
 
@@ -287,9 +303,8 @@ flowchart LR
 ## 참조
 
 - 전체 시스템 구성도: [system-overview.md](./system-overview.md)
-- 권한 RAG 설계: `backend/DESIGN.md`
+- 권한 RAG 설계: ADR-0011(→ADR-0015) `docs/superpowers/decisions/ADR-0015-fga-public-private-super-reader.md`
 - ADR: `backend/docs/superpowers/decisions/` (ADR-0009 FGA 캐시 · ADR-0013 다중 포맷 인제스천)
-
 </script>
 <script>
   var src = document.getElementById('md').textContent;

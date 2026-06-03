@@ -1,5 +1,5 @@
 from langchain_core.messages import AIMessage
-from app.graph.edges import route_after_confirm, route_after_gate, route_after_grade, route_after_hallucination, route_after_router, route_after_agent, route_after_tool_gate
+from app.graph.edges import route_after_grade, route_after_hallucination, route_after_router, route_after_agent, route_after_tool_gate
 
 
 # ─── route_after_grade ───
@@ -78,30 +78,6 @@ def test_route_after_router_returns_doc_search_when_no_strategy_key():
     assert route_after_router(state) == "doc_search"
 
 
-# ─── route_after_confirm (SQL 게이트 JUSTIFY_AND_APPROVE 전용) ───
-
-def test_route_after_confirm_executes_when_confirmed():
-    assert route_after_confirm({"confirmed": True}) == "sql_execute"
-
-
-def test_route_after_confirm_rejects_when_denied():
-    assert route_after_confirm({"confirmed": False}) == "sql_reject"
-
-
-# ─── route_after_gate (ADR-0016 3-state, ADR-0027 개정) ───
-
-def test_route_after_gate_allow_executes():
-    assert route_after_gate({"gate_decision": "ALLOW"}) == "sql_execute"
-
-
-def test_route_after_gate_justify_confirms():
-    assert route_after_gate({"gate_decision": "JUSTIFY_AND_APPROVE"}) == "confirm"
-
-
-def test_route_after_gate_deny_rejects():
-    assert route_after_gate({"gate_decision": "DENY"}) == "sql_reject"
-
-
 # ─── route_after_agent / route_after_tool_gate (ADR-0023) ───
 
 def test_route_after_agent_to_tool_gate_when_tool_calls():
@@ -109,9 +85,9 @@ def test_route_after_agent_to_tool_gate_when_tool_calls():
     assert route_after_agent({"agent_messages": [ai]}) == "tool_gate"
 
 
-def test_route_after_agent_to_done_when_no_tool_calls():
+def test_route_after_agent_to_answer_when_no_tool_calls():
     ai = AIMessage(content="최종 답변")
-    assert route_after_agent({"agent_messages": [ai]}) == "agent_done"
+    assert route_after_agent({"agent_messages": [ai]}) == "agent_answer"
 
 
 def test_route_after_tool_gate_to_confirm_when_pending():

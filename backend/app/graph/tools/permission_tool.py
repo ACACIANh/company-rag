@@ -15,7 +15,7 @@ from core.llm.base import LLMClient
 from core.sql.gate import RISK_GRANT
 from core.sql.risk import RISK_DENY
 from app.graph.prompts import PERMISSION_PARSE_PROMPT
-from app.graph.nodes.sql_generate import _strip_code_fence
+from app.graph.tools._utils import strip_code_fence
 from app.graph.tools._args import single_text_arg
 
 _DESCRIPTION = (
@@ -43,7 +43,7 @@ class PermissionToolHandler:
         )
         raw = self._llm.complete(prompt)
         try:
-            parsed = json.loads(_strip_code_fence(raw))
+            parsed = json.loads(strip_code_fence(raw))
         except Exception:
             return "권한 동작 파싱 실패", RISK_DENY
         if not isinstance(parsed, dict):

@@ -118,7 +118,7 @@ def build_graph(
     g.add_conditional_edges(
         "agent",
         route_after_agent,
-        {"tool_gate": "tool_gate", "agent_done": "agent_answer"},
+        {"tool_gate": "tool_gate", "agent_answer": "agent_answer"},
     )
     g.add_conditional_edges(
         "tool_gate",
@@ -202,9 +202,6 @@ async def answer_question(
         "tool_input": "",
         "user_id": user_id,
         "allowed_folders": [],
-        "generated_sql": "",
-        "sql_risk": "",
-        "gate_decision": "",
         "justification": "",
         "agent_messages": [],
         "pending_tool_calls": [],
@@ -259,9 +256,6 @@ async def stream_answer(
                 "tool_input": "",
                 "user_id": user_id,
                 "allowed_folders": [],
-                "generated_sql": "",
-                "sql_risk": "",
-                "gate_decision": "",
                 "justification": "",
                 "agent_messages": [],
                 "pending_tool_calls": [],
