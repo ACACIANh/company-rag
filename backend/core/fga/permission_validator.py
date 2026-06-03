@@ -30,15 +30,15 @@ class PermissionValidator:
         folders_path: str = "config/folders.yaml",
     ) -> "PermissionValidator":
         users = yaml.safe_load(Path(users_path).read_text())["users"]
-        user_ids = {u["user_id"] for u in users}
+        user_ids = {u["user_id"] for u in users if u.get("user_id")}
         departments: set = set()
         for u in users:
-            departments |= set(u.get("departments", []))
+            departments |= {d for d in u.get("departments", []) if d}
         folders_raw = yaml.safe_load(Path(folders_path).read_text())["folders"]
         for spec in folders_raw.values():
             spec = spec or {}
-            departments |= set(spec.get("dept_viewers", []))
-        folders = set(folders_raw.keys())
+            departments |= {d for d in spec.get("dept_viewers", []) if d}
+        folders = {p for p in folders_raw.keys() if p}
         return cls(user_ids=user_ids, departments=departments, folders=folders)
 
     def _strip(self, value: str, prefix: str) -> str | None:
@@ -50,6 +50,9 @@ class PermissionValidator:
         relation = parsed.get("relation", "")
         object_ = parsed.get("object", "")
         if action not in ("grant", "revoke"):
+            return None
+        # None/비문자열 타입 가드 — LLM이 JSON null을 반환해도 fail-closed.
+        if not all(isinstance(x, str) for x in (subject, relation, object_)):
             return None
         # 공백 주입 방어 — 모든 토큰은 공백 없는 id.
         if any(" " in x for x in (subject, relation, object_)):

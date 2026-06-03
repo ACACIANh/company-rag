@@ -84,3 +84,16 @@ def test_catalog_text_contains_known_ids():
     v = _validator()
     text = v.catalog_text()
     assert "user-alice" in text and "engineering" in text and "/company/finance" in text
+
+
+def test_reject_null_subject_no_crash():
+    v = _validator()
+    # LLM이 JSON null을 낸 경우 — 크래시 없이 None 반환(fail-closed)
+    assert v.validate({"action": "grant", "subject": None,
+                       "relation": "member", "object": "department:engineering"}) is None
+
+
+def test_reject_null_relation_no_crash():
+    v = _validator()
+    assert v.validate({"action": "grant", "subject": "user:user-alice",
+                       "relation": None, "object": "department:engineering"}) is None
