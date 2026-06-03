@@ -3,6 +3,7 @@ from app.graph.prompts import (
     CHECK_HALLUCINATION,
     ROUTER_PROMPT,
     SQL_GENERATE_PROMPT,
+    REWRITE_QUERY,
     _BUSINESS_SCHEMA,
 )
 
@@ -92,3 +93,11 @@ def test_sql_generate_value_hints_exclude_pii():
     hints_section = SQL_GENERATE_PROMPT.split("카테고리형 컬럼의 실제 저장값")[1]
     assert "salary" not in hints_section
     assert "email" not in hints_section
+
+
+def test_rewrite_query_preserves_intent_not_doc_search_form():
+    """요청·명령형 질문을 문서 조회형('절차/방법')으로 바꾸지 않도록 의도 보존 지침이 있어야 한다."""
+    from app.graph.prompts import REWRITE_QUERY
+    assert "의도와 행위 유형은 그대로 보존" in REWRITE_QUERY
+    assert "{question}" in REWRITE_QUERY
+    assert "{chat_history}" in REWRITE_QUERY
