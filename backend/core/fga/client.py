@@ -69,9 +69,9 @@ class FGAClient:
             store_id=self._config.store_id,
         )
         if self._config.api_key:
-            from openfga_sdk.credentials import CredentialConfiguration, CredentialMethod
-            cfg.credentials = CredentialConfiguration(
-                method=CredentialMethod.API_TOKEN,
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
                 configuration=CredentialConfiguration(api_token=self._config.api_key),
             )
         async with OpenFgaClient(cfg) as client:
@@ -89,9 +89,9 @@ class FGAClient:
             store_id=self._config.store_id,
         )
         if self._config.api_key:
-            from openfga_sdk.credentials import CredentialConfiguration, CredentialMethod
-            cfg.credentials = CredentialConfiguration(
-                method=CredentialMethod.API_TOKEN,
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
                 configuration=CredentialConfiguration(api_token=self._config.api_key),
             )
         try:
