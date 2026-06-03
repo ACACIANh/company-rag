@@ -6,7 +6,7 @@ from core.sql.gate import (
     TIER_C_LEVEL,
     DECISION_ALLOW,
     DECISION_DENY,
-    DECISION_NEEDS_APPROVAL,
+    DECISION_JUSTIFY_AND_APPROVE,
 )
 from core.sql.risk import (
     RISK_SELECT,
@@ -48,16 +48,17 @@ def test_select_allowed_for_all_tiers():
         assert decision == DECISION_ALLOW
 
 
-def test_bulk_select_needs_approval_except_c_level():
-    assert gate_lookup(TIER_GENERAL, RISK_BULK_SELECT)[0] == DECISION_NEEDS_APPROVAL
-    assert gate_lookup(TIER_ENGINEERING, RISK_BULK_SELECT)[0] == DECISION_NEEDS_APPROVAL
-    assert gate_lookup(TIER_C_LEVEL, RISK_BULK_SELECT)[0] == DECISION_ALLOW
+def test_bulk_select_justify_for_all_tiers():
+    # ADR-0027: c_level도 면제 없이 사유 기재 — 최고 권한일수록 더 기록한다.
+    assert gate_lookup(TIER_GENERAL, RISK_BULK_SELECT)[0] == DECISION_JUSTIFY_AND_APPROVE
+    assert gate_lookup(TIER_ENGINEERING, RISK_BULK_SELECT)[0] == DECISION_JUSTIFY_AND_APPROVE
+    assert gate_lookup(TIER_C_LEVEL, RISK_BULK_SELECT)[0] == DECISION_JUSTIFY_AND_APPROVE
 
 
 def test_update_delete_matrix():
     assert gate_lookup(TIER_GENERAL, RISK_UPDATE_DELETE)[0] == DECISION_DENY
-    assert gate_lookup(TIER_ENGINEERING, RISK_UPDATE_DELETE)[0] == DECISION_NEEDS_APPROVAL
-    assert gate_lookup(TIER_C_LEVEL, RISK_UPDATE_DELETE)[0] == DECISION_NEEDS_APPROVAL
+    assert gate_lookup(TIER_ENGINEERING, RISK_UPDATE_DELETE)[0] == DECISION_JUSTIFY_AND_APPROVE
+    assert gate_lookup(TIER_C_LEVEL, RISK_UPDATE_DELETE)[0] == DECISION_JUSTIFY_AND_APPROVE
 
 
 def test_ddl_denied_for_all_including_c_level():

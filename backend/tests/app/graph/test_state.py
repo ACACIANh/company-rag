@@ -63,6 +63,7 @@ def test_agent_state_has_sql_gate_fields():
     assert "generated_sql" in hints
     assert "sql_risk" in hints
     assert "gate_decision" in hints
+    assert "justification" in hints   # ADR-0027
 
 
 def test_agent_state_has_multi_query_fields():

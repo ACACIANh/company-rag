@@ -22,4 +22,5 @@ class AgentState(TypedDict):
     allowed_folders: list[str]   # permission_node가 채움 — 추려진 상위 폴더 목록
     generated_sql: str           # SQL 생성 노드가 채움 (ADR-0016)
     sql_risk: str                # 위험도 분류 노드가 채움 (ADR-0017)
-    gate_decision: str           # 신원×위험도 게이트 결정 ALLOW/DENY/NEEDS_APPROVAL (ADR-0016)
+    gate_decision: str           # 신원×위험도 게이트 결정 ALLOW/DENY/JUSTIFY_AND_APPROVE (ADR-0016, 0027)
+    justification: str           # JUSTIFY_AND_APPROVE 경로에서 본인이 기재한 실행 사유 (ADR-0027)

@@ -179,6 +179,7 @@ async def answer_question(
         "generated_sql": "",
         "sql_risk": "",
         "gate_decision": "",
+        "justification": "",
     }
     final = await graph.ainvoke(initial, config=config)
     return Answer(text=final["answer"], sources=final["citations"])
@@ -222,6 +223,7 @@ async def stream_answer(
             "generated_sql": "",
             "sql_risk": "",
             "gate_decision": "",
+            "justification": "",
         }
 
         final = await graph.ainvoke(initial, config=config)
