@@ -3,9 +3,10 @@ import { useState } from "react";
 interface Props {
   onSend: (text: string) => void;
   disabled: boolean;
+  awaitingJustification?: boolean;
 }
 
-export function MessageInput({ onSend, disabled }: Props) {
+export function MessageInput({ onSend, disabled, awaitingJustification }: Props) {
   const [text, setText] = useState("");
 
   const submit = () => {
@@ -30,7 +31,11 @@ export function MessageInput({ onSend, disabled }: Props) {
           }
         }}
         rows={2}
-        placeholder="질문을 입력하세요. (Enter 전송, Shift+Enter 줄바꿈)"
+        placeholder={
+          awaitingJustification
+            ? "실행 사유를 입력하세요"
+            : "질문을 입력하세요. (Enter 전송, Shift+Enter 줄바꿈)"
+        }
         className="flex-1 resize-none bg-transparent text-ink text-[15px] font-light outline-none placeholder:text-ink-mute leading-[1.6]"
         style={{ fontFeatureSettings: '"ss01"' }}
         disabled={disabled}
