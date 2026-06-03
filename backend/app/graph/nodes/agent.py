@@ -16,7 +16,8 @@ def agent_node(state: dict, *, chat_model) -> dict:
     messages = list(state.get("agent_messages") or [])
     seeded: list = []
     if not messages:
-        question = state.get("rewritten_question") or state.get("question", "")
+        # 에이전트는 원본 질문으로 행동 — rewrite(문서검색 편향)가 도구 호출을 흐리지 않게 (ADR-0031)
+        question = state.get("question") or state.get("rewritten_question", "")
         seeded = [SystemMessage(content=_SYSTEM), HumanMessage(content=question)]
         messages = seeded
     ai: AIMessage = chat_model.invoke(messages)

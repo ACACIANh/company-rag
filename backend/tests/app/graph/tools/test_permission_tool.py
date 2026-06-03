@@ -48,6 +48,17 @@ def test_plan_unparseable_llm_output_returns_deny():
     assert risk == RISK_DENY
 
 
+def test_plan_accepts_arg1_key():
+    """bind_tools가 넘기는 {'__arg1': ...} 형태에서도 instruction을 추출한다 (ADR-0032)."""
+    handler = PermissionToolHandler(
+        llm=_llm('{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}'),
+        fga_client=MagicMock(), validator=_validator(),
+    )
+    planned, risk = handler.plan({"__arg1": "alice를 engineering에 추가"})
+    assert risk == RISK_GRANT
+    assert planned == "grant user:user-alice member department:engineering"
+
+
 @pytest.mark.asyncio
 async def test_execute_grant_calls_grant_tuple():
     fga = MagicMock()

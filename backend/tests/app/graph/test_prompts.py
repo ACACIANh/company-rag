@@ -3,6 +3,7 @@ from app.graph.prompts import (
     CHECK_HALLUCINATION,
     ROUTER_PROMPT,
     SQL_GENERATE_PROMPT,
+    REWRITE_QUERY,
     _BUSINESS_SCHEMA,
 )
 
@@ -45,16 +46,22 @@ def test_router_prompt_exposes_business_schema():
     assert "business.sales" in ROUTER_PROMPT
 
 
-def test_router_prompt_criterion_is_data_source_not_verbs():
-    """판정 축이 동작 동사가 아니라 '테이블 값으로 답되는가'여야 한다."""
-    assert "테이블의 값으로 답되는가" in ROUTER_PROMPT
+def test_router_prompt_criterion_covers_docs_vs_tools_not_verbs():
+    """판정 축이 동작 동사가 아니라 '문서 서술 vs 도구 처리'여야 한다."""
+    assert "문서 서술로 답되는가" in ROUTER_PROMPT
     # 옛 동사 나열("예약, 조회, 실행, 전송 등 동작")이 제거되어야 한다.
     assert "예약, 조회, 실행, 전송" not in ROUTER_PROMPT
 
 
+def test_router_prompt_includes_permission_management():
+    """agent 분기가 권한 관리도 포괄함이 명시되어야 한다 (ADR-0031)."""
+    assert "권한 관리" in ROUTER_PROMPT
+    assert "agent:none" in ROUTER_PROMPT
+
+
 def test_router_prompt_has_boundary_fewshot_pairs():
     """'정책(문서) vs 내 수치(DB)' 대조쌍이 들어 있어야 한다."""
-    assert "내 연차 며칠 남았어?" in ROUTER_PROMPT      # → tool_call
+    assert "내 연차 며칠 남았어?" in ROUTER_PROMPT      # → agent
     assert "연차는 며칠까지 쌓을 수 있어?" in ROUTER_PROMPT  # → doc_search
 
 
@@ -86,3 +93,11 @@ def test_sql_generate_value_hints_exclude_pii():
     hints_section = SQL_GENERATE_PROMPT.split("카테고리형 컬럼의 실제 저장값")[1]
     assert "salary" not in hints_section
     assert "email" not in hints_section
+
+
+def test_rewrite_query_preserves_intent_not_doc_search_form():
+    """요청·명령형 질문을 문서 조회형('절차/방법')으로 바꾸지 않도록 의도 보존 지침이 있어야 한다."""
+    from app.graph.prompts import REWRITE_QUERY
+    assert "의도와 행위 유형은 그대로 보존" in REWRITE_QUERY
+    assert "{question}" in REWRITE_QUERY
+    assert "{chat_history}" in REWRITE_QUERY
