@@ -10,6 +10,7 @@ from core.llm.base import LLMClient
 from core.sql.risk import RISK_SELECT, RISK_BULK_SELECT, classify_sql_ast
 from app.graph.prompts import SQL_GENERATE_PROMPT, SQL_BULK_PII_PROMPT
 from app.graph.nodes.sql_generate import _strip_code_fence
+from app.graph.tools._args import single_text_arg
 
 _DEFAULT_ROW_LIMIT = 100
 
@@ -44,7 +45,7 @@ class SqlToolHandler:
         )
 
     def plan(self, args: dict) -> tuple[str, str]:
-        question = args["question"]
+        question = single_text_arg(args, prefer="question")
         raw = self._llm.complete(SQL_GENERATE_PROMPT.format(question=question))
         sql = _strip_code_fence(raw)
         risk = classify_sql_ast(sql)

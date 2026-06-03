@@ -16,6 +16,7 @@ from core.sql.gate import RISK_GRANT
 from core.sql.risk import RISK_DENY
 from app.graph.prompts import PERMISSION_PARSE_PROMPT
 from app.graph.nodes.sql_generate import _strip_code_fence
+from app.graph.tools._args import single_text_arg
 
 _DESCRIPTION = (
     "사내 권한을 관리한다(부여/회수): 부서 멤버십, 폴더 부서 접근권, SQL 실행 권한. "
@@ -34,7 +35,7 @@ class PermissionToolHandler:
         self.tool = Tool(name=self.name, description=_DESCRIPTION, func=lambda instruction: "")
 
     def plan(self, args: dict) -> tuple[str, str]:
-        instruction = args["instruction"]
+        instruction = single_text_arg(args, prefer="instruction")
         prompt = (
             PERMISSION_PARSE_PROMPT
             .replace("{known_ids}", self._validator.catalog_text())
