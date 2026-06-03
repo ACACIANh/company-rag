@@ -1,6 +1,6 @@
 # ADR-0022: 라우터 doc_search↔tool_call 분류 정확도 개선
 
-> **Status**: ⚪ 제안됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
+> **Status**: 🔵 승인됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
 
 **Date**: 2026-06-02
 **Context**: `router_node`([app/graph/nodes/router.py](../../../app/graph/nodes/router.py))는 `ROUTER_PROMPT`([app/graph/prompts.py](../../../app/graph/prompts.py))로 질문을 `doc_search`(사내 문서 검색)와 `tool_call`(현재 NL→SQL 조회) 중 하나로 분기한다. 그런데 현재 프롬프트의 경계가 **동작 동사**(예약·조회·실행·전송)에 기대고 있고, 특히 "**조회**"가 `tool_call` 설명에 들어가 있어 "휴가 조회 정책"(문서)과 "내 연차 조회"(DB)가 같은 동사로 충돌해 오분류가 난다. 게다가 라우팅이 맞는지 **측정할 수단이 없어**(eval에 라우팅 지표 부재) 프롬프트를 고쳐도 개선 여부를 알 수 없다. 분류 기준을 무엇으로 둘지, 어떻게 검증할지 결정한다.
