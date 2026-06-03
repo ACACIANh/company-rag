@@ -690,6 +690,58 @@ async def test_stream_answer_justify_emits_interrupt_event():
     mock_store.add_message.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_stream_answer_justify_new_session_creates_session():
+    """새 세션에서 JUSTIFY interrupt가 나도 session_store에 세션을 생성한다.
+    생성하지 않으면 사유 제출(resume) 요청이 /chat/stream 진입부 세션 소유권
+    검사에서 거부되어 'Session not found'가 난다."""
+    from app.graph.builder import stream_answer
+
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "agent",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "stream-justify-new-1"}}
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=graph,
+        question="전직원 급여 보여줘",
+        config=config,
+        user_id="bob",
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-justify-new",
+        is_new_session=True,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+    types = [e["type"] for e in events]
+    assert "interrupt" in types
+    assert types[-1] == "done"
+    # 새 세션이므로 resume이 소유권 검사를 통과하도록 세션을 생성해야 한다
+    mock_store.create_session.assert_called_once_with("sess-justify-new", "bob", "전직원 급여 보여줘")
+    # 답변이 아직 없으므로 메시지는 저장하지 않는다
+    mock_store.add_message.assert_not_called()
+
+
 def _perm_tool_call_msg(instruction="alice를 eng 부서에 추가", tc_id="p1"):
     return AIMessage(
         content="",

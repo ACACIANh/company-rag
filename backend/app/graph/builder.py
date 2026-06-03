@@ -267,6 +267,14 @@ async def stream_answer(
             actions = final["__interrupt__"][0].value.get("actions", []) if isinstance(
                 final["__interrupt__"][0].value, dict
             ) else []
+            # 새 세션이 interrupt로 멈추면, 사유 제출(resume) 요청이 세션 소유권
+            # 검사를 통과하도록 세션을 먼저 기록한다. 답변은 아직 없으므로 메시지는
+            # 저장하지 않는다(완료 시 정상 경로에서 기록).
+            if is_new_session:
+                try:
+                    await session_store.create_session(session_id, user_id, question[:20])
+                except Exception:
+                    logging.exception("session store create failed for session_id=%s", session_id)
             await token_queue.put({"type": "interrupt", "actions": actions})
             await token_queue.put({"type": "done", "session_id": session_id})
             return
