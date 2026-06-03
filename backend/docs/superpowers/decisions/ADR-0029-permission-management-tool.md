@@ -52,9 +52,9 @@
    {action: grant|revoke, subject, relation, object}
    ```
 2. **검증**(화이트리스트, 미통과 → `risk=RISK_DENY`):
-   - `target_type`별 subject/object 타입 정합
+   - `relation`별 subject/object 타입 정합 (`member`→user·department, `dept_viewer`→department#member·folder, capability 8종→user|department#member·capability:sql)
    - subject·object id 유효성 (부서·유저 `users.yaml`, 폴더 `folders.yaml`, capability relation 고정 8종). "이미 그 상태인가"는 멱등이라 불검증.
-3. `planned_action` = 사람이 읽는 동작 문자열(예: `"grant: user:alice → member → department:engineering"`), `risk` = `RISK_GRANT`(고정 고위험).
+3. `planned_action` = 공백 구분 4-part 문자열 `"{action} {subject} {relation} {object}"`(예: `"grant user:user-alice member department:engineering"` — execute가 `split(" ")`로 역파싱, confirm이 그대로 노출), `risk` = `RISK_GRANT`(고정 고위험).
 
 `execute(planned_action)`: 검증된 구조를 튜플로 변환해 FGA write/delete → 결과 텍스트.
 
