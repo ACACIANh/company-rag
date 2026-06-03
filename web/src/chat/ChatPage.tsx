@@ -14,6 +14,7 @@ export function ChatPage() {
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
+  const [awaitingJustification, setAwaitingJustification] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -63,9 +64,12 @@ export function ChatPage() {
   const send = async (question: string) => {
     isNearBottomRef.current = true;
     const isNewSession = sessionId === null;
+    setAwaitingJustification(false);
     setError(null);
     setPending(true);
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
+    if (question !== "") {
+      setMessages((prev) => [...prev, { role: "user", content: question }]);
+    }
 
     let assistantAdded = false;
 
@@ -106,6 +110,12 @@ export function ChatPage() {
           if (isNewSession) {
             getSessions().then(setSessions).catch(() => {});
           }
+        } else if (event.type === "interrupt") {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: "", interrupt: event.actions },
+          ]);
+          setAwaitingJustification(true);
         } else if (event.type === "error") {
           setError(event.message);
         }
@@ -263,7 +273,7 @@ export function ChatPage() {
                 대화 기록을 불러오는 중…
               </p>
             ) : (
-              <MessageList messages={messages} />
+              <MessageList messages={messages} onCancel={() => send("")} />
             )}
             {pending && (
               <div className="flex items-center gap-2 mt-4">
@@ -287,7 +297,11 @@ export function ChatPage() {
           </main>
 
           <div className="max-w-3xl w-full mx-auto px-4 pb-4 flex-shrink-0">
-            <MessageInput onSend={send} disabled={pending || loadingHistory} />
+            <MessageInput
+              onSend={send}
+              disabled={pending || loadingHistory}
+              awaitingJustification={awaitingJustification}
+            />
           </div>
         </div>
       </div>
