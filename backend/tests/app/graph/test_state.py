@@ -93,3 +93,9 @@ def test_agent_state_multi_query_instantiation():
     }
     assert state["rewrite_strategy"] == "multi_query"
     assert state["multi_queries"] == ["연차 규정은?", "병가 규정은?"]
+
+
+def test_agent_state_has_agentic_loop_fields():
+    hints = get_type_hints(AgentState, include_extras=True)
+    assert "agent_messages" in hints      # ADR-0023
+    assert "pending_tool_calls" in hints   # ADR-0023

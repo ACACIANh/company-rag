@@ -72,3 +72,18 @@ def route_after_confirm(state: dict) -> str:
         "sql_execute" if a justification was given, "sql_reject" otherwise (no reason).
     """
     return "sql_execute" if state["confirmed"] else "sql_reject"
+
+
+def route_after_agent(state: dict) -> str:
+    """에이전트 응답에 도구 호출이 있으면 게이트로, 없으면 최종 답변 종료 (ADR-0023)."""
+    messages = state.get("agent_messages") or []
+    for m in reversed(messages):
+        tool_calls = getattr(m, "tool_calls", None)
+        if tool_calls is not None:
+            return "tool_gate" if tool_calls else "agent_done"
+    return "agent_done"
+
+
+def route_after_tool_gate(state: dict) -> str:
+    """JUSTIFY 대기 호출이 있으면 confirm(HITL), 없으면 에이전트로 복귀 (ADR-0023)."""
+    return "confirm" if state.get("pending_tool_calls") else "agent"

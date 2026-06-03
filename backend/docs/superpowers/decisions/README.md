@@ -27,6 +27,8 @@
 | [0020](ADR-0020-sql-gate-prerequisite-infra.md) | 신원×위험도 SQL 게이트의 전제 인프라 | 🟢 적용완료 |
 | [0021](ADR-0021-sql-schema-value-hints.md) | NL→SQL 생성 — 카테고리형 컬럼 값 힌트(value hints) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0022](ADR-0022-router-route-discrimination.md) | 라우터 doc_search↔tool_call 분류 정확도 개선 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0023](ADR-0023-tool-call-agentic-loop.md) | tool_call 경로를 게이트된 도구-디스패치 ReAct 루프로 전환 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0024](ADR-0024-hitl-api-resume.md) | HITL 종단 완결 — 계획된 동작 노출 + API resume 루프 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0027](ADR-0027-justify-and-approve-self-service-gate.md) | DBA 부재 가정 — `NEEDS_APPROVAL`을 `JUSTIFY_AND_APPROVE`(사유 기재 자가승인)로 개정 | 🟢 적용완료 |
 
 ## 상태 범례

@@ -2,11 +2,22 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from langchain_core.messages import AIMessage
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 
 from core.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
+
+
+def _mock_chat_model(ai_messages):
+    """build_graph가 chat_model.bind_tools(...)의 결과를 에이전트 모델로 쓰므로,
+    bind_tools가 반환하는 객체의 .invoke가 주어진 AIMessage들을 차례로 내도록 만든다."""
+    chat = MagicMock()
+    bound = MagicMock()
+    chat.bind_tools.return_value = bound
+    bound.invoke.side_effect = list(ai_messages)
+    return chat
 
 
 def _mock_fga_client(roles=None, departments=None):
@@ -58,6 +69,9 @@ def _make_initial_state(question: str) -> dict:
         "generated_sql": "",
         "sql_risk": "",
         "gate_decision": "",
+        "justification": "",
+        "agent_messages": [],
+        "pending_tool_calls": [],
     }
 
 
@@ -106,22 +120,61 @@ async def test_answer_question_doc_search_retry_on_low_grade():
     assert result.text == "좋은 답변"
 
 
+def _tool_call_msg(question="전직원 급여", tc_id="c1"):
+    return AIMessage(
+        content="",
+        tool_calls=[{"name": "query_business_data", "args": {"question": question}, "id": tc_id}],
+    )
+
+
+@pytest.mark.asyncio
+async def test_tool_call_allow_executes_and_answers():
+    """SELECT(저위험) → 게이트 ALLOW → tool_gate가 실행 → 에이전트가 최종 답변."""
+    # llm.complete: rewrite, router, sql_generate(plan), bulk/PII 판정
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 이름 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT name FROM business.employees",              # sql_tool.plan → SQL (AST: select)
+        "no",                                               # bulk/PII 판정 → RISK_SELECT 유지 → ALLOW
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출
+        AIMessage(content="직원 이름은 alice 입니다."),       # 2차: 도구 결과 받고 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["sales"]),   # general → SELECT는 ALLOW
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "agent-allow-1"}}
+
+    result = await graph.ainvoke(_make_initial_state("전직원 이름 보여줘"), config=config)
+    assert "__interrupt__" not in result
+    assert result["answer"] == "직원 이름은 alice 입니다."
+
+
 @pytest.mark.asyncio
 async def test_tool_call_justify_triggers_interrupt():
-    """게이트 JUSTIFY_AND_APPROVE(engineering × 대량/PII SELECT)이면 HITL interrupt가 뜬다."""
+    """대량/PII SELECT → 게이트 JUSTIFY_AND_APPROVE → confirm이 HITL interrupt를 띄운다."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
         "tool_call",                                        # router
-        "SELECT salary FROM business.employees",            # sql_generate (AST: select)
-        "yes",                                              # 대량/PII 보강 → bulk_select
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → RISK_BULK_SELECT → JUSTIFY
     ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 도구 호출 (이후 interrupt로 멈춤)
+    ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
     )
-    config = {"configurable": {"thread_id": "test-gate-1"}}
+    config = {"configurable": {"thread_id": "agent-justify-1"}}
 
     result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
@@ -129,72 +182,122 @@ async def test_tool_call_justify_triggers_interrupt():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_executes_after_user_approves():
+async def test_tool_call_resume_after_justify_executes_and_answers():
+    """interrupt 후 Command(resume=사유) → justify_execute 실행 → 에이전트 최종 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
         "tool_call",                                        # router
-        "SELECT salary FROM business.employees",            # sql_generate
-        "yes",                                              # bulk_select
-        "조회 결과 요약 답변",                               # generate (실행 후)
-        "YES",                                              # hallucination
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
     ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출
+        AIMessage(content="급여 분포 요약 답변"),             # 2차: justify_execute 결과 받고 최종 답변
+    ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
     )
-    config = {"configurable": {"thread_id": "test-gate-2"}}
+    config = {"configurable": {"thread_id": "agent-resume-1"}}
 
     result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume="감사 대비 급여 분포 점검"), config=config)
-    assert final["answer"] == "조회 결과 요약 답변"
+    assert final["answer"] == "급여 분포 요약 답변"
 
 
 @pytest.mark.asyncio
-async def test_tool_call_rejects_when_user_denies():
+async def test_tool_call_resume_empty_reason_cancels_then_answers():
+    """빈 사유로 resume → justify_execute가 취소 ToolMessage → 에이전트가 취소 사실로 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
         "tool_call",                                        # router
-        "SELECT salary FROM business.employees",            # sql_generate
-        "yes",                                              # bulk_select
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
     ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출
+        AIMessage(content="사유 미기재로 조회가 취소되었습니다."),  # 2차: 취소 ToolMessage 받고 답변
+    ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
     )
-    config = {"configurable": {"thread_id": "test-gate-3"}}
+    config = {"configurable": {"thread_id": "agent-cancel-1"}}
 
     result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume=""), config=config)   # 사유 미기재
-    assert "취소" in final["answer"]   # sql_reject 취소 메시지
+    assert final["answer"] == "사유 미기재로 조회가 취소되었습니다."
 
 
 @pytest.mark.asyncio
 async def test_tool_call_deny_blocks_without_interrupt():
-    """일반 부서원 × UPDATE → DENY. interrupt 없이 거부 메시지."""
+    """일반 부서원 × UPDATE → 게이트 DENY. interrupt 없이 거부 ToolMessage → 에이전트가 거부 안내."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "급여 0으로 변경",                                   # rewrite
         "tool_call",                                        # router
-        "UPDATE business.employees SET salary = 0",         # sql_generate (AST: update → DENY, LLM 보강 없음)
+        "UPDATE business.employees SET salary = 0",         # plan → SQL (AST: update → DENY, bulk 판정 없음)
     ]
+    chat = _mock_chat_model([
+        _tool_call_msg(question="급여 0으로 변경"),           # 1차: 도구 호출
+        AIMessage(content="권한이 없어 실행할 수 없습니다."),   # 2차: 거부 ToolMessage 받고 답변
+    ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["sales"]),   # general
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
     )
-    config = {"configurable": {"thread_id": "test-gate-4"}}
+    config = {"configurable": {"thread_id": "agent-deny-1"}}
 
     final = await graph.ainvoke(_make_initial_state("전직원 급여 0으로 바꿔"), config=config)
     assert "__interrupt__" not in final
-    assert "권한" in final["answer"] or "실행할 수 없" in final["answer"]
+    assert final["answer"] == "권한이 없어 실행할 수 없습니다."
+
+
+@pytest.mark.asyncio
+async def test_answer_question_justify_interrupt_then_resume():
+    """answer_question: 1차 호출이 JUSTIFY interrupt를 노출하고, 같은 thread의
+    2차 호출(사유)이 resume으로 감지되어 최종 답변을 낸다."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+        AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "api-justify-resume-1"}}
+
+    # 1차: interrupt 노출
+    first = await answer_question(graph, "전직원 급여 보여줘", config=config, user_id="bob")
+    assert isinstance(first, Answer)
+    assert "사유" in first.text                              # 사유 회신 안내
+    assert "SELECT salary FROM business.employees" in first.text  # 계획된 SQL 노출
+    assert first.sources == []
+
+    # 2차: 같은 config → resume 감지 → 최종 답변
+    second = await answer_question(graph, "감사 목적입니다", config=config, user_id="bob")
+    assert second.text == "급여 분포 요약 답변"
 
 
 async def test_answer_question_multi_turn_accumulates_chat_history():
@@ -524,3 +627,129 @@ async def test_stream_answer_no_duplicate_on_hallucination_retry():
     assert "첫 번째 답변" not in joined
     types = [e["type"] for e in events]
     assert types[-1] == "done"
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_justify_emits_interrupt_event():
+    """stream_answer: JUSTIFY interrupt → 큐에 interrupt + done 이벤트 방출. (ADR-0024)"""
+    from app.graph.builder import stream_answer
+
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "stream-justify-1"}}
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+    queue: asyncio.Queue = asyncio.Queue()
+
+    await stream_answer(
+        graph=graph,
+        question="전직원 급여 보여줘",
+        config=config,
+        user_id="bob",
+        token_queue=queue,
+        session_store=mock_store,
+        session_id="sess-justify",
+        is_new_session=False,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    types = [e["type"] for e in events]
+    # interrupt 이벤트가 방출되어야 함
+    assert "interrupt" in types
+    interrupt_event = next(e for e in events if e["type"] == "interrupt")
+    assert "actions" in interrupt_event
+    assert isinstance(interrupt_event["actions"], list)
+    # done 이벤트로 마무리
+    assert types[-1] == "done"
+    # token/sources는 방출되지 않음 (interrupt path)
+    assert "token" not in types
+    assert "sources" not in types
+    # session_store에 기록하지 않음 (interrupt 중 저장 안 함)
+    mock_store.create_session.assert_not_called()
+    mock_store.add_message.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_resume_after_justify():
+    """stream_answer: interrupt 후 같은 config로 사유 제출 → resume 경로로 최종 답변 방출. (ADR-0024)"""
+    from app.graph.builder import stream_answer
+
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+        AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "stream-resume-1"}}
+
+    mock_store = AsyncMock()
+    mock_store.get_messages = AsyncMock(return_value=[])
+    queue1: asyncio.Queue = asyncio.Queue()
+
+    # 1차: interrupt 방출
+    await stream_answer(
+        graph=graph,
+        question="전직원 급여 보여줘",
+        config=config,
+        user_id="bob",
+        token_queue=queue1,
+        session_store=mock_store,
+        session_id="sess-resume",
+        is_new_session=False,
+    )
+    events1 = []
+    while not queue1.empty():
+        events1.append(queue1.get_nowait())
+    assert any(e["type"] == "interrupt" for e in events1)
+
+    # 2차: 같은 config로 사유 → resume 경로 → 최종 답변
+    queue2: asyncio.Queue = asyncio.Queue()
+    await stream_answer(
+        graph=graph,
+        question="감사 목적",
+        config=config,
+        user_id="bob",
+        token_queue=queue2,
+        session_store=mock_store,
+        session_id="sess-resume",
+        is_new_session=False,
+    )
+    events2 = []
+    while not queue2.empty():
+        events2.append(queue2.get_nowait())
+
+    types2 = [e["type"] for e in events2]
+    assert "token" in types2
+    assert "interrupt" not in types2
+    token_content = "".join(e["content"] for e in events2 if e["type"] == "token")
+    assert token_content == "급여 분포 요약 답변"
+    assert types2[-1] == "done"

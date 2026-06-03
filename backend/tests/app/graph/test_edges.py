@@ -1,4 +1,5 @@
-from app.graph.edges import route_after_confirm, route_after_gate, route_after_grade, route_after_hallucination, route_after_router
+from langchain_core.messages import AIMessage
+from app.graph.edges import route_after_confirm, route_after_gate, route_after_grade, route_after_hallucination, route_after_router, route_after_agent, route_after_tool_gate
 
 
 # ─── route_after_grade ───
@@ -99,3 +100,23 @@ def test_route_after_gate_justify_confirms():
 
 def test_route_after_gate_deny_rejects():
     assert route_after_gate({"gate_decision": "DENY"}) == "sql_reject"
+
+
+# ─── route_after_agent / route_after_tool_gate (ADR-0023) ───
+
+def test_route_after_agent_to_tool_gate_when_tool_calls():
+    ai = AIMessage(content="", tool_calls=[{"name": "query_business_data", "args": {}, "id": "c1"}])
+    assert route_after_agent({"agent_messages": [ai]}) == "tool_gate"
+
+
+def test_route_after_agent_to_done_when_no_tool_calls():
+    ai = AIMessage(content="최종 답변")
+    assert route_after_agent({"agent_messages": [ai]}) == "agent_done"
+
+
+def test_route_after_tool_gate_to_confirm_when_pending():
+    assert route_after_tool_gate({"pending_tool_calls": [{"id": "c1"}]}) == "confirm"
+
+
+def test_route_after_tool_gate_back_to_agent_when_no_pending():
+    assert route_after_tool_gate({"pending_tool_calls": []}) == "agent"
