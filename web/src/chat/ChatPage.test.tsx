@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ChatPage } from "./ChatPage";
-import { getSessionMessages, streamChat } from "../api/client";
+import { getSessions, getSessionMessages, streamChat } from "../api/client";
 
 const mockUseAuth = vi.fn();
 
@@ -99,6 +99,7 @@ describe("ChatPage interrupt(JUSTIFY) 흐름", () => {
       logout: vi.fn(),
     });
     vi.mocked(streamChat).mockReset();
+    vi.mocked(getSessions).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -198,5 +199,32 @@ describe("ChatPage interrupt(JUSTIFY) 흐름", () => {
 
     await waitFor(() => expect(streamChat).toHaveBeenCalledTimes(2));
     expect(streamChat).toHaveBeenLastCalledWith("", "s-1");
+  });
+
+  it("interrupt 대기 중 다른 세션으로 전환하면 사유 입력 모드가 해제된다", async () => {
+    vi.mocked(getSessions).mockResolvedValue([
+      { thread_id: "s-other", title: "다른 세션", created_at: "2026-06-03T00:00:00Z" },
+    ]);
+    vi.mocked(getSessionMessages).mockResolvedValue([
+      { role: "user", content: "다른 질문", sources: [] },
+    ]);
+    vi.mocked(streamChat).mockReturnValue(
+      (async function* () {
+        yield { type: "interrupt", actions: [{ tool: "manage_permission", planned_action: "grant ..." }] };
+        yield { type: "done", session_id: "s-1" };
+      })()
+    );
+
+    render(<ChatPage />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "alice 추가" } });
+    fireEvent.click(screen.getByRole("button", { name: "전송" }));
+    await screen.findByPlaceholderText("실행 사유를 입력하세요");
+
+    // 사이드바에서 다른 세션 선택
+    fireEvent.click(await screen.findByText("다른 세션"));
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/질문을 입력하세요/)).toBeInTheDocument()
+    );
   });
 });

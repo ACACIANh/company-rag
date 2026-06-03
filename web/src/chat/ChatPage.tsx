@@ -151,6 +151,7 @@ export function ChatPage() {
         }))
       );
       setSessionId(id);
+      setAwaitingJustification(false);
       localStorage.setItem("session_id", id);
     } catch {
       if (selectingSessionRef.current === id) {
@@ -167,6 +168,7 @@ export function ChatPage() {
     setSessionId(null);
     setMessages([]);
     setError(null);
+    setAwaitingJustification(false);
     localStorage.removeItem("session_id");
   };
 
@@ -175,6 +177,7 @@ export function ChatPage() {
     if (id === sessionId) {
       setSessionId(null);
       setMessages([]);
+      setAwaitingJustification(false);
       localStorage.removeItem("session_id");
     }
     try {
@@ -273,7 +276,7 @@ export function ChatPage() {
                 대화 기록을 불러오는 중…
               </p>
             ) : (
-              <MessageList messages={messages} onCancel={() => send("")} />
+              <MessageList messages={messages} onCancel={() => send("")} pending={pending} />
             )}
             {pending && (
               <div className="flex items-center gap-2 mt-4">

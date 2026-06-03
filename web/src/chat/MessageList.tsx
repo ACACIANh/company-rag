@@ -21,9 +21,11 @@ function CopyMessageButton({ content }: { content: string }) {
 function InterruptCard({
   actions,
   onCancel,
+  pending,
 }: {
   actions: NonNullable<ChatMessage["interrupt"]>;
   onCancel: () => void;
+  pending: boolean;
 }) {
   return (
     <div
@@ -47,7 +49,8 @@ function InterruptCard({
         </p>
         <button
           onClick={onCancel}
-          className="text-[12px] font-normal text-ink-mute hover:text-ruby transition-colors px-2 py-0.5"
+          disabled={pending}
+          className="text-[12px] font-normal text-ink-mute hover:text-ruby transition-colors px-2 py-0.5 disabled:opacity-40"
         >
           취소
         </button>
@@ -59,9 +62,11 @@ function InterruptCard({
 export function MessageList({
   messages,
   onCancel,
+  pending,
 }: {
   messages: ChatMessage[];
   onCancel: () => void;
+  pending: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -69,7 +74,7 @@ export function MessageList({
         if (msg.interrupt) {
           return (
             <div key={idx} className="self-start max-w-[85%]">
-              <InterruptCard actions={msg.interrupt} onCancel={onCancel} />
+              <InterruptCard actions={msg.interrupt} onCancel={onCancel} pending={pending} />
             </div>
           );
         }
