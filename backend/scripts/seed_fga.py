@@ -30,11 +30,13 @@ def _parent_of(path: str) -> str | None:
 
 # capability:sql 기본부여(ADR-0028) — 현행 게이트 매트릭스를 튜플로 재현.
 # SELECT 전원 ALLOW / BULK_SELECT 전원 JUSTIFY / UPDATE_DELETE engineering·c_level JUSTIFY / DDL 전원 DENY(튜플 없음).
+# / 권한관리는 c_level만 justify_grant(ADR-0029)
 _CAPABILITY_GRANTS = [
     {"user": "user:*", "relation": "allow_select", "object": "capability:sql"},
     {"user": "user:*", "relation": "justify_bulk_select", "object": "capability:sql"},
     {"user": "department:engineering#member", "relation": "justify_update_delete", "object": "capability:sql"},
     {"user": "role:c_level#member", "relation": "justify_update_delete", "object": "capability:sql"},
+    {"user": "role:c_level#member", "relation": "justify_grant", "object": "capability:admin"},
 ]
 
 
