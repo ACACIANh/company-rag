@@ -1,6 +1,7 @@
 # ADR-0021: NL→SQL 생성 — 카테고리형 컬럼 값 힌트(value hints)
 
-> **Status**: ⚪ 제안됨   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
+> **Status**: 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
+> 구현: `core/sql/catalog.py` 단일 출처(카테고리형 허용값·PII 플래그) + 시드 공유 + `SQL_GENERATE_PROMPT` 값 힌트 주입 + drift 테스트(feat/adr-0021-value-hints). 후속(신원별 동적 테이블 필터)은 별도 ADR.
 
 **Date**: 2026-06-02
 **Context**: `sql_generate_node`([app/graph/nodes/sql_generate.py](../../../app/graph/nodes/sql_generate.py))의 `SQL_GENERATE_PROMPT`([app/graph/prompts.py](../../../app/graph/prompts.py))는 테이블·컬럼·타입(스키마)만 LLM에 주고 **실제 컬럼 값의 형태**는 주지 않는다. 그 결과 사용자가 "엔지니어링 부서"라 물으면 DB가 영문(`engineering`)으로 저장된 `department`에 `WHERE department = '엔지니어링'`처럼 빗나간 리터럴을 생성해 조회가 비는 **value mismatch** 버그가 발생했다. 자연어→SQL의 정석 처방인 *value hints*(카테고리형 컬럼의 허용값을 프롬프트에 주입)를 도입할지, 그리고 그 출처와 PII 경계를 어떻게 둘지 결정한다.

@@ -17,8 +17,10 @@ import asyncpg
 import yaml
 
 from core.config import load_config
+from core.sql import catalog
 
 # 부서별 연봉 기준액(원). index 가산으로 행마다 분산 → 결정론.
+# 키는 카탈로그의 부서 축과 일치해야 한다(값 힌트 ↔ 시드 drift 방지, ADR-0021).
 _DEPT_BASE_SALARY = {
     "executive": 180_000_000,
     "engineering": 95_000_000,
@@ -31,15 +33,10 @@ _DEPT_BASE_SALARY = {
     "unassigned": 70_000_000,
 }
 
-# 매출 시드 축
-_SALES_PERIODS = ["2025-Q1", "2025-Q2", "2025-Q3", "2025-Q4", "2026-Q1"]
-_SALES_DEPTS = ["sales", "product", "engineering", "finance"]
-_DEPT_PRODUCT = {
-    "sales": "Enterprise License",
-    "product": "SaaS Subscription",
-    "engineering": "Platform API",
-    "finance": "Advisory",
-}
+# 매출 시드 축 — 카탈로그(단일 출처)에서 가져온다 (ADR-0021).
+_SALES_PERIODS = catalog.SALES_PERIODS
+_SALES_DEPTS = catalog.SALES_DEPARTMENTS
+_DEPT_PRODUCT = catalog.DEPT_PRODUCT
 
 
 def _primary_department(user: dict) -> str:
@@ -57,7 +54,7 @@ def build_employee_rows(users: list[dict]) -> list[tuple]:
     for i, user in enumerate(users):
         dept = _primary_department(user)
         is_exec = "c_level" in (user.get("fga_roles") or [])
-        position = "CTO" if is_exec else "Member"
+        position = catalog.POSITIONS[0] if is_exec else catalog.POSITIONS[1]
         salary = _DEPT_BASE_SALARY.get(dept, _DEPT_BASE_SALARY["unassigned"]) + i * 1_000_000
         hire_date = date(2018 + i % 7, 1 + i % 12, 1)
         email = f"{user['username']}@techcorp.example"

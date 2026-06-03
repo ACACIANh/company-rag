@@ -1,3 +1,5 @@
+from core.sql.catalog import value_hints_text as _value_hints_text
+
 RAG_GENERATE = """\
 아래 참고 문서의 내용에만 근거해 질문에 답하세요.
 - 문서에 있는 사실만 사용하고, 문서에 없는 일반 지식·추측·불필요한 수사는 덧붙이지 마세요.
@@ -104,8 +106,11 @@ SQL_GENERATE_PROMPT = """\
 스키마:
 {schema}
 
+카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: "엔지니어링"이 아니라 'engineering'):
+{value_hints}
+
 질문: {question}
-SQL:""".replace("{schema}", _BUSINESS_SCHEMA)
+SQL:""".replace("{schema}", _BUSINESS_SCHEMA).replace("{value_hints}", _value_hints_text())
 
 SQL_BULK_PII_PROMPT = """\
 다음 SQL은 읽기 전용(SELECT)으로 확정되었습니다. 이 쿼리가 아래 중 하나에
