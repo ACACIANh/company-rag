@@ -15,7 +15,7 @@ def _fga(roles, depts):
 def _handler(planned, risk, result="rows"):
     h = MagicMock()
     h.plan.return_value = (planned, risk)
-    h.aexecute = AsyncMock(return_value=result)
+    h.execute = AsyncMock(return_value=result)
     return h
 
 
@@ -44,7 +44,7 @@ async def test_allow_executes_and_appends_tool_message():
     tool_msgs = [m for m in msgs if isinstance(m, ToolMessage)]
     assert tool_msgs and tool_msgs[0].tool_call_id == "c1"
     assert "42" in tool_msgs[0].content
-    handler.aexecute.assert_awaited_once()
+    handler.execute.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -61,7 +61,7 @@ async def test_deny_appends_rejection_without_executing():
     tool_msgs = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
     assert tool_msgs and tool_msgs[0].tool_call_id == "c2"
     assert "거부" in tool_msgs[0].content or "권한" in tool_msgs[0].content
-    handler.aexecute.assert_not_called()
+    handler.execute.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -78,4 +78,4 @@ async def test_justify_records_pending_without_executing():
     assert out["pending_tool_calls"]
     pend = out["pending_tool_calls"][0]
     assert pend["id"] == "c3" and pend["decision"] == "JUSTIFY_AND_APPROVE"
-    handler.aexecute.assert_not_called()
+    handler.execute.assert_not_called()

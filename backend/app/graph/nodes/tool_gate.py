@@ -25,12 +25,6 @@ def _last_tool_calls(messages: list) -> tuple[AIMessage | None, list]:
     return None, []
 
 
-async def _execute(handler, planned_action: str) -> str:
-    if hasattr(handler, "aexecute"):
-        return await handler.aexecute(planned_action)
-    return handler.execute(planned_action)
-
-
 async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_sink: AuditSink) -> dict:
     user_id = state["user_id"]
     roles = await fga_client.user_roles(user_id)
@@ -63,7 +57,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
         ))
 
         if decision == DECISION_ALLOW:
-            result = await _execute(handler, planned_action)
+            result = await handler.execute(planned_action)
             new_messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
         elif decision == DECISION_DENY:
             new_messages.append(ToolMessage(content=_DENY_TEXT, tool_call_id=tc["id"]))

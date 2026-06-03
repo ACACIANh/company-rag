@@ -15,6 +15,6 @@ class ToolHandler(Protocol):
         """도구 인자 → (구체화된 동작, core.sql.risk 위험도 등급)."""
         ...
 
-    def execute(self, planned_action: str) -> str:
+    async def execute(self, planned_action: str) -> str:
         """구체화된 동작 실행 → 결과 텍스트."""
         ...

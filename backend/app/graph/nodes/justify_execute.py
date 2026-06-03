@@ -10,12 +10,6 @@ from core.observability.audit.base import AuditRecord, AuditSink
 _CANCEL_TEXT = "취소됨: 사유가 입력되지 않아 실행하지 않았습니다."
 
 
-async def _execute(handler, planned_action: str) -> str:
-    if hasattr(handler, "aexecute"):
-        return await handler.aexecute(planned_action)
-    return handler.execute(planned_action)
-
-
 async def justify_execute_node(state: dict, *, registry, audit_sink: AuditSink) -> dict:
     pending = state.get("pending_tool_calls") or []
     justified = bool(state.get("confirmed")) and bool((state.get("justification") or "").strip())
@@ -24,7 +18,7 @@ async def justify_execute_node(state: dict, *, registry, audit_sink: AuditSink) 
     for p in pending:
         handler = registry.handlers.get(p["name"])
         if justified and handler is not None:
-            result = await _execute(handler, p["planned_action"])
+            result = await handler.execute(p["planned_action"])
             messages.append(ToolMessage(content=result, tool_call_id=p["id"]))
             reason = state.get("justification", "")
         else:

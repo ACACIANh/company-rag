@@ -54,7 +54,7 @@ class SqlToolHandler:
                 risk = RISK_BULK_SELECT
         return sql, risk
 
-    async def aexecute(self, planned_action: str) -> str:
+    async def execute(self, planned_action: str) -> str:
         try:
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(planned_action)

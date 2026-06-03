@@ -7,7 +7,7 @@ from app.graph.nodes.justify_execute import justify_execute_node
 
 def _registry():
     h = MagicMock()
-    h.aexecute = AsyncMock(return_value="급여 결과")
+    h.execute = AsyncMock(return_value="급여 결과")
     reg = MagicMock(); reg.handlers = {"query_business_data": h}
     return reg, h
 
@@ -25,7 +25,7 @@ async def test_executes_pending_when_justified():
     tms = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
     assert tms[0].tool_call_id == "c1" and "급여 결과" in tms[0].content
     assert out["pending_tool_calls"] == []
-    h.aexecute.assert_awaited_once()
+    h.execute.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -41,4 +41,4 @@ async def test_rejects_pending_when_not_justified():
     tms = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
     assert "취소" in tms[0].content or "거부" in tms[0].content
     assert out["pending_tool_calls"] == []
-    h.aexecute.assert_not_called()
+    h.execute.assert_not_called()
