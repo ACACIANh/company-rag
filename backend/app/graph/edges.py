@@ -51,29 +51,6 @@ def route_after_router(state: dict) -> str:
     return route
 
 
-def route_after_gate(state: dict) -> str:
-    """Route based on the identity×risk gate decision (ADR-0016, 0027).
-
-    Returns:
-        "sql_execute" for ALLOW, "confirm" for JUSTIFY_AND_APPROVE, "sql_reject" for DENY.
-    """
-    decision = state["gate_decision"]
-    if decision == "ALLOW":
-        return "sql_execute"
-    if decision == "JUSTIFY_AND_APPROVE":
-        return "confirm"
-    return "sql_reject"
-
-
-def route_after_confirm(state: dict) -> str:
-    """Route after JUSTIFY_AND_APPROVE justification (ADR-0027).
-
-    Returns:
-        "sql_execute" if a justification was given, "sql_reject" otherwise (no reason).
-    """
-    return "sql_execute" if state["confirmed"] else "sql_reject"
-
-
 def route_after_agent(state: dict) -> str:
     """에이전트 응답에 도구 호출이 있으면 게이트로, 없으면 최종 답변 종료 (ADR-0023)."""
     messages = state.get("agent_messages") or []
