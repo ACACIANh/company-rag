@@ -98,7 +98,11 @@ async def test_check_returns_allowed_true():
     class _FakeClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): return False
-        async def check(self, req): return _Resp()
+        async def check(self, req):
+            assert req.user == "user:alice"
+            assert req.relation == "allow_select"
+            assert getattr(req, "object") == "capability:sql"
+            return _Resp()
 
     with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
         result = await client.check("user:alice", "allow_select", "capability:sql")
@@ -115,7 +119,11 @@ async def test_check_returns_allowed_false():
     class _FakeClient:
         async def __aenter__(self): return self
         async def __aexit__(self, *a): return False
-        async def check(self, req): return _Resp()
+        async def check(self, req):
+            assert req.user == "user:bob"
+            assert req.relation == "allow_ddl"
+            assert getattr(req, "object") == "capability:sql"
+            return _Resp()
 
     with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
         result = await client.check("user:bob", "allow_ddl", "capability:sql")

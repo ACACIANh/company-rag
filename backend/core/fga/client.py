@@ -68,11 +68,17 @@ class FGAClient:
             api_url=self._config.api_url,
             store_id=self._config.store_id,
         )
+        if self._config.api_key:
+            from openfga_sdk.credentials import CredentialConfiguration, CredentialMethod
+            cfg.credentials = CredentialConfiguration(
+                method=CredentialMethod.API_TOKEN,
+                configuration=CredentialConfiguration(api_token=self._config.api_key),
+            )
         async with OpenFgaClient(cfg) as client:
             resp = await client.check(
                 ClientCheckRequest(user=user, relation=relation, object=object_)
             )
-            return bool(resp.allowed)
+            return resp.allowed is True
 
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
