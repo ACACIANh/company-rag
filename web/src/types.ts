@@ -27,11 +27,17 @@ export interface ChatResponse {
 
 export type ChatRole = "user" | "assistant";
 
+export interface InterruptAction {
+  tool: string;
+  planned_action: string;
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: string[];
   streaming?: boolean;
+  interrupt?: InterruptAction[];
 }
 
 export class ApiError extends Error {
@@ -58,7 +64,8 @@ export interface SessionMessage {
 }
 
 export type SSEEvent =
-  | { type: "token";   content: string }
-  | { type: "sources"; sources: string[] }
-  | { type: "done";    session_id: string }
-  | { type: "error";   message: string };
+  | { type: "token";     content: string }
+  | { type: "sources";   sources: string[] }
+  | { type: "done";      session_id: string }
+  | { type: "error";     message: string }
+  | { type: "interrupt"; actions: InterruptAction[] };
