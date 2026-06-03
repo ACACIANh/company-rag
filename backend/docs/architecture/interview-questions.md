@@ -28,7 +28,7 @@
 7. 한 질문에 LLM이 rewrite·router·(multi_query)·grade·generate·hallucination으로 5~6회, 재시도까지 10회 이상 호출됩니다. p95 레이턴시와 건당 비용은? 이 구조가 실시간 챗봇에 적합한가요?
    ▶ "정교한 그래프"의 운영 현실. 측정해봤는지.
 
-8. HITL `interrupt()`는 `tool_call` 경로에만 있습니다. `doc_search`는 사내 문서를 **확인 없이 외부 LLM API로** 전송합니다. 정작 사람 확인이 필요한 건 어느 쪽인가요?
+8. HITL `interrupt()`는 `agent`(도구 호출) 경로에만 있습니다. `doc_search`는 사내 문서를 **확인 없이 외부 LLM API로** 전송합니다. 정작 사람 확인이 필요한 건 어느 쪽인가요?
    ▶ HITL을 도구 호출에만 둔 설계 판단. 데이터 거버넌스 관점.
 
 ## 3. RAG 검색 품질
@@ -84,7 +84,7 @@
 
 27. 노드를 순수 함수로 단위 테스트한다지만, 버그는 **엣지 분기**(4개 조건부 라우팅)와 루프 종료 조건에 숨습니다. 그래프 토폴로지·무한 루프 방지의 통합 테스트 커버리지는?
 
-28. `tool_executor`가 Mock입니다. HITL `confirm→tool_executor→generate` 경로를 실제 도구 없이 검증한 셈인데, 실제 도구(부작용·실패·타임아웃)를 붙이면 어디가 깨지나요?
+28. 에이전트 도구 실행(`justify_execute`)에 실제 도구(부작용·실패·타임아웃)를 붙이면 어디가 깨지나요? HITL `confirm→justify_execute→agent` 경로를 어떻게 통합 테스트했나요?
 
 29. RAG 품질 회귀를 `tests/eval/runner.py`로 본다는데, 골든셋 크기·지표(faithfulness/recall)·합격 기준은? 임계값 변경 시 회귀를 어떻게 잡나요?
 

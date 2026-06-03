@@ -35,10 +35,10 @@
 **개선 방향:** `tests/eval`로 0.4~0.6 구간을 스윕해 faithfulness/recall이 최적인 지점을 데이터로 정한다(현재 eval 하니스 부채 존재).
 
 ### Q7. 질문당 LLM 5~10회 — 레이턴시/비용?
-**✅ 답변:** 트레이드오프를 명시적으로 선택했습니다 — **정확도·근거성 우선** 설계입니다. 비용은 `cost_tracker`로 추적하고, 단계별로 **작은 모델로 분리**할 수 있습니다(router/grade/hallucination은 Haiku급, generate만 Opus급). 또 `route`가 단순 질문을 `tool_call`/단순 경로로 빼서 전체 그래프를 안 타게 합니다.
+**✅ 답변:** 트레이드오프를 명시적으로 선택했습니다 — **정확도·근거성 우선** 설계입니다. 비용은 `cost_tracker`로 추적하고, 단계별로 **작은 모델로 분리**할 수 있습니다(router/grade/hallucination은 Haiku급, generate만 Opus급). 또 `route`가 단순 질문을 `agent`/단순 경로로 빼서 전체 그래프를 안 타게 합니다.
 **개선 방향:** grade·hallucination을 비-LLM(임베딩 유사도/NLI 경량 모델)로 대체해 LLM 호출 수를 줄인다. p95는 측정해 SLO로 관리해야 한다(현재 미측정이면 인정).
 
-### Q8. HITL이 tool_call에만, doc_search는 무확인 외부 전송?
+### Q8. HITL이 agent(도구) 경로에만, doc_search는 무확인 외부 전송?
 **✅ 답변:** HITL의 목적을 **"비가역적 부작용(side-effect) 차단"**으로 잡았기 때문입니다 — 캘린더 등록·메일 발송 같은 도구는 되돌릴 수 없어 사람 확인이 필수입니다. 반면 doc_search는 읽기 전용이라 confirm 대상이 아닙니다. **데이터 유출 우려는 별개 통제 레이어**(FGA pre-filter로 권한 문서만 검색, LLM provider와의 DPA/무학습 계약)로 다룹니다.
 **개선 방향:** 민감 등급 문서는 외부 LLM 전송 전 마스킹/온프레미스 모델 라우팅을 추가한다.
 
@@ -129,9 +129,9 @@
 **✅ 답변:** `edges.py`의 라우팅 함수들은 **순수 함수라 단위 테스트로 분기를 직접 검증**합니다(임계값 경계값 테스트). 무한 루프 방지는 `retry_count` 상한으로 보장되고, 이를 "상한 도달 시 탈출" 테스트로 못박습니다. 그래프 전체는 fake `core` 주입으로 통합 테스트합니다.
 **개선 방향:** 각 조건부 분기의 모든 경로를 커버하는 시나리오 테스트 + HITL interrupt/resume를 Postgres checkpointer로 검증.
 
-### Q28. tool_executor Mock인데 실제 도구 붙이면?
-**✅ 답변:** 도구 실행을 Mock으로 둔 건 **그래프 토폴로지/HITL 흐름을 도구 구현과 분리**해 먼저 검증하기 위함입니다. 실제 도구를 붙이면 (a) 부작용·타임아웃·실패 처리(CLAUDE.md 규칙 3: retry+timeout 필수), (b) confirm 이후 도구 실패 시 사용자 재확인/롤백 경로가 필요합니다.
-**개선 방향:** 도구를 `core` 인터페이스로 추상화하고, 실패를 state에 싣고 generate가 실패를 설명하도록 분기 추가.
+### Q28. 에이전트 도구 실행에 실제 도구 붙이면?
+**✅ 답변:** `justify_execute_node`가 실제 도구 호출을 담당합니다. 그래프 토폴로지/HITL 흐름(`confirm→justify_execute→agent` 루프)을 도구 구현과 분리해 먼저 검증하는 구조입니다. 실제 도구를 붙이면 (a) 부작용·타임아웃·실패 처리(CLAUDE.md 규칙 3: retry+timeout 필수), (b) confirm 이후 도구 실패 시 사용자 재확인/롤백 경로가 필요합니다.
+**개선 방향:** 도구를 `core` 인터페이스로 추상화하고, 실패를 state에 싣고 agent가 실패를 설명하도록 분기 추가.
 
 ### Q29. eval 골든셋/지표/합격 기준?
 **✅ 답변:** `tests/eval/runner.py`로 회귀 점수를 보고(DoD 항목), 지표는 faithfulness(환각)·context recall/precision 중심이어야 합니다. 임계값 변경 시 eval을 돌려 **점수 하락 시 원인 명시**가 규칙입니다(CLAUDE.md DoD).
