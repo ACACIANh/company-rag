@@ -1,6 +1,6 @@
 """SQL 거부/취소 응답 노드 (ADR-0016).
 
-게이트 DENY 또는 사용자의 승인 거부(NEEDS_APPROVAL 취소) 시, 실행 없이 사유를
+게이트 DENY 또는 사유 미기재(JUSTIFY_AND_APPROVE 취소) 시, 실행 없이 사유를
 담은 답을 직접 만든다. RAG generate/hallucination 경로를 거치지 않고 save_memory로
 바로 이어진다 — 거부는 문서 기반 생성이 아니라 정책 결과의 통보이기 때문이다.
 """

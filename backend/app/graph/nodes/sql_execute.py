@@ -50,7 +50,8 @@ async def sql_execute_node(
         generated_sql=sql,
         sql_risk=state.get("sql_risk", ""),
         gate_decision=state.get("gate_decision", ""),
-        reason="execution",
+        # JUSTIFY_AND_APPROVE 경로면 본인이 기재한 사유를, ALLOW 경로면 실행 표식을 남긴다(ADR-0027).
+        reason=state.get("justification") or "execution",
         result_summary=result_summary,
         thread_id=state.get("thread_id", ""),
     ))

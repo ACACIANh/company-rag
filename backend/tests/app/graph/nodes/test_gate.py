@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.graph.nodes.gate import gate_node
-from core.sql.gate import DECISION_ALLOW, DECISION_DENY, DECISION_NEEDS_APPROVAL
+from core.sql.gate import DECISION_DENY, DECISION_JUSTIFY_AND_APPROVE
 
 
 def _fga(roles, departments):
@@ -33,19 +33,20 @@ async def test_general_update_delete_denied():
 
 
 @pytest.mark.asyncio
-async def test_engineering_bulk_select_needs_approval():
+async def test_engineering_bulk_select_justify():
     fga = _fga(roles=[], departments=["engineering"])
     audit = AsyncMock()
     result = await gate_node(_state("bulk_select"), fga_client=fga, audit_sink=audit)
-    assert result["gate_decision"] == DECISION_NEEDS_APPROVAL
+    assert result["gate_decision"] == DECISION_JUSTIFY_AND_APPROVE
 
 
 @pytest.mark.asyncio
-async def test_c_level_bulk_select_allowed():
+async def test_c_level_bulk_select_justify():
+    # ADR-0027: c_level의 대량/PII 읽기도 ALLOW가 아니라 사유 기재.
     fga = _fga(roles=["c_level"], departments=[])
     audit = AsyncMock()
     result = await gate_node(_state("bulk_select"), fga_client=fga, audit_sink=audit)
-    assert result["gate_decision"] == DECISION_ALLOW
+    assert result["gate_decision"] == DECISION_JUSTIFY_AND_APPROVE
 
 
 @pytest.mark.asyncio

@@ -9,7 +9,7 @@ def test_deny_produces_rejection_answer():
 
 
 def test_cancel_produces_cancellation_answer():
-    # 게이트는 통과(NEEDS_APPROVAL)했으나 사용자가 승인 거부
-    result = sql_reject_node({"gate_decision": "NEEDS_APPROVAL", "confirmed": False})
+    # 게이트는 통과(JUSTIFY_AND_APPROVE)했으나 사유 미기재로 취소
+    result = sql_reject_node({"gate_decision": "JUSTIFY_AND_APPROVE", "confirmed": False})
     assert result["answer"]
     assert "취소" in result["answer"]

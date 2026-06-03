@@ -16,8 +16,8 @@ class AuditRecord:
     question: str          # 원본 질문
     generated_sql: str
     sql_risk: str          # ADR-0017 등급
-    gate_decision: str     # ALLOW / DENY / NEEDS_APPROVAL (ADR-0016)
-    reason: str            # 결정 사유(매칭한 매트릭스 셀 등)
+    gate_decision: str     # ALLOW / DENY / JUSTIFY_AND_APPROVE (ADR-0016, 0027)
+    reason: str            # 결정 사유(매칭 셀) 또는 본인 기재 실행 사유(ADR-0027)
     result_summary: str    # 실행 결과 요약 또는 거부 대안
     thread_id: str         # checkpoint/thread id
 

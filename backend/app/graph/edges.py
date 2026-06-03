@@ -52,23 +52,23 @@ def route_after_router(state: dict) -> str:
 
 
 def route_after_gate(state: dict) -> str:
-    """Route based on the identity×risk gate decision (ADR-0016).
+    """Route based on the identity×risk gate decision (ADR-0016, 0027).
 
     Returns:
-        "sql_execute" for ALLOW, "confirm" for NEEDS_APPROVAL, "sql_reject" for DENY.
+        "sql_execute" for ALLOW, "confirm" for JUSTIFY_AND_APPROVE, "sql_reject" for DENY.
     """
     decision = state["gate_decision"]
     if decision == "ALLOW":
         return "sql_execute"
-    if decision == "NEEDS_APPROVAL":
+    if decision == "JUSTIFY_AND_APPROVE":
         return "confirm"
     return "sql_reject"
 
 
 def route_after_confirm(state: dict) -> str:
-    """Route after NEEDS_APPROVAL human confirmation (ADR-0016).
+    """Route after JUSTIFY_AND_APPROVE justification (ADR-0027).
 
     Returns:
-        "sql_execute" if confirmed, "sql_reject" otherwise (user cancelled).
+        "sql_execute" if a justification was given, "sql_reject" otherwise (no reason).
     """
     return "sql_execute" if state["confirmed"] else "sql_reject"

@@ -107,8 +107,8 @@ async def test_answer_question_doc_search_retry_on_low_grade():
 
 
 @pytest.mark.asyncio
-async def test_tool_call_needs_approval_triggers_interrupt():
-    """게이트 NEEDS_APPROVAL(engineering × 대량/PII SELECT)이면 HITL interrupt가 뜬다."""
+async def test_tool_call_justify_triggers_interrupt():
+    """게이트 JUSTIFY_AND_APPROVE(engineering × 대량/PII SELECT)이면 HITL interrupt가 뜬다."""
     llm = MagicMock()
     llm.complete.side_effect = [
         "전직원 급여 조회",                                  # rewrite
@@ -149,7 +149,7 @@ async def test_tool_call_executes_after_user_approves():
     result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
-    final = await graph.ainvoke(Command(resume=True), config=config)
+    final = await graph.ainvoke(Command(resume="감사 대비 급여 분포 점검"), config=config)
     assert final["answer"] == "조회 결과 요약 답변"
 
 
@@ -172,7 +172,7 @@ async def test_tool_call_rejects_when_user_denies():
     result = await graph.ainvoke(_make_initial_state("전직원 급여 보여줘"), config=config)
     assert "__interrupt__" in result
 
-    final = await graph.ainvoke(Command(resume=False), config=config)
+    final = await graph.ainvoke(Command(resume=""), config=config)   # 사유 미기재
     assert "취소" in final["answer"]   # sql_reject 취소 메시지
 
 

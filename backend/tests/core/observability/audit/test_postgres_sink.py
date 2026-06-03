@@ -25,7 +25,7 @@ def _record(**overrides) -> AuditRecord:
         question="전직원 급여 보여줘",
         generated_sql="SELECT salary FROM business.employees",
         sql_risk="bulk_select",
-        gate_decision="NEEDS_APPROVAL",
+        gate_decision="JUSTIFY_AND_APPROVE",
         reason="대량/PII SELECT, engineering",
         result_summary="",
         thread_id="thread-1",
@@ -39,7 +39,7 @@ def test_audit_record_has_gate_fields():
     r = _record()
     assert r.user_id == "user-alice"
     assert r.sql_risk == "bulk_select"
-    assert r.gate_decision == "NEEDS_APPROVAL"
+    assert r.gate_decision == "JUSTIFY_AND_APPROVE"
     assert r.thread_id == "thread-1"
 
 
