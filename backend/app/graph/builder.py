@@ -8,6 +8,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import Command
 
 from core.llm.base import LLMClient
 from core.models import Answer
@@ -141,6 +142,14 @@ def build_graph(
     return g.compile(checkpointer=checkpointer)
 
 
+def _interrupt_answer(final: dict) -> Answer:
+    intr = final["__interrupt__"][0].value
+    actions = intr.get("actions", []) if isinstance(intr, dict) else []
+    lines = "\n".join(f"- {a.get('tool')}: {a.get('planned_action')}" for a in actions)
+    text = "이 작업은 사유 기재 후 실행됩니다. 실행하려면 사유를 회신하세요.\n" + lines
+    return Answer(text=text, sources=[])
+
+
 def _ensure_thread_id(config: dict | None) -> dict:
     if config is None:
         return {"configurable": {"thread_id": str(uuid.uuid4())}}
@@ -160,6 +169,18 @@ async def answer_question(
 ) -> Answer:
     config = _ensure_thread_id(config)
     existing = await graph.aget_state(config)
+
+    # 이전 호출이 interrupt로 멈춘 thread면, 이번 question을 사유로 보고 resume한다.
+    if existing.next and existing.tasks and any(
+        getattr(t, "interrupts", None) for t in existing.tasks
+    ):
+        final = await graph.ainvoke(
+            Command(resume=question), config={**config, "recursion_limit": 25}
+        )
+        if "__interrupt__" in final:
+            return _interrupt_answer(final)
+        return Answer(text=final.get("answer", ""), sources=final.get("citations", []))
+
     chat_history = (existing.values or {}).get("chat_history", [])
     if not chat_history and chat_history_fallback:
         chat_history = chat_history_fallback
@@ -189,6 +210,8 @@ async def answer_question(
         "pending_tool_calls": [],
     }
     final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
+    if "__interrupt__" in final:
+        return _interrupt_answer(final)
     return Answer(text=final["answer"], sources=final["citations"])
 
 

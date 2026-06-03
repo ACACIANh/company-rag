@@ -265,6 +265,41 @@ async def test_tool_call_deny_blocks_without_interrupt():
     assert final["answer"] == "권한이 없어 실행할 수 없습니다."
 
 
+@pytest.mark.asyncio
+async def test_answer_question_justify_interrupt_then_resume():
+    """answer_question: 1차 호출이 JUSTIFY interrupt를 노출하고, 같은 thread의
+    2차 호출(사유)이 resume으로 감지되어 최종 답변을 낸다."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전직원 급여 조회",                                  # rewrite
+        "tool_call",                                        # router
+        "SELECT salary FROM business.employees",            # plan → SQL
+        "yes",                                              # bulk/PII → JUSTIFY
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
+        AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "api-justify-resume-1"}}
+
+    # 1차: interrupt 노출
+    first = await answer_question(graph, "전직원 급여 보여줘", config=config, user_id="bob")
+    assert isinstance(first, Answer)
+    assert "사유" in first.text                              # 사유 회신 안내
+    assert "SELECT salary FROM business.employees" in first.text  # 계획된 SQL 노출
+    assert first.sources == []
+
+    # 2차: 같은 config → resume 감지 → 최종 답변
+    second = await answer_question(graph, "감사 목적입니다", config=config, user_id="bob")
+    assert second.text == "급여 분포 요약 답변"
+
+
 async def test_answer_question_multi_turn_accumulates_chat_history():
     retriever = _make_retriever(text="연차는 15일", source="vacation.md")
     llm = MagicMock()
