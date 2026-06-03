@@ -147,3 +147,35 @@ async def test_check_returns_allowed_false():
     with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
         result = await client.check("user:bob", "allow_ddl", "capability:sql")
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_grant_tuple_writes_and_invalidates():
+    client = _client()
+    with patch.object(client, "_write_fga_tuples", new=AsyncMock()) as mock_write, \
+         patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
+        await client.grant_tuple("user:alice", "member", "department:engineering")
+    mock_write.assert_awaited_once_with([
+        {"user": "user:alice", "relation": "member", "object": "department:engineering"}
+    ])
+    mock_inv.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_deletes_and_invalidates():
+    client = _client()
+
+    class _FakeClient:
+        def __init__(self):
+            self.deleted = None
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def write(self, req):
+            self.deleted = req
+
+    fake = _FakeClient()
+    with patch("openfga_sdk.OpenFgaClient", return_value=fake), \
+         patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
+        await client.revoke_tuple("user:alice", "member", "department:engineering")
+    assert fake.deleted is not None          # deletes 요청이 전달됨
+    mock_inv.assert_awaited_once()
