@@ -132,6 +132,34 @@ class FGAClient:
         msg = str(exc).lower()
         return "already existed" in msg or "did not exist" in msg
 
+    async def grant_tuple(self, subject: str, relation: str, object_: str) -> None:
+        """범용 권한 부여(ADR-0029). 검증은 호출자(도구 plan)의 책임 — 여기선 쓰기만."""
+        await self._write_fga_tuples([
+            {"user": subject, "relation": relation, "object": object_}
+        ])
+        await self._cache.invalidate(subject)
+
+    async def revoke_tuple(self, subject: str, relation: str, object_: str) -> None:
+        """범용 권한 회수(ADR-0029). 멱등(없는 튜플 삭제는 무시)."""
+        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
+        cfg = ClientConfiguration(api_url=self._config.api_url, store_id=self._config.store_id)
+        if self._config.api_key:
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
+                configuration=CredentialConfiguration(api_token=self._config.api_key),
+            )
+        async with OpenFgaClient(cfg) as client:
+            try:
+                await client.write(ClientWriteRequest(
+                    deletes=[ClientTuple(user=subject, relation=relation, object=object_)]
+                ))
+            except Exception as e:
+                if not self._is_idempotent_fga_error(e):
+                    raise
+        await self._cache.invalidate(subject)
+
     async def add_department_member(self, user_id: str, department_id: str) -> None:
         await self._write_fga_tuples([
             {"user": f"user:{user_id}", "relation": "member", "object": f"department:{department_id}"}

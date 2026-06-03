@@ -693,6 +693,70 @@ async def test_stream_answer_justify_emits_interrupt_event():
     mock_store.add_message.assert_not_called()
 
 
+def _perm_tool_call_msg(instruction="alice를 eng 부서에 추가", tc_id="p1"):
+    return AIMessage(
+        content="",
+        tool_calls=[{"name": "manage_permission", "args": {"instruction": instruction}, "id": tc_id}],
+    )
+
+
+@pytest.mark.asyncio
+async def test_manage_permission_justify_then_resume_executes():
+    """권한 관리(RISK_GRANT) → capability:admin justify_grant 보유자 → JUSTIFY interrupt →
+    사유 resume → grant_tuple 실행 → 최종 답변."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "alice 추가",                                                          # rewrite
+        "tool_call",                                                          # router
+        '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # permission plan 파싱
+    ]
+    chat = _mock_chat_model([
+        _perm_tool_call_msg(),                                               # 1차: 도구 호출 → interrupt
+        AIMessage(content="앨리스를 엔지니어링에 추가했습니다."),               # 2차: resume 후 최종 답변
+    ])
+    fga = _mock_fga_client(roles=["c_level"], capabilities=["justify_grant"])
+    fga.grant_tuple = AsyncMock()
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm, fga_client=fga,
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "perm-justify-1"}}
+
+    result = await graph.ainvoke(_make_initial_state("alice를 eng에 추가해"), config=config)
+    assert "__interrupt__" in result
+
+    final = await graph.ainvoke(Command(resume="신규 입사자 부서 배정"), config=config)
+    assert final["answer"] == "앨리스를 엔지니어링에 추가했습니다."
+    fga.grant_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
+
+
+@pytest.mark.asyncio
+async def test_manage_permission_deny_for_non_admin():
+    """grant 권한(justify_grant) 없는 사용자 → DENY, interrupt 없이 거부 답변."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "alice 추가",                                                          # rewrite
+        "tool_call",                                                          # router
+        '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # plan 파싱
+    ]
+    chat = _mock_chat_model([
+        _perm_tool_call_msg(),
+        AIMessage(content="권한이 없어 실행할 수 없습니다."),
+    ])
+    fga = _mock_fga_client(departments=["sales"])   # justify_grant 미보유
+    fga.grant_tuple = AsyncMock()
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm, fga_client=fga,
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "perm-deny-1"}}
+
+    final = await graph.ainvoke(_make_initial_state("alice를 eng에 추가해"), config=config)
+    assert "__interrupt__" not in final
+    assert final["answer"] == "권한이 없어 실행할 수 없습니다."
+    fga.grant_tuple.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_stream_answer_resume_after_justify():
     """stream_answer: interrupt 후 같은 config로 사유 제출 → resume 경로로 최종 답변 방출. (ADR-0024)"""

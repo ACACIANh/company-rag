@@ -31,6 +31,7 @@
 | [0024](ADR-0024-hitl-api-resume.md) | HITL 종단 완결 — 계획된 동작 노출 + API resume 루프 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0027](ADR-0027-justify-and-approve-self-service-gate.md) | DBA 부재 가정 — `NEEDS_APPROVAL`을 `JUSTIFY_AND_APPROVE`(사유 기재 자가승인)로 개정 | 🟢 적용완료 |
 | [0028](ADR-0028-capability-permission-model.md) | SQL 게이트를 OpenFGA capability 모델로 통일 (SP2a) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0029](ADR-0029-permission-management-tool.md) | 권한 관리 도구 manage_permission (SP2b) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 
 ## 상태 범례
 

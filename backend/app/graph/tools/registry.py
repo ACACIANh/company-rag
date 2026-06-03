@@ -6,8 +6,11 @@ from dataclasses import dataclass
 
 from langchain_core.tools import Tool
 
+from core.fga.client import FGAClient
+from core.fga.permission_validator import PermissionValidator
 from core.llm.base import LLMClient
 from app.graph.tools.sql_tool import SqlToolHandler
+from app.graph.tools.permission_tool import PermissionToolHandler
 
 
 @dataclass
@@ -16,8 +19,11 @@ class ToolRegistry:
     tool_defs: list[Tool]   # bind_tools용
 
 
-def build_tool_registry(*, llm: LLMClient, sql_pool) -> ToolRegistry:
+def build_tool_registry(*, llm: LLMClient, sql_pool, fga_client: FGAClient) -> ToolRegistry:
     sql = SqlToolHandler(llm=llm, sql_pool=sql_pool)
-    handlers = {sql.name: sql}
-    tool_defs = [sql.tool]
+    permission = PermissionToolHandler(
+        llm=llm, fga_client=fga_client, validator=PermissionValidator.from_config()
+    )
+    handlers = {sql.name: sql, permission.name: permission}
+    tool_defs = [sql.tool, permission.tool]
     return ToolRegistry(handlers=handlers, tool_defs=tool_defs)
