@@ -45,11 +45,17 @@ def test_router_prompt_exposes_business_schema():
     assert "business.sales" in ROUTER_PROMPT
 
 
-def test_router_prompt_criterion_is_data_source_not_verbs():
-    """판정 축이 동작 동사가 아니라 '테이블 값으로 답되는가'여야 한다."""
-    assert "테이블의 값으로 답되는가" in ROUTER_PROMPT
+def test_router_prompt_criterion_covers_docs_vs_tools_not_verbs():
+    """판정 축이 동작 동사가 아니라 '문서 서술 vs 도구 처리'여야 한다."""
+    assert "문서 서술로 답되는가" in ROUTER_PROMPT
     # 옛 동사 나열("예약, 조회, 실행, 전송 등 동작")이 제거되어야 한다.
     assert "예약, 조회, 실행, 전송" not in ROUTER_PROMPT
+
+
+def test_router_prompt_includes_permission_management():
+    """agent 분기가 권한 관리도 포괄함이 명시되어야 한다 (ADR-0031)."""
+    assert "권한 관리" in ROUTER_PROMPT
+    assert "agent:none" in ROUTER_PROMPT
 
 
 def test_router_prompt_has_boundary_fewshot_pairs():
