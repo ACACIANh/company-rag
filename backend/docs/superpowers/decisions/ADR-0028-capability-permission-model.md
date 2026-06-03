@@ -29,14 +29,14 @@
 | 항목 | 선택 |
 |------|------|
 | 시드 기본부여 정책 위치 | `seed_fga.py` 내 상수 (`capabilities.yaml` 신설 대신) |
-| `gate.py`의 fga 의존 | `CapabilityChecker` Protocol 약결합 (FGAClient 직접 import 안 함) |
+| `gate.py`의 fga 의존 | `check` callable 주입 (FGAClient 직접 import 안 함) |
 
 ## Decision
 
 **결정 1: SQL 권한을 OpenFGA로 통일.**
 **결정 2: 권한을 relation으로 (명시적).**
 **결정 3: 2층 relation (`allow_*`/`justify_*`).**
-**결정 4: 시드 정책은 `seed_fga.py` 상수, `gate.py`는 `CapabilityChecker` Protocol 약결합.**
+**결정 4: 시드 정책은 `seed_fga.py` 상수, `gate.py`는 `check` callable 주입으로 약결합.**
 
 ### 구현 범위 (SP2a)
 
@@ -80,7 +80,7 @@ async def gate_decision(check, user_id, risk) -> tuple[str, str]:
         return DECISION_JUSTIFY_AND_APPROVE, ...
     return DECISION_DENY, ...
 ```
-- `check`는 `CapabilityChecker` Protocol(`async check(user, relation, object) -> bool`)로 약결합. `gate.py`는 FGAClient를 import하지 않고 순수 정책 유지 → fake로 단위테스트. core·core라 레이어 경계도 깨끗.
+- `check`는 `Callable[[str, str, str], Awaitable[bool]]`로 주입받는다(호출부는 `fga_client.check` bound method). `gate.py`는 FGAClient를 import하지 않고 순수 정책 유지 → fake로 단위테스트. core·core라 레이어 경계도 깨끗.
 
 #### ④ `app/graph/nodes/tool_gate.py` — 노드 수정
 - `user_roles`/`user_departments` 조회는 **감사로그용으로 유지**(department/role 기록 보존).
