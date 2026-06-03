@@ -52,13 +52,13 @@ def route_after_router(state: dict) -> str:
 
 
 def route_after_agent(state: dict) -> str:
-    """에이전트 응답에 도구 호출이 있으면 게이트로, 없으면 최종 답변 종료 (ADR-0023)."""
+    """에이전트 응답에 도구 호출이 있으면 게이트로, 없으면 최종 답변 노드로 (ADR-0023, ADR-0031 라벨=노드명)."""
     messages = state.get("agent_messages") or []
     for m in reversed(messages):
         tool_calls = getattr(m, "tool_calls", None)
         if tool_calls is not None:
-            return "tool_gate" if tool_calls else "agent_done"
-    return "agent_done"
+            return "tool_gate" if tool_calls else "agent_answer"
+    return "agent_answer"
 
 
 def route_after_tool_gate(state: dict) -> str:

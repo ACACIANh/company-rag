@@ -118,7 +118,7 @@ def build_graph(
     g.add_conditional_edges(
         "agent",
         route_after_agent,
-        {"tool_gate": "tool_gate", "agent_done": "agent_answer"},
+        {"tool_gate": "tool_gate", "agent_answer": "agent_answer"},
     )
     g.add_conditional_edges(
         "tool_gate",

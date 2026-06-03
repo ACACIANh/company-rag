@@ -85,9 +85,9 @@ def test_route_after_agent_to_tool_gate_when_tool_calls():
     assert route_after_agent({"agent_messages": [ai]}) == "tool_gate"
 
 
-def test_route_after_agent_to_done_when_no_tool_calls():
+def test_route_after_agent_to_answer_when_no_tool_calls():
     ai = AIMessage(content="최종 답변")
-    assert route_after_agent({"agent_messages": [ai]}) == "agent_done"
+    assert route_after_agent({"agent_messages": [ai]}) == "agent_answer"
 
 
 def test_route_after_tool_gate_to_confirm_when_pending():
