@@ -10,7 +10,7 @@ from core.fga.client import FGAClient
 from core.fga.permission_validator import PermissionValidator
 from core.llm.base import LLMClient
 from app.graph.tools.audit_history_tool import AuditHistoryToolHandler
-from app.graph.tools.sql_tool import SqlToolHandler
+from app.graph.tools.sql_tool import SqlAgent
 from app.graph.tools.permission_tool import PermissionToolHandler
 
 
@@ -23,7 +23,7 @@ class ToolRegistry:
 def build_tool_registry(
     *, llm: LLMClient, sql_pool, sql_rw_pool=None, fga_client: FGAClient, app_pool=None
 ) -> ToolRegistry:
-    sql = SqlToolHandler(llm=llm, sql_pool=sql_pool, sql_rw_pool=sql_rw_pool)
+    sql = SqlAgent(llm=llm, sql_pool=sql_pool, sql_rw_pool=sql_rw_pool)
     permission = PermissionToolHandler(
         llm=llm, fga_client=fga_client, validator=PermissionValidator.from_config()
     )
