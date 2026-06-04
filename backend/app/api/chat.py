@@ -24,7 +24,6 @@ from core.reranker.factory import create_reranker
 from core.retriever import BasicRetriever
 from core.session.factory import create_session_store
 from core.vector_store.factory import create_vector_store
-from core.document_version.postgres_store import PostgresDocumentVersionStore
 from core.observability.audit.postgres_sink import PostgresAuditSink
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -67,8 +66,6 @@ async def lifespan(app: FastAPI):
     session_store = create_session_store(config, pool)
     if hasattr(session_store, "ensure_tables"):
         await session_store.ensure_tables()
-
-    await PostgresDocumentVersionStore(pool).ensure_table()
 
     # 게이트 감사 로그(ADR-0018)는 운영 DB(app)에 둔다 — SQL 도구 대상(business)과 분리.
     audit_sink = PostgresAuditSink(pool)

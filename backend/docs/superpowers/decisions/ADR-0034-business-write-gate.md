@@ -91,7 +91,7 @@ RAG 운영 객체          ──> 양쪽 계정 모두 접근 불가 (ADR-0020 
 - **이력 표시 불일치**: HITL resume 완료 시 사유(justification)가 `user` 메시지로 체크포인트에 저장되어 대화 이력에 노출된다. 이는 별개 UX 이슈로, 본 ADR 범위 밖.
 - **LLM 라우팅 비결정성**: description 정정이 라우팅 정확도를 높이지만 100% 보장 불가. 향후 도구 선택 eval 하니스로 정량 측정 필요(ADR-0029 부채 참조).
 - **sql_tool_rw credential 관리**: 현재 `.env`에 `SQL_RW_DATABASE_URL`로 설정. 프로덕션에서는 시크릿 매니저 분리 검토 필요.
-- **UPDATE/DELETE 롤백 시나리오**: HITL resume 후 사람이 승인했더라도 쿼리 실행 오류 시 롤백 처리(현재 미구현).
+- **UPDATE/DELETE 롤백 시나리오**: `async with conn.transaction():` context manager 안에서 실행되므로 `Exception` 발생 시 asyncpg가 자동 롤백한다. 명시적 ROLLBACK 호출은 없으나 트랜잭션 범위가 보장됨 — 구현완료.
 
 ## 영향받는 결정
 

@@ -1,6 +1,6 @@
 # ADR-0027: DBA 부재 가정 — `NEEDS_APPROVAL`을 `JUSTIFY_AND_APPROVE`(사유 기재 자가승인)로 개정
 
-> **Status**: 🟢 적용완료 — 게이트 매트릭스·재명명·사유 기재 흐름 구현(feat/adr-0027-justify-and-approve). 쓰기 트랜잭션 격리·사용자 노출 한국어 카피는 보류(아래 후속).
+> **Status**: 🟢 적용완료 — 게이트 매트릭스·재명명·사유 기재 흐름 구현(feat/adr-0027-justify-and-approve). 쓰기 트랜잭션 격리는 ADR-0034(이중 계정 + asyncpg transaction) 로 해결. 사용자 노출 한국어 카피도 `confirm.py`에 적용완료.
 
 **Date**: 2026-06-02
 **Context**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)의 게이트는 회색지대를 `NEEDS_APPROVAL`로 두고 기존 `confirm_node`의 `interrupt()`/resume에 얹었다. 그러나 이 명칭은 **"별도 승인자(DBA·관리자)가 대기 중이며 그 사람의 결재를 기다린다"**는 조직 구조를 함의한다. 본 프로젝트의 전제는 정반대다 — **이 회사엔 DBA가 없고, 에이전트 자신이 DBA의 통제·감사 역할을 대신한다.** 외부 승인자가 없으므로 "승인 대기"는 영원히 풀리지 않는 상태이거나, 질문자가 곧 승인자인 자가승인이 되어 명칭과 실제가 어긋난다. 또한 ADR-0016 매트릭스는 c_level의 대량·PII 읽기를 무조건 `ALLOW`로 두는데, 최고 권한일수록 PII 접근의 **사유 기록**이 더 중요하다는 감사 관점과 충돌한다.
@@ -51,9 +51,9 @@
 - **`app/graph/state.py`**: `gate_decision` 허용값 갱신, 사유를 담을 필드 필요 여부 검토(`AgentState` TypedDict 확장만, 임의 dict 금지 — CLAUDE.md 규칙 2).
 - **`app/graph/nodes/confirm.py` / `edges.py`**: `interrupt()` 프롬프트를 "사유 입력"으로, resume 처리를 boolean → 사유 문자열로 변경. 빈 사유 가드.
 - **감사 로그([ADR-0018](ADR-0018-decision-audit-log.md))**: 사유 컬럼에 입력 사유 기록(스키마는 이미 사유 항목 포함 — 값 의미만 확정). 결정값 문자열 마이그레이션 영향 확인.
-- **(보류) 쓰기 실행 트랜잭션 충돌**: [ADR-0016](ADR-0016-identity-risk-sql-gate.md)은 SQL 도구를 **read-only 트랜잭션**으로 격리한다. 그 상태에선 `UPDATE`/`DELETE`가 게이트를 `JUSTIFY_AND_APPROVE`로 통과해도 실행 단에서 거부되는 모순이 있다. 쓰기 가능 트랜잭션을 어떻게 분리·격리할지는 **본 ADR 범위 밖 — 실행 구현 시 별도 결정**한다(보류). DDL은 전 계층 DENY(사람이 수동 수행)이므로 이 충돌과 무관하다.
+- ~~(보류) 쓰기 실행 트랜잭션 충돌~~ → **해결 (ADR-0034)**: `sql_tool_rw` 계정 + `async with conn.transaction():`으로 쓰기 격리 완료. 실행 오류 시 asyncpg 자동 롤백. DDL은 전 계층 DENY 유지.
 - **회귀**: 게이트 매트릭스 회귀 테스트, `tests/eval/runner.py` 점수 확인(DoD 2).
-- 사용자 노출 문구(거부 사유/사유 입력 프롬프트)의 한국어 카피 확정.
+- ~~사용자 노출 문구 한국어 카피 확정~~ → **적용완료**: `confirm.py` — "다음 작업은 사유 기재 후 본인 책임으로 실행됩니다. 실행 사유를 입력하세요."
 
 ## 영향받는 결정
 
