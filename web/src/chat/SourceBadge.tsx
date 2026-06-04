@@ -1,5 +1,6 @@
-export function SourceBadge({ sources }: { sources: string[] }) {
+export function SourceBadge({ sources, route }: { sources: string[]; route?: string }) {
   if (sources.length === 0) {
+    if (route !== "doc_search") return null;
     return (
       <p className="text-[11px] text-ink-mute font-light">출처를 찾지 못했습니다.</p>
     );

@@ -40,6 +40,7 @@ from app.graph.nodes.agent import agent_node
 from app.graph.nodes.tool_gate import tool_gate_node
 from app.graph.nodes.justify_execute import justify_execute_node
 from app.graph.nodes.agent_answer import agent_answer_node
+from app.graph.nodes.capability_node import capability_node
 from app.graph.tools.registry import build_tool_registry
 from app.graph.state import AgentState
 
@@ -89,6 +90,7 @@ def build_graph(
     g.add_node("agent_answer", agent_answer_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
+    g.add_node("capability", capability_node)
     g.add_node("save_memory", save_memory_node)
 
     g.add_edge(START, "load_memory")
@@ -102,6 +104,7 @@ def build_graph(
             "doc_search": "permission",
             "multi_query": "multi_query",
             "agent": "agent",
+            "capability": "capability",
         },
     )
     g.add_edge("multi_query", "permission")
@@ -129,6 +132,7 @@ def build_graph(
     g.add_edge("confirm", "justify_execute")
     g.add_edge("justify_execute", "agent")
     g.add_edge("agent_answer", "save_memory")
+    g.add_edge("capability", "save_memory")
 
     g.add_edge("generate", "check_hallucination")
     g.add_conditional_edges(
@@ -287,6 +291,7 @@ async def stream_answer(
         await token_queue.put({
             "type": "sources",
             "sources": [s.source for s in final["citations"]],
+            "route": final.get("route", "doc_search"),
         })
         try:
             if is_new_session:

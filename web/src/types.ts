@@ -36,6 +36,7 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   sources?: string[];
+  route?: string;
   streaming?: boolean;
   interrupt?: InterruptAction[];
 }
@@ -65,7 +66,7 @@ export interface SessionMessage {
 
 export type SSEEvent =
   | { type: "token";     content: string }
-  | { type: "sources";   sources: string[] }
+  | { type: "sources";   sources: string[]; route?: string }
   | { type: "done";      session_id: string }
   | { type: "error";     message: string }
   | { type: "interrupt"; actions: InterruptAction[] };

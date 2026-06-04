@@ -3,7 +3,7 @@ import { getSessions, getSessionMessages, deleteSession, streamChat } from "../a
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../types";
 import type { ChatMessage, Session } from "../types";
-import { MessageInput } from "./MessageInput";
+import { MessageInput, type MessageInputHandle } from "./MessageInput";
 import { MessageList } from "./MessageList";
 import { SessionSidebar } from "./SessionSidebar";
 
@@ -22,6 +22,7 @@ export function ChatPage() {
   const selectingSessionRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const isNearBottomRef = useRef(true);
+  const inputRef = useRef<MessageInputHandle>(null);
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -37,6 +38,10 @@ export function ChatPage() {
 
   useEffect(() => {
     if (sessionId) localStorage.setItem("session_id", sessionId);
+  }, [sessionId]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
   }, [sessionId]);
 
   useEffect(() => {
@@ -94,7 +99,7 @@ export function ChatPage() {
           if (assistantAdded) {
             setMessages((prev) => {
               const next = [...prev];
-              next[next.length - 1] = { ...next[next.length - 1], sources: event.sources };
+              next[next.length - 1] = { ...next[next.length - 1], sources: event.sources, route: event.route };
               return next;
             });
           }
@@ -301,6 +306,7 @@ export function ChatPage() {
 
           <div className="max-w-3xl w-full mx-auto px-4 pb-4 flex-shrink-0">
             <MessageInput
+              ref={inputRef}
               onSend={send}
               disabled={pending || loadingHistory}
               awaitingJustification={awaitingJustification}
