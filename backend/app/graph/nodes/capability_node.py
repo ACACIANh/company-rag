@@ -1,4 +1,5 @@
 from core.fga.client import FGAClient
+from core.observability.audit.base import AuditSink
 
 _TEXT_USER = """저는 다음과 같은 작업을 도와드릴 수 있습니다.
 
@@ -28,16 +29,20 @@ _TEXT_ADMIN = """저는 다음과 같은 작업을 도와드릴 수 있습니다
 
 
 # 감사 요약: gate_decision 키 → 표시 라벨 (JUSTIFY_AND_APPROVE는 JUSTIFY로 축약)
-_DECISION_LABELS = (("ALLOW", "ALLOW"), ("DENY", "DENY"), ("JUSTIFY_AND_APPROVE", "JUSTIFY"))
+_DECISION_LABELS: tuple[tuple[str, str], ...] = (
+    ("ALLOW", "ALLOW"),
+    ("DENY", "DENY"),
+    ("JUSTIFY_AND_APPROVE", "JUSTIFY"),
+)
 
 
-def _format_audit_summary(counts: dict) -> str:
-    total = sum(counts.values())
+def _format_audit_summary(counts: dict[str, int]) -> str:
+    total = sum(counts.get(key, 0) for key, _ in _DECISION_LABELS)
     parts = " · ".join(f"{label} {counts.get(key, 0)}" for key, label in _DECISION_LABELS)
     return f"\n\n📊 최근 게이트 결정: 총 {total}건 ({parts})"
 
 
-async def capability_node(state: dict, *, fga_client: FGAClient, audit_sink=None) -> dict:
+async def capability_node(state: dict, *, fga_client: FGAClient, audit_sink: AuditSink | None = None) -> dict:
     can_grant = await fga_client.check(
         f"user:{state['user_id']}", "justify_grant", "capability:admin"
     )
