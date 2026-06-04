@@ -3,6 +3,13 @@ from unittest.mock import MagicMock
 from app.graph.nodes.router import router_node
 
 
+def test_router_returns_route_confidence_field():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.9"
+    result = router_node({"question": "연차 정책"}, llm=mock_llm)
+    assert "route_confidence" in result
+
+
 def test_router_sets_doc_search_route():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "doc_search"
