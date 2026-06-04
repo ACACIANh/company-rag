@@ -25,3 +25,8 @@ class AuditRecord:
 class AuditSink(ABC):
     @abstractmethod
     async def record(self, record: AuditRecord) -> None: ...
+
+    @abstractmethod
+    async def count_by_decision(self) -> dict[str, int]:
+        """gate_decision 값별 누적 건수. 예: {"ALLOW": 15, "DENY": 3}."""
+        ...
