@@ -6,8 +6,8 @@
 from langgraph.types import interrupt
 
 _CLARIFY_OPTIONS = {
-    "사내 문서에서 찾기": "doc_search",
-    "업무 DB 조회 / 권한 도구 사용": "agent",
+    "사내 문서 검색 (RAG)": "doc_search",
+    "업무 DB·권한 처리 (에이전트)": "agent",
 }
 
 

@@ -249,7 +249,7 @@ describe("ChatPage clarify 흐름", () => {
         yield {
           type: "clarify",
           message: '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
-          options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+          options: ["사내 문서 검색 (RAG)", "업무 DB·권한 처리 (에이전트)"],
         };
         yield { type: "done", session_id: "s-1" };
       })()
@@ -262,10 +262,10 @@ describe("ChatPage clarify 흐름", () => {
     fireEvent.click(screen.getByRole("button", { name: "전송" }));
 
     expect(
-      await screen.findByRole("button", { name: "사내 문서에서 찾기" })
+      await screen.findByRole("button", { name: "사내 문서 검색 (RAG)" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "업무 DB 조회 / 권한 도구 사용" })
+      screen.getByRole("button", { name: "업무 DB·권한 처리 (에이전트)" })
     ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("위에서 방식을 선택해주세요")
@@ -279,7 +279,7 @@ describe("ChatPage clarify 흐름", () => {
           yield {
             type: "clarify",
             message: '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
-            options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+            options: ["사내 문서 검색 (RAG)", "업무 DB·권한 처리 (에이전트)"],
           };
           yield { type: "done", session_id: "s-1" };
         })()
@@ -297,11 +297,11 @@ describe("ChatPage clarify 흐름", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "전송" }));
 
-    const docBtn = await screen.findByRole("button", { name: "사내 문서에서 찾기" });
+    const docBtn = await screen.findByRole("button", { name: "사내 문서 검색 (RAG)" });
     fireEvent.click(docBtn);
 
     await waitFor(() => expect(streamChat).toHaveBeenCalledTimes(2));
-    expect(streamChat).toHaveBeenLastCalledWith("사내 문서에서 찾기", "s-1");
+    expect(streamChat).toHaveBeenLastCalledWith("사내 문서 검색 (RAG)", "s-1");
     await waitFor(() =>
       expect(
         screen.getByPlaceholderText(/질문을 입력하세요/)
@@ -321,7 +321,7 @@ describe("ChatPage clarify 흐름", () => {
         yield {
           type: "clarify",
           message: '"연차?" — 방식을 선택하세요.',
-          options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+          options: ["사내 문서 검색 (RAG)", "업무 DB·권한 처리 (에이전트)"],
         };
         yield { type: "done", session_id: "s-1" };
       })()
@@ -330,7 +330,7 @@ describe("ChatPage clarify 흐름", () => {
     render(<ChatPage />);
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "연차?" } });
     fireEvent.click(screen.getByRole("button", { name: "전송" }));
-    await screen.findByRole("button", { name: "사내 문서에서 찾기" });
+    await screen.findByRole("button", { name: "사내 문서 검색 (RAG)" });
 
     fireEvent.click(await screen.findByText("다른 세션"));
 
