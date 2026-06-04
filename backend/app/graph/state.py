@@ -35,3 +35,4 @@ class AgentState(TypedDict):
     justification: str           # JUSTIFY_AND_APPROVE 경로에서 본인이 기재한 실행 사유 (ADR-0027)
     agent_messages: Annotated[list[AnyMessage], add_messages]  # 에이전트 도구 대화 (ADR-0023)
     pending_tool_calls: list[PendingToolCall]                   # interrupt를 넘는 in-flight 호출 (ADR-0023)
+    executed_sql: list[str]                                     # JUSTIFY_AND_APPROVE 경로에서 실행 완료된 SQL — 재실행 차단용

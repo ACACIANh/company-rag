@@ -206,6 +206,7 @@ async def answer_question(
         "justification": "",
         "agent_messages": [],
         "pending_tool_calls": [],
+        "executed_sql": [],
     }
     final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
     if "__interrupt__" in final:
@@ -260,6 +261,7 @@ async def stream_answer(
                 "justification": "",
                 "agent_messages": [],
                 "pending_tool_calls": [],
+                "executed_sql": [],
             }
 
             final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
