@@ -15,9 +15,10 @@ from app.graph.tools._args import single_text_arg
 _DEFAULT_ROW_LIMIT = 100
 
 _DESCRIPTION = (
-    "사내 업무 DB(business.employees, business.sales)의 레코드·집계 값을 조회한다. "
-    "정책·규정 같은 문서 내용이 아니라 '테이블 값으로 답하는' 질문에만 쓴다. "
-    "question 인자에 한국어 자연어 질문을 그대로 넣는다."
+    "사내 업무 DB(business.employees, business.sales)의 레코드를 조회·수정·삭제한다. "
+    "직원/매출 값을 묻는 조회뿐 아니라 '연봉을 바꿔줘', '행을 삭제해줘' 같은 데이터 변경도 이 도구로 처리한다. "
+    "권한 부여/회수가 아니라 '테이블 데이터' 작업일 때 쓴다. "
+    "question 인자에 한국어 자연어 요청을 그대로 넣는다."
 )
 
 

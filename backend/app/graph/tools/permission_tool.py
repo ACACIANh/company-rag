@@ -19,8 +19,9 @@ from app.graph.tools._utils import strip_code_fence
 from app.graph.tools._args import single_text_arg
 
 _DESCRIPTION = (
-    "사내 권한을 관리한다(부여/회수): 부서 멤버십, 폴더 부서 접근권, SQL 실행 권한. "
+    "사내 접근 권한을 부여/회수한다(데이터 값 변경이 아님): 부서 멤버십, 폴더 부서 접근권, SQL 실행 권한 등급. "
     "예: '앨리스를 엔지니어링 부서에 추가', '세일즈 부서의 재무 폴더 열람권 회수'. "
+    "직원 연봉·매출 같은 테이블 데이터 수정은 이 도구가 아니라 query_business_data를 쓴다. "
     "instruction 인자에 한국어 자연어 지시를 그대로 넣는다."
 )
 
