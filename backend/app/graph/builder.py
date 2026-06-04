@@ -9,6 +9,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
+from langchain_core.messages import RemoveMessage
 
 from core.llm.base import LLMClient
 from core.models import Answer
@@ -190,6 +191,10 @@ async def answer_question(
     if not chat_history and chat_history_fallback:
         chat_history = chat_history_fallback
 
+    # add_messages 리듀서는 [] 전달 시 삭제가 아닌 "추가 없음"으로 처리 →
+    # 이전 체크포인트의 agent_messages가 그대로 유지돼 앵무새 반복 유발.
+    # RemoveMessage로 이전 메시지를 명시적으로 삭제한다.
+    prev_agent_msgs = (existing.values or {}).get("agent_messages", [])
     initial: AgentState = {
         "question": question,
         "rewritten_question": "",
@@ -208,7 +213,7 @@ async def answer_question(
         "user_id": user_id,
         "allowed_folders": [],
         "justification": "",
-        "agent_messages": [],
+        "agent_messages": [RemoveMessage(id=m.id) for m in prev_agent_msgs],
         "pending_tool_calls": [],
         "executed_sql": [],
     }
@@ -245,6 +250,7 @@ async def stream_answer(
                 stored = await session_store.get_messages(session_id)
                 chat_history = [{"role": m.role, "content": m.content} for m in stored]
 
+            prev_agent_msgs = (existing.values or {}).get("agent_messages", [])
             initial: AgentState = {
                 "question": question,
                 "rewritten_question": "",
@@ -263,7 +269,7 @@ async def stream_answer(
                 "user_id": user_id,
                 "allowed_folders": [],
                 "justification": "",
-                "agent_messages": [],
+                "agent_messages": [RemoveMessage(id=m.id) for m in prev_agent_msgs],
                 "pending_tool_calls": [],
                 "executed_sql": [],
             }
