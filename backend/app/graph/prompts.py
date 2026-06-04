@@ -136,19 +136,24 @@ SQL: {sql}
 # 권한 관리 NL → 구조화 파싱 (ADR-0029). {known_ids}/{instruction}는 .replace로 주입
 # (JSON 예시의 중괄호와 format() 충돌 방지 — ADR-0021과 동일 회피).
 PERMISSION_PARSE_PROMPT = """\
-다음 권한 관리 지시를 OpenFGA 튜플 JSON으로 변환하라.
+다음 권한 관리 지시를 JSON으로 변환하라.
 
 알려진 식별자(반드시 이 정확한 id를 사용):
 {known_ids}
 
 규칙:
-- action: "grant"(부여) 또는 "revoke"(회수)
-- 부서 멤버십: subject="user:<유저id>", relation="member", object="department:<부서>"
-- 폴더 부서 접근권: subject="department:<부서>#member", relation="dept_viewer", object="folder:<경로>"
-- SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
-  relation 은 allow_select/justify_select/allow_bulk_select/justify_bulk_select/allow_update_delete/justify_update_delete/allow_ddl/justify_ddl 중 하나, object="capability:sql"
+- action: "grant"(부여), "revoke"(회수), "query"(조회)
+- query 시: {{"action":"query","target_user_id":"<유저id 또는 null>"}}
+  target_user_id가 없으면 null (본인 조회)
+- grant/revoke 시:
+  부서 멤버십: subject="user:<유저id>", relation="member", object="department:<부서>"
+  폴더 부서 접근권: subject="department:<부서>#member", relation="dept_viewer", object="folder:<경로>"
+  SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
+    relation 은 allow_select/justify_select/allow_bulk_select/justify_bulk_select/allow_update_delete/justify_update_delete/allow_ddl/justify_ddl 중 하나, object="capability:sql"
 
-키는 action, subject, relation, object 네 개. JSON 객체만 출력(설명·코드펜스 금지).
+grant/revoke 키: action, subject, relation, object 네 개.
+query 키: action, target_user_id 두 개.
+JSON 객체만 출력(설명·코드펜스 금지).
 
 지시: {instruction}
 

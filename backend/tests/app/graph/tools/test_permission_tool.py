@@ -76,3 +76,68 @@ async def test_execute_revoke_calls_revoke_tuple():
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     await handler.execute("revoke user:user-alice member department:engineering", "RISK_GRANT")
     fga.revoke_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
+
+
+@pytest.mark.asyncio
+async def test_execute_query_self_returns_snapshot():
+    """본인 조회: caller == target → 관리자 확인 없이 FGA 3종 조회."""
+    fga = MagicMock()
+    fga.user_departments = AsyncMock(return_value=["engineering"])
+    fga.user_roles = AsyncMock(return_value=["admin"])
+    fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("query user-alice user-alice", "RISK_SELECT")
+    assert "user-alice" in result
+    assert "engineering" in result
+    assert "/engineering/specs" in result
+    fga.check.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_execute_query_other_as_admin_succeeds():
+    """타인 조회: caller != target, admin → 성공."""
+    fga = MagicMock()
+    fga.check = AsyncMock(return_value=True)
+    fga.user_departments = AsyncMock(return_value=["product"])
+    fga.user_roles = AsyncMock(return_value=[])
+    fga.get_readable_folders = AsyncMock(return_value=[])
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("query admin-user user-bob", "RISK_SELECT")
+    fga.check.assert_awaited_once_with("user:admin-user", "member", "capability:admin")
+    assert "user-bob" in result
+
+
+@pytest.mark.asyncio
+async def test_execute_query_other_as_non_admin_denied():
+    """타인 조회: caller != target, 비관리자 → 거부 메시지."""
+    fga = MagicMock()
+    fga.check = AsyncMock(return_value=False)
+    fga.user_departments = MagicMock()
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("query user-alice user-bob", "RISK_SELECT")
+    assert "권한 없음" in result
+    fga.user_departments.assert_not_called()
+
+
+def test_plan_query_self_returns_risk_select():
+    """query 파싱 → RISK_SELECT, planned_action 형식 확인."""
+    from core.sql.risk import RISK_SELECT
+    agent = PermissionAgent(
+        llm=_llm('{"action":"query","target_user_id":null}'),
+        fga_client=MagicMock(), validator=_validator(),
+    )
+    planned, risk = agent.plan({"instruction": "내 권한 알려줘", "__caller_id": "user-alice"})
+    assert risk == RISK_SELECT
+    assert planned == "query user-alice user-alice"
+
+
+def test_plan_query_other_returns_risk_select():
+    """타인 query도 plan 단계엔 RISK_SELECT (관리자 확인은 execute에서)."""
+    from core.sql.risk import RISK_SELECT
+    agent = PermissionAgent(
+        llm=_llm('{"action":"query","target_user_id":"user-bob"}'),
+        fga_client=MagicMock(), validator=_validator(),
+    )
+    planned, risk = agent.plan({"instruction": "bob 권한 알려줘", "__caller_id": "user-alice"})
+    assert risk == RISK_SELECT
+    assert planned == "query user-alice user-bob"
