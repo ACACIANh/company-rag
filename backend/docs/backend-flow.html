@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backend Flow — company-rag</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg:      #0f1117;
+      --surface: #1a1d27;
+      --border:  #2e3146;
+      --text:    #e2e4ef;
+      --muted:   #7b7f9e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1.2rem; font-weight: 600; }
+    .badge {
+      background: var(--border);
+      color: var(--muted);
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-family: monospace;
+    }
+    .legend {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 32px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .dot {
+      width: 11px; height: 11px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    main {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 20px;
+      width: 100%;
+      max-width: 1200px;
+      overflow-x: auto;
+    }
+    .card pre.mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .card pre.mermaid svg { background: transparent !important; }
+    footer {
+      text-align: center;
+      padding: 14px;
+      font-size: 0.73rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Backend LangGraph Flow</h1>
+  <span class="badge">company-rag / backend</span>
+  <span class="badge">LangGraph · FastAPI · FGA</span>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="dot" style="background:#a78bfa"></span>진입 / 종료</div>
+  <div class="legend-item"><span class="dot" style="background:#4f8ef7"></span>메모리</div>
+  <div class="legend-item"><span class="dot" style="background:#f59e0b"></span>라우터 / 분기 조건</div>
+  <div class="legend-item"><span class="dot" style="background:#3ecf8e"></span>RAG 문서 검색 경로</div>
+  <div class="legend-item"><span class="dot" style="background:#2dd4bf"></span>에이전트 도구 경로</div>
+  <div class="legend-item"><span class="dot" style="background:#f87171"></span>HITL — 사유 기재 승인</div>
+  <div class="legend-item"><span class="dot" style="background:#9ca3af"></span>기능 안내</div>
+</div>
+
+<main>
+  <div class="card">
+    <pre class="mermaid">
+%%{init: {"theme": "base", "themeVariables": {"background": "#1a1d27", "primaryColor": "#252840", "primaryTextColor": "#e2e4ef", "primaryBorderColor": "#3e4268", "lineColor": "#6272a4", "secondaryColor": "#1e2236", "tertiaryColor": "#1e2236", "edgeLabelBackground": "#252840", "fontSize": "13px"}}}%%
+flowchart TD
+    S(["START"]):::se
+    E(["END"]):::se
+
+    lm["load_memory<br/><small>이전 대화 기억 로드</small>"]:::mem
+    rq["rewrite_query<br/><small>질문 재작성<br/>none / contextual / multi_query</small>"]:::mem
+
+    ro{"router<br/><small>route 결정</small>"}:::cond
+
+    S --> lm --> rq --> ro
+
+    mq["multi_query<br/><small>멀티쿼리 생성 (LLM)</small>"]:::rag
+    pm["permission<br/><small>FGA ListObjects<br/>allowed_folders 결정</small>"]:::rag
+    rv["retrieve<br/><small>벡터 검색 + FGA pre-filter<br/>Reranker 적용</small>"]:::rag
+    gd{"grade_documents<br/><small>관련도 평가<br/>threshold 0.5</small>"}:::cond
+    ir["increment_retry<br/><small>retry_count ++</small>"]:::rag
+    gen["generate<br/><small>RAG 기반 답변 생성</small>"]:::rag
+    hc{"check_hallucination<br/><small>환각 검증 (LLM)</small>"}:::cond
+
+    ro -- "doc_search (none/contextual)" --> pm
+    ro -- "doc_search (multi_query)" --> mq
+    mq --> pm --> rv --> gd
+
+    gd -- "relevance >= 0.5 OR retry >= 2" --> gen
+    gd -- "relevance < 0.5 AND retry < 2" --> ir
+    ir --> rq
+
+    gen --> hc
+    hc -- "통과 OR retry >= 3" --> sm
+    hc -- "실패 AND retry < 3" --> gen
+
+    ag["agent<br/><small>LLM + 도구 바인딩<br/>claude-sonnet</small>"]:::agt
+    tg{"tool_gate<br/><small>FGA 게이트 판정<br/>ALLOW / DENY / JUSTIFY</small>"}:::cond
+    cf["confirm<br/><small>HITL interrupt()<br/>사유 기재 요청</small>"]:::hitl
+    je["justify_execute<br/><small>사유 검증 후 실행<br/>executed_sql 중복 차단</small>"]:::hitl
+    aa["agent_answer<br/><small>에이전트 최종 답변 조합</small>"]:::agt
+
+    ro -- "agent" --> ag
+    ag -- "tool_calls 있음" --> tg
+    ag -- "tool_calls 없음" --> aa
+
+    tg -- "ALLOW: 즉시 실행 / DENY: 거부" --> ag
+    tg -- "JUSTIFY_AND_APPROVE" --> cf
+    cf --> je --> ag
+    aa --> sm
+
+    cp["capability<br/><small>기능 목록 안내 (정적)</small>"]:::cap
+    ro -- "capability" --> cp
+    cp --> sm
+
+    sm["save_memory<br/><small>대화 기억 저장</small>"]:::mem
+    sm --> E
+
+    classDef se   fill:#3b2f6e,stroke:#a78bfa,color:#e9d5ff,font-weight:700
+    classDef mem  fill:#1e3a5f,stroke:#4f8ef7,color:#bfdbfe
+    classDef cond fill:#3d2e0a,stroke:#f59e0b,color:#fef3c7
+    classDef rag  fill:#0d3b2a,stroke:#3ecf8e,color:#bbf7d0
+    classDef agt  fill:#0a2e2e,stroke:#2dd4bf,color:#99f6e4
+    classDef hitl fill:#3b0f0f,stroke:#f87171,color:#fecaca
+    classDef cap  fill:#1f2937,stroke:#6b7280,color:#d1d5db
+    </pre>
+  </div>
+</main>
+
+<footer>
+  backend/app/graph — builder.py · edges.py · nodes/* &nbsp;|&nbsp;
+  AgentState (TypedDict) &nbsp;|&nbsp;
+  ADR-0015 FGA &nbsp;·&nbsp; ADR-0023 HITL Gate &nbsp;·&nbsp; ADR-0031 Router &nbsp;·&nbsp; ADR-0034 SQL 이중계정
+</footer>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+</script>
+</body>
+</html>
