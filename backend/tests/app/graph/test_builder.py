@@ -882,7 +882,7 @@ async def test_stream_answer_clarify_emits_clarify_event():
 
     clarify_payload = {
         "message": '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
-        "options": ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+        "options": ["사내 문서 검색 (RAG)", "업무 DB·권한 처리 (에이전트)"],
     }
 
     mock_interrupt = MagicMock()
