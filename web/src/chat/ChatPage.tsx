@@ -101,7 +101,12 @@ export function ChatPage() {
           if (assistantAdded) {
             setMessages((prev) => {
               const next = [...prev];
-              next[next.length - 1] = { ...next[next.length - 1], sources: event.sources, route: event.route };
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                sources: event.sources,
+                route: event.route,
+                tools: event.tools,
+              };
               return next;
             });
           }

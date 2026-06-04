@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { ChatMessage } from "../types";
 import { SourceBadge } from "./SourceBadge";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { ToolHeader } from "./ToolHeader";
 
 function CopyMessageButton({ content }: { content: string }) {
   const handleCopy = useCallback(() => {
@@ -137,6 +138,9 @@ export function MessageList({
                 : "self-start w-full max-w-[92%]"
             }
           >
+            {msg.role === "assistant" && !msg.streaming && msg.tools && msg.tools.length > 0 && (
+              <ToolHeader tools={msg.tools} />
+            )}
             <div
               className={
                 msg.role === "user"
