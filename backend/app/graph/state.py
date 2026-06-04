@@ -19,7 +19,7 @@ class AgentState(TypedDict):
     question: str
     rewritten_question: str
     chat_history: list[dict]
-    route: Literal["doc_search", "agent", "capability"]
+    route: Literal["doc_search", "agent", "capability", "clarify"]
     rewrite_strategy: Literal["none", "contextual", "multi_query"] | None
     multi_queries: list[str]
     documents: list[SearchResult]
@@ -36,3 +36,4 @@ class AgentState(TypedDict):
     agent_messages: Annotated[list[AnyMessage], add_messages]  # 에이전트 도구 대화 (ADR-0023)
     pending_tool_calls: list[PendingToolCall]                   # interrupt를 넘는 in-flight 호출 (ADR-0023)
     executed_sql: list[str]                                     # JUSTIFY_AND_APPROVE 경로에서 실행 완료된 SQL — 재실행 차단용
+    route_confidence: float                                     # router_node가 채움. 0.0~1.0. clarify_node가 읽음.

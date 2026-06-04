@@ -78,22 +78,24 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 - 모호하면 doc_search로 답한다 (agent은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
 
 경계 예시:
-- "연차는 며칠까지 쌓을 수 있어?" → doc_search:none (규정 = 문서)
-- "내 연차 며칠 남았어?" → agent:none (개인 레코드 값 = DB)
-- "급여 인상 정책 알려줘" → doc_search:none (방침 = 문서)
-- "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none (테이블 집계 = DB)
-- "alice를 engineering 부서에 추가해줘" → agent:none (권한 변경 = 도구)
-- "finance 폴더 접근 권한을 회수해줘" → agent:none (권한 변경 = 도구)
-- "뭘 도와줄 수 있어?" → capability:none
-- "어떤 기능 있어?" → capability:none
-- "사용법 알려줘" → capability:none
+- "연차는 며칠까지 쌓을 수 있어?" → doc_search:none:0.95 (규정 = 문서)
+- "내 연차 며칠 남았어?" → agent:none:0.95 (개인 레코드 값 = DB)
+- "급여 인상 정책 알려줘" → doc_search:none:0.95 (방침 = 문서)
+- "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none:0.90 (테이블 집계 = DB)
+- "alice를 engineering 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "finance 폴더 접근 권한을 회수해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "뭘 도와줄 수 있어?" → capability:none:1.0
+- "어떤 기능 있어?" → capability:none:1.0
+- "사용법 알려줘" → capability:none:1.0
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
 - multi_query: 질문이 복잡하거나 여러 항목 비교/열거 → 하위 쿼리로 분해 검색
 
-출력 형식: <route>:<strategy>
-예시: doc_search:none, doc_search:multi_query, agent:none, capability:none
+출력 형식: <route>:<strategy>:<확신도>
+- 확신도: 0.0(완전 불확실) ~ 1.0(완전 확신), 소수점 두 자리
+- 경계 예시에서 명확한 경우 0.9 이상, 애매한 경우 0.5~0.7
+예시: doc_search:none:0.95, doc_search:multi_query:0.85, agent:none:0.90, capability:none:1.0
 다른 텍스트 없이 위 형식만 출력하세요.
 
 질문: {question}

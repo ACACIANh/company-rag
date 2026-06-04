@@ -3,6 +3,13 @@ from unittest.mock import MagicMock
 from app.graph.nodes.router import router_node
 
 
+def test_router_returns_route_confidence_field():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.9"
+    result = router_node({"question": "연차 정책"}, llm=mock_llm)
+    assert "route_confidence" in result
+
+
 def test_router_sets_doc_search_route():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "doc_search"
@@ -91,3 +98,56 @@ def test_router_decides_on_original_question_not_rewritten():
     prompt = mock_llm.complete.call_args[0][0]
     assert "alice를 추가해줘" in prompt
     assert "추가 절차와 방법은 무엇인가요?" not in prompt
+
+
+def test_router_parses_confidence_score():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.9"
+    result = router_node({"question": "연차 정책"}, llm=mock_llm)
+    assert result["route"] == "doc_search"
+    assert result["route_confidence"] == 0.9
+
+
+def test_router_triggers_clarify_when_low_confidence_doc_search():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.6"
+    result = router_node({"question": "연차 어떻게 해?"}, llm=mock_llm)
+    assert result["route"] == "clarify"
+    assert result["route_confidence"] == 0.6
+
+
+def test_router_triggers_clarify_when_low_confidence_agent():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "agent:none:0.5"
+    result = router_node({"question": "데이터 보여줘"}, llm=mock_llm)
+    assert result["route"] == "clarify"
+
+
+def test_router_no_clarify_for_capability_regardless_of_confidence():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "capability:none:0.3"
+    result = router_node({"question": "뭐 할 수 있어?"}, llm=mock_llm)
+    assert result["route"] == "capability"
+
+
+def test_router_no_clarify_at_exact_threshold():
+    """확신도 == 0.75이면 clarify 미트리거."""
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.75"
+    result = router_node({"question": "연차 정책"}, llm=mock_llm)
+    assert result["route"] == "doc_search"
+
+
+def test_router_defaults_confidence_to_1_when_missing():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none"
+    result = router_node({"question": "연차"}, llm=mock_llm)
+    assert result["route_confidence"] == 1.0
+
+
+def test_router_handles_invalid_confidence_gracefully():
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:abc"
+    result = router_node({"question": "연차"}, llm=mock_llm)
+    assert result["route_confidence"] == 1.0
+    assert result["route"] == "doc_search"

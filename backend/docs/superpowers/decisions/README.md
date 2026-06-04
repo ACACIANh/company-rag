@@ -44,6 +44,7 @@
 | [0039](ADR-0039-new-session-input-autofocus.md) | "+ 새 대화" 클릭 시 입력창 자동 포커싱 | ⚪ 제안됨 |
 | [0040](ADR-0040-audit-history-tool.md) | query_audit_history 도구 — ReAct 루프 내 감사 이력 조회 | 🟢 적용완료 |
 | [0041](ADR-0041-permission-agent-rename-query.md) | ToolHandler → ToolAgent 개명 + PermissionAgent query 액션 | 🟢 적용완료 |
+| [0042](ADR-0042-router-clarify-interrupt.md) | 라우터 모호 질문 clarify — HITL 범위 확장 | 🔵 승인됨 |
 
 ## 상태 범례
 

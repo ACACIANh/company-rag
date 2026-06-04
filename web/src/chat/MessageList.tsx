@@ -22,10 +22,12 @@ function InterruptCard({
   actions,
   onCancel,
   pending,
+  awaitingJustification,
 }: {
   actions: NonNullable<ChatMessage["interrupt"]>;
   onCancel: () => void;
   pending: boolean;
+  awaitingJustification: boolean;
 }) {
   return (
     <div
@@ -49,7 +51,7 @@ function InterruptCard({
         </p>
         <button
           onClick={onCancel}
-          disabled={pending}
+          disabled={pending || !awaitingJustification}
           className="text-[12px] font-normal text-ink-mute hover:text-ruby transition-colors px-2 py-0.5 disabled:opacity-40"
         >
           취소
@@ -63,10 +65,12 @@ export function MessageList({
   messages,
   onCancel,
   pending,
+  awaitingJustification,
 }: {
   messages: ChatMessage[];
   onCancel: () => void;
   pending: boolean;
+  awaitingJustification: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -74,7 +78,7 @@ export function MessageList({
         if (msg.interrupt) {
           return (
             <div key={idx} className="self-start max-w-[85%]">
-              <InterruptCard actions={msg.interrupt} onCancel={onCancel} pending={pending} />
+              <InterruptCard actions={msg.interrupt} onCancel={onCancel} pending={pending} awaitingJustification={awaitingJustification} />
             </div>
           );
         }
