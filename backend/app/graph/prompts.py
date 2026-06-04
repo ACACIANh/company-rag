@@ -5,8 +5,9 @@ RAG_GENERATE = """\
 - 문서에 있는 사실만 사용하고, 문서에 없는 일반 지식·추측·불필요한 수사는 덧붙이지 마세요.
 - 여러 문서의 내용을 종합·요약하는 것은 괜찮지만, 문서에 없는 새로운 사실·수치·고유명사를 지어내지 마세요.
 - 그 범위 안에서 자연스럽고 명확한 한국어로 답하세요.
+- 답변 마지막 줄에 실제 참조한 문서 번호를 [출처: 1,3] 형식으로 표기하세요. 참조 문서가 없으면 줄 자체를 생략하세요.
 
-이전 대화:
+이전 사용자 질문:
 {chat_history}
 
 참고 문서:
@@ -65,6 +66,7 @@ ROUTER_PROMPT = """\
 route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니다:
 - doc_search: 정책·규정·절차·가이드 등 사내 문서에 서술된 내용으로 답하는 질문
 - agent: 도구로 처리하는 질문 — 업무 DB 테이블 값 조회·집계, 또는 사내 권한 관리(부서 멤버십·폴더 접근·SQL 실행 권한의 부여/회수)
+- capability: 시스템 자체의 기능·사용법을 묻는 질문 ("뭘 할 수 있어?", "어떤 기능 있어?", "도움말")
 
 업무 DB 스키마(agent로 답할 수 있는 범위):
 {schema}
@@ -72,6 +74,7 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 판정 기준: "이 질문이 사내 문서 서술로 답되는가, 아니면 도구로 처리해야 하는가?"
 - 업무 DB 테이블 값으로 답된다(조회·집계), 또는 사내 권한을 변경/조회해야 한다 → agent
 - 정책·규정·방침·방법 등 문서 서술이 필요하다 → doc_search
+- 시스템이 무엇을 할 수 있는지, 어떻게 사용하는지를 묻는다 → capability
 - 모호하면 doc_search로 답한다 (agent은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
 
 경계 예시:
@@ -81,13 +84,16 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 - "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none (테이블 집계 = DB)
 - "alice를 engineering 부서에 추가해줘" → agent:none (권한 변경 = 도구)
 - "finance 폴더 접근 권한을 회수해줘" → agent:none (권한 변경 = 도구)
+- "뭘 도와줄 수 있어?" → capability:none
+- "어떤 기능 있어?" → capability:none
+- "사용법 알려줘" → capability:none
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
 - multi_query: 질문이 복잡하거나 여러 항목 비교/열거 → 하위 쿼리로 분해 검색
 
 출력 형식: <route>:<strategy>
-예시: doc_search:none, doc_search:multi_query, agent:none
+예시: doc_search:none, doc_search:multi_query, agent:none, capability:none
 다른 텍스트 없이 위 형식만 출력하세요.
 
 질문: {question}

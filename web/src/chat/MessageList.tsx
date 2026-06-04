@@ -109,7 +109,7 @@ export function MessageList({
             </div>
             {msg.role === "assistant" && !msg.streaming && (
               <div className="flex items-center justify-between mt-1 px-1">
-                {msg.sources !== undefined && <SourceBadge sources={msg.sources} />}
+                {msg.sources !== undefined && <SourceBadge sources={msg.sources} route={msg.route} />}
                 <CopyMessageButton content={msg.content} />
               </div>
             )}
