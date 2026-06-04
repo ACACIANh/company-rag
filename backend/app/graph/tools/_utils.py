@@ -1,6 +1,11 @@
 """공용 도구 유틸리티."""
 
 
+def normalize_sql(sql: str) -> str:
+    """SQL 동일성 비교용 정규화: 양끝 공백·세미콜론 제거 후 소문자 변환."""
+    return sql.strip().rstrip(";").lower()
+
+
 def strip_code_fence(text: str) -> str:
     """LLM이 감싼 ```sql ... ``` / ``` ... ``` 코드펜스를 제거한다."""
     s = text.strip()

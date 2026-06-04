@@ -85,3 +85,25 @@ async def test_justify_records_pending_without_executing():
     pend = out["pending_tool_calls"][0]
     assert pend["id"] == "c3" and pend["decision"] == "JUSTIFY_AND_APPROVE"
     handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_already_executed_sql_different_format_skipped():
+    """대소문자·세미콜론이 다른 동등 SQL은 이미 실행된 것으로 차단된다."""
+    handler = _handler(
+        "UPDATE business.employees SET salary = 70000000 WHERE emp_id = 5;",
+        "update_delete",
+    )
+    state = {
+        "user_id": "u1", "question": "q",
+        "agent_messages": [_ai([{"name": "query_business_data", "args": {"question": "x"}, "id": "c5"}])],
+        # 소문자·세미콜론 없는 형태로 이미 저장된 상태
+        "executed_sql": ["update business.employees set salary = 70000000 where emp_id = 5"],
+    }
+    out = await tool_gate_node(
+        state, registry=_registry(handler),
+        fga_client=_fga([], ["sales"], capabilities=["justify_update_delete"]), audit_sink=AsyncMock(),
+    )
+    tool_msgs = [m for m in out.get("agent_messages", []) if isinstance(m, ToolMessage)]
+    assert tool_msgs and "이미 실행" in tool_msgs[0].content
+    handler.execute.assert_not_called()
