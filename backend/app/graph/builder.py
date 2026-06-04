@@ -93,7 +93,7 @@ def build_graph(
     g.add_node("agent_answer", agent_answer_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
-    g.add_node("capability", capability_node)
+    g.add_node("capability", partial(capability_node, fga_client=fga_client))
     g.add_node("clarify", clarify_node)
     g.add_node("save_memory", save_memory_node)
 
