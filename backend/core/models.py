@@ -32,3 +32,4 @@ class Answer:
     text: str
     sources: list[SourceRef]
     trace: list[dict] | None = None
+    tools: list[str] = field(default_factory=list)

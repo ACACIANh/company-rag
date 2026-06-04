@@ -45,6 +45,7 @@ from app.graph.nodes.agent_answer import agent_answer_node
 from app.graph.nodes.capability_node import capability_node
 from app.graph.tools.registry import build_tool_registry
 from app.graph.state import AgentState
+from app.graph.tool_labels import collect_tool_labels
 
 _STREAM_CHUNK_SIZE = 3  # 의사 스트리밍 청크 크기(글자). 타이핑 효과용.
 
@@ -204,7 +205,11 @@ async def answer_question(
         )
         if "__interrupt__" in final:
             return _interrupt_answer(final)
-        return Answer(text=final.get("answer", ""), sources=final.get("citations", []))
+        return Answer(
+            text=final.get("answer", ""),
+            sources=final.get("citations", []),
+            tools=collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
+        )
 
     chat_history = (existing.values or {}).get("chat_history", [])
     if not chat_history and chat_history_fallback:
@@ -240,7 +245,11 @@ async def answer_question(
     final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
     if "__interrupt__" in final:
         return _interrupt_answer(final)
-    return Answer(text=final["answer"], sources=final["citations"])
+    return Answer(
+        text=final["answer"],
+        sources=final["citations"],
+        tools=collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
+    )
 
 
 async def stream_answer(
@@ -326,6 +335,7 @@ async def stream_answer(
             "type": "sources",
             "sources": [s.source for s in final["citations"]],
             "route": final.get("route", "doc_search"),
+            "tools": collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
         })
         try:
             if is_new_session:
