@@ -1,4 +1,4 @@
-"""SQL 조회 도구 핸들러 (ADR-0023). NL 질문 → SQL → 위험도 → (게이트) → 실행.
+"""SQL 조회 도구 에이전트 (ADR-0023). NL 질문 → SQL → 위험도 → (게이트) → 실행.
 
 NL→SQL·위험도 분류·결과 포매팅은 기존 노드 로직(ADR-0016/0017/0021)을 재사용한다.
 실행은 read-only 제한계정 풀(SELECT)과 쓰기 제한계정 풀(UPDATE/DELETE)로 분리한다(ADR-0020/0034).
@@ -38,7 +38,7 @@ def _format_rows(rows: list) -> str:
     return "\n".join([header, separator, *data_lines])
 
 
-class SqlToolHandler:
+class SqlAgent:
     name = "query_business_data"
 
     def __init__(self, *, llm: LLMClient, sql_pool: asyncpg.Pool | None, sql_rw_pool: asyncpg.Pool | None = None, row_limit: int = _DEFAULT_ROW_LIMIT) -> None:

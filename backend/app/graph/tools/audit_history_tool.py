@@ -1,4 +1,4 @@
-"""감사 이력 조회 도구 핸들러 (ADR-0040). 관리자 전용 gate_audit_log 조회.
+"""감사 이력 조회 에이전트 (ADR-0040). 관리자 전용 gate_audit_log 조회.
 
 plan()은 LLM 인자를 검증해 params_json + RISK_SELECT를 반환한다.
 execute()는 FGA admin 역할 확인 후 gate_audit_log를 SELECT한다.
@@ -59,7 +59,7 @@ def _format_rows(rows: list) -> str:
     return "\n".join(lines)
 
 
-class AuditHistoryToolHandler:
+class AuditAgent:
     name = "query_audit_history"
 
     def __init__(self, *, fga_client: FGAClient, app_pool: asyncpg.Pool) -> None:

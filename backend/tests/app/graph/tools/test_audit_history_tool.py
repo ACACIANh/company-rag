@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.graph.tools.audit_history_tool import AuditHistoryToolHandler
+from app.graph.tools.audit_history_tool import AuditAgent
 from core.sql.risk import RISK_DENY, RISK_SELECT
 
 
@@ -32,7 +32,7 @@ def _pool(rows=None):
 def _make(roles=(), rows=None):
     fga = _fga(list(roles))
     pool, conn = _pool(rows)
-    return AuditHistoryToolHandler(fga_client=fga, app_pool=pool), conn
+    return AuditAgent(fga_client=fga, app_pool=pool), conn
 
 
 # ── plan() 테스트 ──────────────────────────────────────────────────────────────
@@ -148,7 +148,7 @@ async def test_execute_db_error_returns_error_message():
         yield  # noqa: unreachable
 
     pool.acquire = _bad_acquire
-    h = AuditHistoryToolHandler(fga_client=fga, app_pool=pool)
+    h = AuditAgent(fga_client=fga, app_pool=pool)
     result = await h.execute(
         json.dumps({"caller_id": "admin1", "limit": 20, "user_id": None,
                     "decision": None, "start_date": None, "end_date": None}),
