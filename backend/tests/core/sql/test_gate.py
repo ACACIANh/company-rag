@@ -2,6 +2,7 @@ import pytest
 
 from core.sql.gate import (
     gate_decision,
+    gate_table_access,
     RISK_GRANT,
     DECISION_ALLOW,
     DECISION_DENY,
@@ -94,3 +95,43 @@ async def test_returns_nonempty_reason():
     decision, reason = await gate_decision(_checker(GENERAL), "u", RISK_UPDATE_DELETE)
     assert decision == DECISION_DENY
     assert isinstance(reason, str) and reason
+
+
+# ── 테이블별 접근 게이트 (ADR-0047) ──────────────────────────────────
+def _table_checker(granted: set):
+    """granted = can_access 보유 table 객체 집합(예: {"table:employees"})."""
+    async def check(user, relation, object_):
+        return relation == "can_access" and object_ in granted
+    return check
+
+
+@pytest.mark.asyncio
+async def test_table_access_all_present():
+    check = _table_checker({"table:employees", "table:sales"})
+    ok, reason = await gate_table_access(check, "u", {"employees", "sales"})
+    assert ok is True
+    assert isinstance(reason, str) and reason
+
+
+@pytest.mark.asyncio
+async def test_table_access_missing_one_denies():
+    check = _table_checker({"table:employees"})
+    ok, reason = await gate_table_access(check, "u", {"employees", "sales"})
+    assert ok is False
+    assert "sales" in reason
+
+
+@pytest.mark.asyncio
+async def test_table_access_unknown_table_denies():
+    # can_access 튜플이 없는 테이블은 자연히 DENY(fail-closed).
+    check = _table_checker({"table:employees"})
+    ok, _ = await gate_table_access(check, "u", {"secret_table"})
+    assert ok is False
+
+
+@pytest.mark.asyncio
+async def test_table_access_empty_passes():
+    # 참조 테이블 없는 SQL(SELECT 1)은 통과.
+    check = _table_checker(set())
+    ok, _ = await gate_table_access(check, "u", set())
+    assert ok is True

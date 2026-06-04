@@ -40,6 +40,33 @@ def test_non_admin_does_not_get_capability_admin_grant():
     assert not _find(tuples, user="user:user-jisoo", relation="justify_grant", object="capability:admin")
 
 
+# ── 부서 관리자 위임(ADR-0046) ──────────────────────────────
+def test_dept_admin_of_emits_admin_tuple():
+    tuples = _build_tuples([{"user_id": "user-jisoo", "dept_admin_of": ["개발팀"]}], {})
+    assert _find(tuples, user="user:user-jisoo", relation="admin", object="department:개발팀")
+
+
+def test_no_dept_admin_of_emits_no_admin_tuple():
+    tuples = _build_tuples([{"user_id": "user-seoyeon", "departments": ["영업팀"]}], {})
+    assert not _find(tuples, user="user:user-seoyeon", relation="admin")
+
+
+# ── 테이블 접근권(ADR-0047) ─────────────────────────────────
+def test_table_grants_present():
+    tuples = _build_tuples([], {})
+    # c_level은 전 테이블, 인사팀은 employees, 영업팀은 sales.
+    assert _find(tuples, user="role:c_level#member", relation="can_access", object="table:employees")
+    assert _find(tuples, user="role:c_level#member", relation="can_access", object="table:sales")
+    assert _find(tuples, user="department:인사팀#member", relation="can_access", object="table:employees")
+    assert _find(tuples, user="department:영업팀#member", relation="can_access", object="table:sales")
+
+
+def test_table_grants_respect_boundary():
+    tuples = _build_tuples([], {})
+    # 영업팀은 employees(PII) 접근권 없음 — 부서별 경계.
+    assert not _find(tuples, user="department:영업팀#member", relation="can_access", object="table:employees")
+
+
 # ── 폴더 권한 튜플 ──────────────────────────────────────────
 def test_public_folder_tuple():
     tuples = _build_tuples([], {"/company": {"public": True}})

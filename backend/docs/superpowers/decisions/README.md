@@ -48,6 +48,8 @@
 | [0043](ADR-0043-capability-matrix-justify-only.md) | capability 매트릭스 정리 — SELECT만 즉시허용, 그 외 위험군은 justify-only | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0044](ADR-0044-seed-fga-prune-reconcile.md) | seed_fga --prune — 추가식 시드의 잔재 정리(재조정) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0045](ADR-0045-permission-query-capabilities.md) | 권한 조회 스냅샷에 capability 권한 노출 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0046](ADR-0046-individual-grant-dept-admin-delegation.md) | 개인 권한 부여/회수 + 부서 관리자 위임 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0047](ADR-0047-table-level-sql-access.md) | 테이블별 SQL 접근 권한 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 
 ## 상태 범례
 

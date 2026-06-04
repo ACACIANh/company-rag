@@ -11,6 +11,7 @@ users:
     user_id: user-jisoo
     roles: [user]
     departments: [개발팀]
+    dept_admin_of: [개발팀]   # 부서 관리자 — 개발팀 멤버십 위임 (ADR-0046)
     display_name: 김지수
     email: jisoo.kim@techcorp.example
   - username: minjun

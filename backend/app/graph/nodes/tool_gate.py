@@ -11,10 +11,18 @@ from langchain_core.messages import AIMessage, ToolMessage
 from core.fga.client import FGAClient
 from core.observability.audit.base import AuditRecord, AuditSink
 from app.graph.tools._utils import normalize_sql
+from app.graph.tools.permission_tool import delegated_membership_dept
 from core.sql.gate import (
     gate_decision,
-    DECISION_ALLOW, DECISION_DENY,
+    gate_table_access,
+    RISK_GRANT,
+    DECISION_ALLOW, DECISION_DENY, DECISION_JUSTIFY_AND_APPROVE,
 )
+from core.sql.risk import RISK_SELECT, RISK_BULK_SELECT, RISK_UPDATE_DELETE, RISK_DDL
+from core.sql.tables import extract_tables
+
+# 테이블별 접근 게이트(ADR-0047)를 적용할 SQL 위험도 — query_business_data 경로만.
+_SQL_RISKS = frozenset({RISK_SELECT, RISK_BULK_SELECT, RISK_UPDATE_DELETE, RISK_DDL})
 
 _DENY_TEXT = "거부됨: 현재 권한으로 실행할 수 없는 요청입니다."
 _ALREADY_EXECUTED_TEXT = "이미 실행 완료된 SQL입니다. 동일한 작업을 중복 실행하지 않습니다."
@@ -49,6 +57,23 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             continue
 
         decision, reason = await gate_decision(fga_client.check, user_id, risk)
+
+        # 테이블별 접근 게이트(ADR-0047): SQL 위험도가 통과(ALLOW/JUSTIFY)했어도, 참조 테이블의
+        # can_access를 추가로 AND한다. 하나라도 미보유면 최종 DENY로 강등(위험도×테이블 직교 결합).
+        if decision in (DECISION_ALLOW, DECISION_JUSTIFY_AND_APPROVE) and risk in _SQL_RISKS:
+            ok, table_reason = await gate_table_access(
+                fga_client.check, user_id, extract_tables(planned_action)
+            )
+            if not ok:
+                decision, reason = DECISION_DENY, table_reason
+
+        # 부서 관리자 멤버십 위임(ADR-0046): 전역 관리자 부재로 DENY된 멤버십 grant/revoke를,
+        # 요청자가 대상 부서의 admin이면 JUSTIFY_AND_APPROVE로 승격(사유 기재 후 실행).
+        if decision == DECISION_DENY and risk == RISK_GRANT:
+            dept = delegated_membership_dept(planned_action)
+            if dept and await fga_client.check(f"user:{user_id}", "admin", f"department:{dept}"):
+                decision = DECISION_JUSTIFY_AND_APPROVE
+                reason = f"부서 admin 위임(department:{dept}) → JUSTIFY_AND_APPROVE"
 
         if decision == DECISION_ALLOW:
             result = await handler.execute(planned_action, risk)

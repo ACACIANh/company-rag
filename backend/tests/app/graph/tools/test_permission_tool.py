@@ -4,6 +4,7 @@ import pytest
 
 from app.graph.tools.permission_tool import (
     PermissionAgent,
+    delegated_membership_dept,
     _format_permission_snapshot,
     _resolve_capabilities,
 )
@@ -22,6 +23,26 @@ def _llm(reply: str):
     llm = MagicMock()
     llm.complete.return_value = reply
     return llm
+
+
+def test_delegated_membership_dept_grant():
+    assert delegated_membership_dept("grant user:user-jisoo member department:개발팀") == "개발팀"
+
+
+def test_delegated_membership_dept_revoke():
+    assert delegated_membership_dept("revoke user:user-minjun member department:인사팀") == "인사팀"
+
+
+def test_delegated_membership_dept_non_membership_none():
+    # dept_viewer·capability 부여는 멤버십 위임 대상이 아니다 → None.
+    assert delegated_membership_dept("grant department:개발팀#member dept_viewer folder:/company") is None
+    assert delegated_membership_dept("grant user:user-jisoo justify_select capability:sql") is None
+
+
+def test_delegated_membership_dept_malformed_none():
+    assert delegated_membership_dept("query u1 u2") is None
+    assert delegated_membership_dept("grant user:x member role:c_level") is None
+    assert delegated_membership_dept("") is None
 
 
 def test_plan_valid_grant_returns_risk_grant():

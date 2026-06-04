@@ -10,6 +10,7 @@ type role
 type department
   relations
     define member: [user]
+    define admin: [user]           # 부서 관리자 — 자기 부서 멤버십 위임 (ADR-0046)
 
 type folder
   relations
@@ -42,3 +43,9 @@ type capability
     define justify_ddl:           [user, department#member, role#member]
     # 권한 관리(ADR-0029): capability:admin 인스턴스가 사용 — grant는 항상 사유 기재(justify_grant 전용)
     define justify_grant:         [user, department#member, role#member]
+
+# 업무 DB 테이블 단위 접근권 (ADR-0047). table:employees / table:sales 인스턴스가 사용.
+# 위험도 게이트(capability:sql)와 직교 — "어느 테이블이냐"만 본다.
+type table
+  relations
+    define can_access: [user, department#member, role#member]

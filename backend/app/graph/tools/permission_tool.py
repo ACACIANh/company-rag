@@ -112,6 +112,25 @@ class PermissionAgent:
             return f"권한 실행 오류: {type(exc).__name__}"
 
 
+def delegated_membership_dept(planned_action: str) -> str | None:
+    """부서 멤버십 위임 대상 부서 추출 (ADR-0046).
+
+    planned_action이 `grant|revoke <subject> member department:<Y>` 형태면 부서 id Y를
+    반환한다. 그 외(dept_viewer·capability 부여, query, 형식 불일치)는 None.
+    게이트(tool_gate_node)가 이 부서의 admin 여부로 위임을 승격할지 판단한다.
+    """
+    parts = planned_action.split(" ")
+    if len(parts) != 4:
+        return None
+    action, _subject, relation, object_ = parts
+    if action not in ("grant", "revoke") or relation != "member":
+        return None
+    prefix = "department:"
+    if not object_.startswith(prefix):
+        return None
+    return object_[len(prefix):] or None
+
+
 # 권한 조회 스냅샷에 노출할 capability 작업 — (라벨, 위험도). 게이트 매트릭스(core.sql.gate)가
 # 위험도→capability 매핑·3-state 판정의 단일 출처이므로 여기선 표시 순서·라벨만 둔다.
 _CAPABILITY_DISPLAY = [
