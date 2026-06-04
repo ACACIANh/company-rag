@@ -53,7 +53,7 @@ router[tool_call] → agent ─(tool_calls)→ tool_gate ─ ALLOW→실행, DEN
 ## 미해결 / 후속
 
 - **HITL API resume 종단**은 ADR-0024에서 완결(본 ADR은 그래프 내부 루프·게이트까지).
-- **sync invoke**: `agent_node`가 sync `chat_model.invoke`를 async 그래프에서 호출 — 기능상 정상이나 실서비스에서 이벤트 루프 블로킹 우려. 필요 시 `ainvoke` 전환(후속).
+- **sync invoke — 🟢 해소(2026-06-04, feat/adr-followups)**: `agent_node`를 `async def` + `await chat_model.ainvoke(...)`로 전환(피어 LLM 노드 `generate`/`retrieve`와 일관). 이벤트 루프 블로킹 우려 제거. builder 배선(`partial`)·그래프(`graph.ainvoke`)는 무변경. 전체 테스트 스위트 통과.
 - **SP2(권한 관리 도구)**: `fga_grant_revoke`를 고위험 도구로 등록 — 별도 스펙.
 - 기존 노드 함수(`sql_generate`/`classify_risk`/`gate`/`sql_execute`/`sql_reject`)는 그래프에서 분리됐으나 로직 재사용·학습 목적으로 보존(CLAUDE.md 규칙 5).
 

@@ -12,11 +12,11 @@ from app.graph.builder import answer_question, build_graph
 
 def _mock_chat_model(ai_messages):
     """build_graph가 chat_model.bind_tools(...)의 결과를 에이전트 모델로 쓰므로,
-    bind_tools가 반환하는 객체의 .invoke가 주어진 AIMessage들을 차례로 내도록 만든다."""
+    bind_tools가 반환하는 객체의 .ainvoke가 주어진 AIMessage들을 차례로 내도록 만든다."""
     chat = MagicMock()
     bound = MagicMock()
     chat.bind_tools.return_value = bound
-    bound.invoke.side_effect = list(ai_messages)
+    bound.ainvoke = AsyncMock(side_effect=list(ai_messages))
     return chat
 
 
