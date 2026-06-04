@@ -8,9 +8,9 @@ from app.graph.tools.audit_history_tool import AuditAgent
 from core.sql.risk import RISK_DENY, RISK_SELECT
 
 
-def _fga(roles):
+def _fga(has_access=True):
     fga = AsyncMock()
-    fga.user_roles = AsyncMock(return_value=roles)
+    fga.check = AsyncMock(return_value=has_access)
     return fga
 
 
@@ -29,8 +29,8 @@ def _pool(rows=None):
     return pool, conn
 
 
-def _make(roles=(), rows=None):
-    fga = _fga(list(roles))
+def _make(has_access=True, rows=None):
+    fga = _fga(has_access)
     pool, conn = _pool(rows)
     return AuditAgent(fga_client=fga, app_pool=pool), conn
 
@@ -73,13 +73,13 @@ def test_plan_preserves_filters():
     action, _ = h.plan({
         "__caller_id": "admin",
         "limit": 5,
-        "user_id": "alice",
+        "user_id": "jisoo",
         "decision": "DENY",
         "start_date": "2026-01-01",
         "end_date": "2026-06-04",
     })
     params = json.loads(action)
-    assert params["user_id"] == "alice"
+    assert params["user_id"] == "jisoo"
     assert params["decision"] == "DENY"
     assert params["start_date"] == "2026-01-01"
     assert params["end_date"] == "2026-06-04"
@@ -89,14 +89,14 @@ def test_plan_preserves_filters():
 
 @pytest.mark.asyncio
 async def test_execute_empty_caller_id_denied():
-    h, _ = _make(roles=["admin"])
+    h, _ = _make(has_access=True)
     result = await h.execute(json.dumps({"caller_id": "", "limit": 20}), RISK_SELECT)
     assert "권한 없음" in result
 
 
 @pytest.mark.asyncio
 async def test_execute_non_admin_denied():
-    h, _ = _make(roles=["viewer"])
+    h, _ = _make(has_access=False)
     result = await h.execute(
         json.dumps({"caller_id": "u1", "limit": 20, "user_id": None,
                     "decision": None, "start_date": None, "end_date": None}),
@@ -107,7 +107,7 @@ async def test_execute_non_admin_denied():
 
 @pytest.mark.asyncio
 async def test_execute_admin_empty_result():
-    h, conn = _make(roles=["admin"], rows=[])
+    h, conn = _make(has_access=True, rows=[])
     result = await h.execute(
         json.dumps({"caller_id": "admin1", "limit": 20, "user_id": None,
                     "decision": None, "start_date": None, "end_date": None}),
@@ -122,24 +122,24 @@ async def test_execute_admin_formats_rows():
     row = MagicMock()
     row.__getitem__ = lambda self, k: {
         "created_at": "2026-06-04 10:00:00+00",
-        "user_id": "alice",
+        "user_id": "jisoo",
         "gate_decision": "DENY",
         "generated_sql": "SELECT * FROM employees",
         "reason": "capability 미부여",
     }[k]
-    h, _ = _make(roles=["admin"], rows=[row])
+    h, _ = _make(has_access=True, rows=[row])
     result = await h.execute(
         json.dumps({"caller_id": "admin1", "limit": 20, "user_id": None,
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert "alice" in result
+    assert "jisoo" in result
     assert "DENY" in result
 
 
 @pytest.mark.asyncio
 async def test_execute_db_error_returns_error_message():
-    fga = _fga(["admin"])
+    fga = _fga(has_access=True)
     pool = MagicMock()
 
     @asynccontextmanager

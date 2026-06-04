@@ -100,10 +100,12 @@ class AuditAgent:
         if not caller_id:
             return "권한 없음: 감사 이력은 관리자만 조회할 수 있습니다."
         try:
-            roles = await self._fga.user_roles(caller_id)
+            has_access = await self._fga.check(
+                f"user:{caller_id}", "justify_grant", "capability:admin"
+            )
         except Exception:
             return "권한 없음: 역할 조회 실패"
-        if "admin" not in roles:
+        if not has_access:
             return "권한 없음: 감사 이력은 관리자만 조회할 수 있습니다."
         try:
             async with self._pool.acquire() as conn:

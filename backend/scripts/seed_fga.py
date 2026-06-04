@@ -34,7 +34,7 @@ def _parent_of(path: str) -> str | None:
 _CAPABILITY_GRANTS = [
     {"user": "user:*", "relation": "allow_select", "object": "capability:sql"},
     {"user": "user:*", "relation": "justify_bulk_select", "object": "capability:sql"},
-    {"user": "department:engineering#member", "relation": "justify_update_delete", "object": "capability:sql"},
+    {"user": "department:개발팀#member", "relation": "justify_update_delete", "object": "capability:sql"},
     {"user": "role:c_level#member", "relation": "justify_update_delete", "object": "capability:sql"},
     {"user": "role:c_level#member", "relation": "justify_grant", "object": "capability:admin"},
 ]
@@ -57,6 +57,13 @@ def _build_tuples(users: list[dict], folders: dict) -> list[dict]:
                 "user": f"user:{uid}",
                 "relation": "member",
                 "object": f"role:{role}",
+            })
+        # JWT admin 역할 → capability:admin justify_grant (감사 이력 등 관리자 전용 기능)
+        if "admin" in user.get("roles", []):
+            tuples.append({
+                "user": f"user:{uid}",
+                "relation": "justify_grant",
+                "object": "capability:admin",
             })
 
     # 2) 폴더 권한 + parent
