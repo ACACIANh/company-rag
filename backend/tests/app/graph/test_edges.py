@@ -78,6 +78,10 @@ def test_route_after_router_returns_doc_search_when_no_strategy_key():
     assert route_after_router(state) == "doc_search"
 
 
+def test_route_after_router_returns_clarify():
+    assert route_after_router({"route": "clarify"}) == "clarify"
+
+
 # ─── route_after_agent / route_after_tool_gate (ADR-0023) ───
 
 def test_route_after_agent_to_tool_gate_when_tool_calls():

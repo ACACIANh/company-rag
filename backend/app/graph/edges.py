@@ -42,10 +42,13 @@ def route_after_router(state: dict) -> str:
         state: Graph state containing route and rewrite_strategy fields
 
     Returns:
+        "clarify" if clarify route,
         "multi_query" if doc_search route with multi_query strategy,
         otherwise the route value from state
     """
     route = state["route"]
+    if route == "clarify":
+        return "clarify"
     if route == "doc_search" and state.get("rewrite_strategy") == "multi_query":
         return "multi_query"
     return route
