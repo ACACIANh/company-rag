@@ -228,6 +228,7 @@ async def answer_question(
         "agent_messages": [RemoveMessage(id=m.id) for m in prev_agent_msgs],
         "pending_tool_calls": [],
         "executed_sql": [],
+        "route_confidence": 1.0,
     }
     final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
     if "__interrupt__" in final:
@@ -284,6 +285,7 @@ async def stream_answer(
                 "agent_messages": [RemoveMessage(id=m.id) for m in prev_agent_msgs],
                 "pending_tool_calls": [],
                 "executed_sql": [],
+                "route_confidence": 1.0,
             }
 
             final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})

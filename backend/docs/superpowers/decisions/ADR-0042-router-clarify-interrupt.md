@@ -51,19 +51,26 @@
 
 3. **clarify_node** (`app/graph/nodes/clarify.py` 신규):
    ```python
+   _CLARIFY_OPTIONS = {
+       "사내 문서에서 찾기": "doc_search",
+       "업무 DB 조회 / 권한 도구 사용": "agent",
+   }
+
    def clarify_node(state: dict) -> dict:
-       response = interrupt({
-           "message": "다음 중 하나를 선택하세요:",
-           "options": [
-               {"value": "search", "label": "문서에서 찾기"},
-               {"value": "agent", "label": "AI 도구 실행"},
-           ],
-           "type": "clarify",  # UI에서 구분용
+       question = state["question"]
+       label = interrupt({
+           "message": f'"{question}" — 어떤 방식으로 처리할까요?',
+           "options": list(_CLARIFY_OPTIONS.keys()),
        })
-       return {"route": response}  # "search" or "agent"
+       route = _CLARIFY_OPTIONS.get(label, "doc_search")
+       return {
+           "route": route,
+           "tool_input": question if route == "agent" else "",
+       }
    ```
-   - `interrupt()` payload 구조는 `confirm_node`와 동형 (UI 렌더러 재사용)
-   - resume 값은 사용자 선택지 ("search" / "agent")
+   - `interrupt()` payload는 message + options 형식 (UI 렌더러 재사용)
+   - resume 값은 사용자 선택지 레이블 (한글) → 내부 route로 맵핑
+   - KeyError 방어: 예상치 못한 선택지는 "doc_search"로 기본값 처리
 
 4. **라우팅 엣지** (`app/graph/edges.py`):
    ```python

@@ -26,7 +26,7 @@ def clarify_node(state: dict) -> dict:
         "message": f'"{question}" — 어떤 방식으로 처리할까요?',
         "options": list(_CLARIFY_OPTIONS.keys()),
     })
-    route = _CLARIFY_OPTIONS[label]
+    route = _CLARIFY_OPTIONS.get(label, "doc_search")
     # agent 경로로 분기 시 tool_input 채움 — router_node와 동일 계약 (ADR-0031)
     return {
         "route": route,
