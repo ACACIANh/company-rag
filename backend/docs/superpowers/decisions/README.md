@@ -46,6 +46,7 @@
 | [0041](ADR-0041-permission-agent-rename-query.md) | ToolHandler → ToolAgent 개명 + PermissionAgent query 액션 | 🟢 적용완료 |
 | [0042](ADR-0042-router-clarify-interrupt.md) | 라우터 모호 질문 clarify — HITL 범위 확장 | 🟢 적용완료 |
 | [0043](ADR-0043-capability-matrix-justify-only.md) | capability 매트릭스 정리 — SELECT만 즉시허용, 그 외 위험군은 justify-only | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0044](ADR-0044-seed-fga-prune-reconcile.md) | seed_fga --prune — 추가식 시드의 잔재 정리(재조정) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 
 ## 상태 범례
 

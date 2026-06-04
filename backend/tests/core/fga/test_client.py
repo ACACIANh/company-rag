@@ -179,3 +179,35 @@ async def test_revoke_tuple_deletes_and_invalidates():
         await client.revoke_tuple("user:user-jisoo", "member", "department:개발팀")
     assert fake.deleted is not None          # deletes 요청이 전달됨
     mock_inv.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_list_all_tuples_paginates():
+    from types import SimpleNamespace
+    client = _client()
+
+    def _tup(u, r, o):
+        return SimpleNamespace(key=SimpleNamespace(user=u, relation=r, object=o))
+
+    pages = [
+        SimpleNamespace(tuples=[_tup("user:a", "member", "department:x")], continuation_token="t1"),
+        SimpleNamespace(tuples=[_tup("user:b", "member", "department:y")], continuation_token=""),
+    ]
+    state = {"i": 0}
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def read(self, body, options=None):
+            page = pages[state["i"]]
+            state["i"] += 1
+            return page
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
+        result = await client.list_all_tuples()
+
+    assert result == [
+        ("user:a", "member", "department:x"),
+        ("user:b", "member", "department:y"),
+    ]
+    assert state["i"] == 2   # 두 페이지 모두 소비(빈 token에서 종료)
