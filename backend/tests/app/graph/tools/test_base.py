@@ -5,6 +5,7 @@ from app.graph.tools.base import ToolAgent
 
 class _DummyAgent:
     name = "echo"
+    label = "echo"
     def plan(self, args):
         return (args["text"], "select")
     async def execute(self, planned_action, risk=""):

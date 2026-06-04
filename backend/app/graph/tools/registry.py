@@ -31,3 +31,13 @@ def build_tool_registry(
     handlers = {sql.name: sql, permission.name: permission, audit.name: audit}
     tool_defs = [sql.tool, permission.tool, audit.tool]
     return ToolRegistry(handlers=handlers, tool_defs=tool_defs)
+
+
+# 도구 라벨 SSOT: 등록된 도구 클래스에서 name→label 자동 수집 (ADR 후속).
+# 새 도구 추가 = _TOOL_CLASSES에 한 줄 + 클래스에 label 선언. 수동 매핑 테이블 없음.
+_TOOL_CLASSES = (SqlAgent, PermissionAgent, AuditAgent)
+
+
+def tool_label_map() -> dict[str, str]:
+    """도구명(name) → 역할 라벨(label) 맵. 응답 조립부가 사용 도구를 라벨로 변환할 때 사용."""
+    return {cls.name: cls.label for cls in _TOOL_CLASSES}

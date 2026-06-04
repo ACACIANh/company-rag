@@ -40,6 +40,7 @@ _DESCRIPTION = (
 
 class PermissionAgent:
     name = "manage_permission"
+    label = "permission"
 
     def __init__(self, *, llm: LLMClient, fga_client: FGAClient, validator: PermissionValidator) -> None:
         self._llm = llm

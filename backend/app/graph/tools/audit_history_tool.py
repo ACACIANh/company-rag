@@ -129,6 +129,7 @@ def _format_rows(rows: list) -> str:
 
 class AuditAgent:
     name = "query_audit_history"
+    label = "audit"
 
     def __init__(self, *, fga_client: FGAClient, app_pool: asyncpg.Pool) -> None:
         self._fga = fga_client

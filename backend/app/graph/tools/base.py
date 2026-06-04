@@ -10,6 +10,7 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class ToolAgent(Protocol):
     name: str
+    label: str
 
     def plan(self, args: dict) -> tuple[str, str]:
         """도구 인자 → (구체화된 동작, core.sql.risk 위험도 등급)."""
