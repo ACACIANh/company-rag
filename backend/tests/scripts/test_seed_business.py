@@ -88,3 +88,13 @@ def test_grant_sql_account_level_hardening():
 def test_grant_sql_escapes_single_quote():
     sql = _grant_sql("a'b")
     assert "a''b" in sql
+
+
+def test_grant_rw_sql_grants_select_update_delete_only():
+    from scripts.seed_business import _grant_rw_sql
+    sql = _grant_rw_sql("pw")
+    assert "GRANT SELECT, UPDATE, DELETE ON ALL TABLES IN SCHEMA business TO sql_tool_rw" in sql
+    assert "INSERT" not in sql            # INSERT 미부여
+    assert "REVOKE ALL ON SCHEMA public FROM sql_tool_rw" in sql   # 운영 스키마 차단
+    assert "default_transaction_read_only = on" not in sql         # 쓰기 계정은 RO 트랜잭션 아님
+    assert "statement_timeout" in sql                              # timeout 방어는 유지

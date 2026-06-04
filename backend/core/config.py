@@ -43,6 +43,7 @@ class Config:
     session_store_type: str
     postgres_dsn: str
     sql_tool_dsn: str
+    sql_tool_rw_dsn: str
     fga_api_url: str
     fga_store_id: str
     fga_api_key: str
@@ -70,6 +71,7 @@ def load_config() -> Config:
         session_store_type=os.getenv("SESSION_STORE_TYPE", "memory"),
         postgres_dsn=os.getenv("POSTGRES_DSN", ""),
         sql_tool_dsn=os.getenv("SQL_TOOL_DSN", ""),
+        sql_tool_rw_dsn=os.getenv("SQL_TOOL_RW_DSN", ""),
         fga_api_url=os.getenv("FGA_API_URL", "http://localhost:8080"),
         fga_store_id=os.getenv("FGA_STORE_ID", ""),
         fga_api_key=os.getenv("FGA_API_KEY", ""),

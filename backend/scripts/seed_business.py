@@ -4,9 +4,10 @@
 - 스키마: business (운영 객체가 있는 public 스키마와 논리 분리)
 - 테이블: business.employees(직원, salary·email = PII), business.sales(매출)
 - 제한계정: sql_tool_ro — business 스키마 read-only만. public 스키마 접근 차단.
+- 쓰기 제한계정: sql_tool_rw — business 스키마 SELECT/UPDATE/DELETE만. INSERT·DDL·public 차단 (ADR-0034).
 
 멱등 실행: `cd backend && .venv/bin/python -m scripts.seed_business`
-제한계정 비밀번호는 SQL_TOOL_RO_PASSWORD 환경변수, 미설정 시 dev 기본값.
+제한계정 비밀번호는 SQL_TOOL_RO_PASSWORD / SQL_TOOL_RW_PASSWORD 환경변수, 미설정 시 dev 기본값.
 """
 import asyncio
 import os
@@ -125,9 +126,39 @@ ALTER ROLE sql_tool_ro SET statement_timeout = '5s';
 """
 
 
+def _grant_rw_sql(password: str) -> str:
+    """쓰기 제한계정 생성 + 권한 (멱등). business 스키마 SELECT/UPDATE/DELETE만,
+    INSERT·DDL·public 스키마는 미부여(ADR-0034 방어심층 2차)."""
+    pw = password.replace("'", "''")
+    return f"""
+DO $$
+BEGIN
+   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'sql_tool_rw') THEN
+      CREATE ROLE sql_tool_rw LOGIN PASSWORD '{pw}';
+   ELSE
+      ALTER ROLE sql_tool_rw LOGIN PASSWORD '{pw}';
+   END IF;
+END
+$$;
+
+-- 운영 객체(public 스키마) 접근 차단
+REVOKE ALL ON SCHEMA public FROM sql_tool_rw;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM sql_tool_rw;
+
+-- business 스키마: 읽기 + UPDATE/DELETE만 (DDL 미부여, 쓰기는 UPDATE/DELETE로 제한)
+GRANT USAGE ON SCHEMA business TO sql_tool_rw;
+GRANT SELECT, UPDATE, DELETE ON ALL TABLES IN SCHEMA business TO sql_tool_rw;
+ALTER DEFAULT PRIVILEGES IN SCHEMA business GRANT SELECT, UPDATE, DELETE ON TABLES TO sql_tool_rw;
+
+-- 계정 레벨 방어: statement timeout (쓰기 계정이라 RO 트랜잭션은 설정하지 않음)
+ALTER ROLE sql_tool_rw SET statement_timeout = '5s';
+"""
+
+
 async def main() -> None:
     cfg = load_config()
     password = os.getenv("SQL_TOOL_RO_PASSWORD", "sql_tool_ro_dev")
+    rw_password = os.getenv("SQL_TOOL_RW_PASSWORD", "sql_tool_rw_dev")
 
     users = yaml.safe_load(Path("config/users.yaml").read_text())["users"]
     employee_rows = build_employee_rows(users)
@@ -151,12 +182,13 @@ async def main() -> None:
             sales_rows,
         )
         await conn.execute(_grant_sql(password))
+        await conn.execute(_grant_rw_sql(rw_password))
     finally:
         await conn.close()
 
     print(
         f"business 시드 완료: employees {len(employee_rows)}행, sales {len(sales_rows)}행, "
-        f"제한계정 sql_tool_ro (business read-only)"
+        f"제한계정 sql_tool_ro(read-only)·sql_tool_rw(SELECT/UPDATE/DELETE)"
     )
 
 
