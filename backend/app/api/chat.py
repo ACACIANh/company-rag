@@ -132,6 +132,7 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[str]
     session_id: str
+    tools: list[str] = []
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -177,7 +178,12 @@ async def chat(
     except Exception:
         logging.exception("session store write failed for session_id=%s", session_id)
 
-    return ChatResponse(answer=result.text, sources=[s.source for s in result.sources], session_id=session_id)
+    return ChatResponse(
+        answer=result.text,
+        sources=[s.source for s in result.sources],
+        session_id=session_id,
+        tools=result.tools,
+    )
 
 
 @app.post("/chat/stream")

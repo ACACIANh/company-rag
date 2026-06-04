@@ -1012,3 +1012,57 @@ async def test_update_without_where_denied_even_for_engineering():
     final = await graph.ainvoke(_make_initial_state("전체 직원 연봉 0으로"), config=config)
     assert "__interrupt__" not in final
     assert final["answer"] == "무조건 변경은 허용되지 않습니다."
+
+
+async def test_answer_question_doc_search_tools_is_rag():
+    """doc_search 경로에서 answer_question이 반환하는 Answer.tools == ['rag']."""
+    retriever = _make_retriever(text="연차는 15일입니다.", source="vacation.md")
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "연차 신청 방법",
+        "doc_search",
+        "0.9",
+        "정답",
+        "YES",
+    ]
+    graph = build_graph(retriever=retriever, llm=llm, fga_client=_mock_fga_client())
+    result = await answer_question(graph, "연차 어떻게 써?")
+
+    assert isinstance(result, Answer)
+    assert result.tools == ["rag"]
+
+
+@pytest.mark.asyncio
+async def test_stream_answer_sources_event_includes_tools_key():
+    """stream_answer의 sources 이벤트에 'tools' 키가 포함된다."""
+    from app.graph.builder import stream_answer
+
+    mock_final = {
+        "answer": "안녕",
+        "citations": [SourceRef(source="doc.md")],
+        "route": "doc_search",
+        "agent_messages": [],
+    }
+    mock_graph = MagicMock()
+    mock_graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
+    mock_graph.ainvoke = AsyncMock(return_value=mock_final)
+
+    queue: asyncio.Queue = asyncio.Queue()
+    await stream_answer(
+        graph=mock_graph,
+        question="질문",
+        config={"configurable": {"thread_id": "tools-key-test"}},
+        user_id="jisoo",
+        token_queue=queue,
+        session_store=AsyncMock(),
+        session_id="sess-tools",
+        is_new_session=True,
+    )
+
+    events = []
+    while not queue.empty():
+        events.append(queue.get_nowait())
+
+    sources_event = next(e for e in events if e["type"] == "sources")
+    assert "tools" in sources_event
+    assert sources_event["tools"] == ["rag"]

@@ -23,6 +23,7 @@ export interface ChatResponse {
   answer: string;
   sources: string[];
   session_id: string;
+  tools?: string[];
 }
 
 export type ChatRole = "user" | "assistant";
@@ -42,6 +43,7 @@ export interface ChatMessage {
   content: string;
   sources?: string[];
   route?: string;
+  tools?: string[];
   streaming?: boolean;
   interrupt?: InterruptAction[];
   clarify?: ClarifyPayload;
@@ -72,7 +74,7 @@ export interface SessionMessage {
 
 export type SSEEvent =
   | { type: "token";     content: string }
-  | { type: "sources";   sources: string[]; route?: string }
+  | { type: "sources";   sources: string[]; route?: string; tools?: string[] }
   | { type: "done";      session_id: string }
   | { type: "error";     message: string }
   | { type: "interrupt"; actions: InterruptAction[] }

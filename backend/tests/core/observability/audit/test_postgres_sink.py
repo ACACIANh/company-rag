@@ -85,3 +85,39 @@ async def test_record_passes_all_fields_as_params():
     assert rec.generated_sql in args
     assert rec.gate_decision in args
     assert rec.thread_id in args
+
+
+def _make_pool_with_fetch(rows):
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=rows)
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn),
+        __aexit__=AsyncMock(return_value=None),
+    ))
+    return pool, conn
+
+
+@pytest.mark.asyncio
+async def test_count_by_decision_groups_by_decision():
+    rows = [
+        {"gate_decision": "ALLOW", "n": 15},
+        {"gate_decision": "DENY", "n": 3},
+        {"gate_decision": "JUSTIFY_AND_APPROVE", "n": 5},
+    ]
+    pool, conn = _make_pool_with_fetch(rows)
+    sink = PostgresAuditSink(pool)
+
+    counts = await sink.count_by_decision()
+
+    assert counts == {"ALLOW": 15, "DENY": 3, "JUSTIFY_AND_APPROVE": 5}
+    sql = conn.fetch.call_args[0][0].upper()
+    assert "GROUP BY GATE_DECISION" in sql
+    assert "FROM GATE_AUDIT_LOG" in sql
+
+
+@pytest.mark.asyncio
+async def test_count_by_decision_empty_returns_empty_dict():
+    pool, _ = _make_pool_with_fetch([])
+    sink = PostgresAuditSink(pool)
+    assert await sink.count_by_decision() == {}

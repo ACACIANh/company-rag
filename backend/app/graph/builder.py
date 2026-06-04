@@ -45,6 +45,7 @@ from app.graph.nodes.agent_answer import agent_answer_node
 from app.graph.nodes.capability_node import capability_node
 from app.graph.tools.registry import build_tool_registry
 from app.graph.state import AgentState
+from app.graph.tool_labels import collect_tool_labels
 
 _STREAM_CHUNK_SIZE = 3  # 의사 스트리밍 청크 크기(글자). 타이핑 효과용.
 
@@ -93,7 +94,7 @@ def build_graph(
     g.add_node("agent_answer", agent_answer_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
-    g.add_node("capability", partial(capability_node, fga_client=fga_client))
+    g.add_node("capability", partial(capability_node, fga_client=fga_client, audit_sink=audit_sink))
     g.add_node("clarify", clarify_node)
     g.add_node("save_memory", save_memory_node)
 
@@ -204,7 +205,11 @@ async def answer_question(
         )
         if "__interrupt__" in final:
             return _interrupt_answer(final)
-        return Answer(text=final.get("answer", ""), sources=final.get("citations", []))
+        return Answer(
+            text=final.get("answer", ""),
+            sources=final.get("citations", []),
+            tools=collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
+        )
 
     chat_history = (existing.values or {}).get("chat_history", [])
     if not chat_history and chat_history_fallback:
@@ -240,7 +245,11 @@ async def answer_question(
     final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
     if "__interrupt__" in final:
         return _interrupt_answer(final)
-    return Answer(text=final["answer"], sources=final["citations"])
+    return Answer(
+        text=final["answer"],
+        sources=final["citations"],
+        tools=collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
+    )
 
 
 async def stream_answer(
@@ -322,10 +331,12 @@ async def stream_answer(
         answer = final["answer"]
         for i in range(0, len(answer), _STREAM_CHUNK_SIZE):
             await token_queue.put({"type": "token", "content": answer[i:i + _STREAM_CHUNK_SIZE]})
+        route = final.get("route", "doc_search")
         await token_queue.put({
             "type": "sources",
             "sources": [s.source for s in final["citations"]],
-            "route": final.get("route", "doc_search"),
+            "route": route,
+            "tools": collect_tool_labels(route, final.get("agent_messages", [])),
         })
         try:
             if is_new_session:

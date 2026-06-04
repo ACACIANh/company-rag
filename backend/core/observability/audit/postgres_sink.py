@@ -50,3 +50,11 @@ class PostgresAuditSink(AuditSink):
                 record.result_summary,
                 record.thread_id,
             )
+
+    async def count_by_decision(self) -> dict[str, int]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT gate_decision, COUNT(*) AS n "
+                "FROM gate_audit_log GROUP BY gate_decision"
+            )
+        return {r["gate_decision"]: r["n"] for r in rows}

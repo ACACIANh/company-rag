@@ -40,6 +40,7 @@ def _format_rows(rows: list) -> str:
 
 class SqlAgent:
     name = "query_business_data"
+    label = "sql"
 
     def __init__(self, *, llm: LLMClient, sql_pool: asyncpg.Pool | None, sql_rw_pool: asyncpg.Pool | None = None, row_limit: int = _DEFAULT_ROW_LIMIT) -> None:
         self._llm = llm
