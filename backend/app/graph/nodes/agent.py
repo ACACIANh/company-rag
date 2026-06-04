@@ -13,7 +13,7 @@ _SYSTEM = (
 )
 
 
-def agent_node(state: dict, *, chat_model) -> dict:
+async def agent_node(state: dict, *, chat_model) -> dict:
     messages = list(state.get("agent_messages") or [])
     seeded: list = []
     if not messages:
@@ -28,5 +28,5 @@ def agent_node(state: dict, *, chat_model) -> dict:
         ]
         seeded = [SystemMessage(content=_SYSTEM), *history_msgs, HumanMessage(content=question)]
         messages = seeded
-    ai: AIMessage = chat_model.invoke(messages)
+    ai: AIMessage = await chat_model.ainvoke(messages)
     return {"agent_messages": [*seeded, ai]}

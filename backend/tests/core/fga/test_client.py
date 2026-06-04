@@ -162,6 +162,17 @@ async def test_grant_tuple_writes_and_invalidates():
 
 
 @pytest.mark.asyncio
+async def test_grant_tuple_invalidates_bare_user_id():
+    # 폴더 캐시는 bare user id로 키잉되므로(get_readable_folders(user_id)),
+    # 무효화도 "user:" 접두사를 떼고 bare id로 해야 키가 맞는다.
+    client = _client()
+    with patch.object(client, "_write_fga_tuples", new=AsyncMock()), \
+         patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
+        await client.grant_tuple("user:user-alice", "can_read", "folder:/company/hr")
+    mock_inv.assert_awaited_once_with("user-alice")
+
+
+@pytest.mark.asyncio
 async def test_revoke_tuple_deletes_and_invalidates():
     client = _client()
 
@@ -179,6 +190,48 @@ async def test_revoke_tuple_deletes_and_invalidates():
         await client.revoke_tuple("user:user-jisoo", "member", "department:개발팀")
     assert fake.deleted is not None          # deletes 요청이 전달됨
     mock_inv.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_invalidates_bare_user_id():
+    client = _client()
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def write(self, req): pass
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()), \
+         patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
+        await client.revoke_tuple("user:user-alice", "can_read", "folder:/company/hr")
+    mock_inv.assert_awaited_once_with("user-alice")
+
+
+@pytest.mark.asyncio
+async def test_grant_tuple_invalidates_non_user_subject_unchanged():
+    # 비-user subject는 "user:"가 없으므로 그대로 전달(무해한 no-op).
+    client = _client()
+    with patch.object(client, "_write_fga_tuples", new=AsyncMock()), \
+         patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
+        await client.grant_tuple("department:eng", "member", "department:org")
+    mock_inv.assert_awaited_once_with("department:eng")
+
+
+def test_client_config_without_api_key_has_no_credentials():
+    client = _client()  # api_key 미설정
+    cfg = client._client_config()
+    assert cfg.api_url == "http://localhost:8080"
+    assert cfg.store_id == "test-store"
+    assert getattr(cfg, "credentials", None) is None
+
+
+def test_client_config_with_api_key_builds_credentials():
+    config = FGAConfig(api_url="http://localhost:8080", store_id="s", api_key="secret-token")
+    client = FGAClient(config=config, cache=InMemoryCacheBackend())
+    cfg = client._client_config()
+    assert cfg.credentials is not None
+    assert cfg.credentials.method == "api_token"
+    assert cfg.credentials.configuration.api_token == "secret-token"
 
 
 @pytest.mark.asyncio

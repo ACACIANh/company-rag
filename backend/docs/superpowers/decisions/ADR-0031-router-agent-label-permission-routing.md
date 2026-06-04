@@ -24,6 +24,8 @@
 ## 범위 밖 (후속 과제)
 비격식 권한 표현("alice를 engineering 부서에 추가해줘")은 약 50%만 JUSTIFY로 이어진다. 원인은 라우팅·도구 인자가 아니라 **권한 NL 파싱(ADR-0029, `PERMISSION_PARSE_PROMPT`)이 `alice→user:user-alice`/`추가→member` 매핑을 들쭉날쭉**하게 해 절반이 검증 실패(RISK_DENY)로 빠지기 때문이다. 이는 본 ADR(라우팅·라벨)과 독립된 선재 견고성 이슈로, ADR-0029 후속으로 남긴다.
 
+> **🟢 해소(2026-06-04, feat/adr-followups)**: `PermissionValidator._resolve_user`로 비격식 user 참조(`alice`→`user:user-alice`)를 카탈로그(`_user_ids`) 기반 결정론적·유일성 매칭으로 정규화(정확일치/`user-`접두보정/접미일치 합집합, 후보 유일할 때만 채택; 모호·미지는 fail-closed `None`). `validate()`의 `member`·capability 분기에 통합해 정식형으로 정규화 후 화이트리스트 검증. `PERMISSION_PARSE_PROMPT`에 실제 id 매핑 예시 2건 추가(belt-and-suspenders). 결정론 리졸버는 단위테스트로 완전 검증(38건 통과); 실 LLM 파싱 정확도 향상은 라이브 호출 필요로 미검증.
+
 ## Consequences
 - 권한 질문이 `agent`로 안정 라우팅(라이브 7/7 검증) → `manage_permission` → 게이트 → confirm(interrupt) → JUSTIFY 카드 동작.
 - ADR-0022(데이터-원천 분류) 개정: 판정 축이 "테이블 값" → "문서 vs 도구"로 일반화.

@@ -105,3 +105,82 @@ def test_reject_null_relation_no_crash():
     v = _validator()
     assert v.validate({"action": "grant", "subject": "user:user-jisoo",
                        "relation": None, "object": "department:개발팀"}) is None
+
+
+# --- _resolve_user: 결정론적 사용자 참조 정규화 (ADR-0029/0031 후속) ---
+
+def _resolver_validator():
+    # 비격식 이름·접미 모호성 검증용 작은 카탈로그
+    return PermissionValidator(
+        user_ids={"user-alice", "user-bob", "user-team-bob"},
+        departments={"개발팀"},
+        folders={"/company"},
+    )
+
+
+def test_resolve_user_informal_name():
+    # 비격식 단명 "alice" → 정식 "user:user-alice"
+    v = _resolver_validator()
+    assert v._resolve_user("alice") == "user:user-alice"
+
+
+def test_resolve_user_bare_canonical_id():
+    # 접두 없는 정식 id "user-alice" → "user:user-alice"
+    v = _resolver_validator()
+    assert v._resolve_user("user-alice") == "user:user-alice"
+
+
+def test_resolve_user_already_canonical_with_prefix():
+    # 이미 정식 "user:user-alice" → 그대로
+    v = _resolver_validator()
+    assert v._resolve_user("user:user-alice") == "user:user-alice"
+
+
+def test_resolve_user_ambiguous_returns_none():
+    # "bob"이 user-bob, user-team-bob 둘 다 endswith 매칭 → 모호 → None (fail-closed)
+    v = _resolver_validator()
+    assert v._resolve_user("bob") is None
+
+
+def test_resolve_user_unknown_returns_none():
+    # 카탈로그 밖 토큰 → None (화이트리스트 확장 금지)
+    v = _resolver_validator()
+    assert v._resolve_user("eve") is None
+    assert v._resolve_user("user:user-eve") is None
+
+
+def test_validate_member_grant_informal_subject():
+    # 비격식 이름 subject "alice"가 member grant validate를 통과
+    v = _resolver_validator()
+    tup = v.validate({"action": "grant", "subject": "alice",
+                      "relation": "member", "object": "department:개발팀"})
+    assert tup == ("user:user-alice", "member", "department:개발팀", "grant")
+
+
+def test_validate_member_grant_canonical_subject_still_passes():
+    # 이미 정식 입력은 여전히 통과 (기존 동작 보존)
+    v = _resolver_validator()
+    tup = v.validate({"action": "grant", "subject": "user:user-bob",
+                      "relation": "member", "object": "department:개발팀"})
+    assert tup == ("user:user-bob", "member", "department:개발팀", "grant")
+
+
+def test_validate_member_grant_ambiguous_subject_denied():
+    # 모호한 subject "bob"은 여전히 None (RISK_DENY)
+    v = _resolver_validator()
+    assert v.validate({"action": "grant", "subject": "bob",
+                       "relation": "member", "object": "department:개발팀"}) is None
+
+
+def test_validate_member_grant_unknown_subject_denied():
+    v = _resolver_validator()
+    assert v.validate({"action": "grant", "subject": "eve",
+                       "relation": "member", "object": "department:개발팀"}) is None
+
+
+def test_validate_capability_grant_informal_user_subject():
+    # capability 분기의 user subject도 비격식 이름 해석
+    v = _resolver_validator()
+    tup = v.validate({"action": "grant", "subject": "alice",
+                      "relation": "justify_update_delete", "object": "capability:sql"})
+    assert tup == ("user:user-alice", "justify_update_delete", "capability:sql", "grant")

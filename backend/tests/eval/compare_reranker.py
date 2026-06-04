@@ -17,6 +17,9 @@ from openai import OpenAI
 from pgvector.asyncpg import register_vector
 
 from core.config import load_config
+from core.fga.cache.memory import InMemoryCacheBackend
+from core.fga.client import FGAClient
+from core.fga.models import FGAConfig
 from core.llm.factory import create_llm
 from core.reranker.llm_reranker import LLMReranker
 from core.vector_store.factory import create_vector_store
@@ -34,9 +37,10 @@ def _make_run(loop, graph):
     return run
 
 
-# TODO: build_graph 가 fga_client 를 요구하므로(app/graph/builder.py) 아래 main 은
-# 현재 ValueError 로 실패한다. eval_rag_basic.py 처럼 fga_client 배선 + source basename
-# 채점 보정이 필요(ADR-0014 'eval 하니스 복구' 후속 과제). 임베더 픽스만 선반영됨.
+# NOTE: build_graph 는 fga_client 필수(None이면 ValueError) — 아래 두 호출 모두 실 FGAClient 를 배선한다.
+# (참조 선례: app/api/chat.py 의 lifespan FGAConfig/FGAClient 구성.)
+# eval_rag_basic.py 는 삭제됨. 종단 실행은 라이브 Postgres + LLM + FGA store 와,
+# FGA pre-filter(폴더 트리)를 통과할 권한이 충분한 유저가 필요하다(여기선 검증되지 않음).
 def main() -> None:
     config = load_config()
     embedder = get_embedder(config.embedding_model)
@@ -55,6 +59,17 @@ def main() -> None:
         retriever = BasicRetriever(store=store, embedder=embedder)
         llm = create_llm(config)
 
+        # build_graph 는 fga_client 필수. 구성 선례: app/api/chat.py lifespan.
+        fga_config = FGAConfig(
+            api_url=config.fga_api_url,
+            store_id=config.fga_store_id,
+            api_key=config.fga_api_key,
+            cache_ttl_seconds=config.fga_cache_ttl_seconds,
+        )
+        fga_client = FGAClient(
+            config=fga_config, cache=InMemoryCacheBackend(), pg_pool=pool
+        )
+
         # expected_source 있는 질문만 필터 (recall 측정 가능 = doc_search 대상)
         questions = [q for q in load_questions(_DOC_SEARCH_YAML) if q.get("expected_source")]
         if not questions:
@@ -71,7 +86,7 @@ def main() -> None:
         filtered_yaml = tmp.name
 
         # --- baseline: reranker 없이 top_k=5 ---
-        baseline_graph = build_graph(retriever=retriever, llm=llm, reranker=None, retrieve_top_k=5, top_k=5)
+        baseline_graph = build_graph(retriever=retriever, llm=llm, reranker=None, fga_client=fga_client, retrieve_top_k=5, top_k=5)
         run_eval(_make_run(loop, baseline_graph), yaml_path=filtered_yaml, label="baseline (NoRerank, top_k=5)")
 
         # --- LLMReranker: top_k=20 → rerank → top_k=5 ---
@@ -84,7 +99,7 @@ def main() -> None:
 
         client = OpenAI(api_key=api_key, base_url=base_url)
         reranker = LLMReranker(client=client, model=config.reranker_model)
-        reranker_graph = build_graph(retriever=retriever, llm=llm, reranker=reranker, retrieve_top_k=20, top_k=5)
+        reranker_graph = build_graph(retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client, retrieve_top_k=20, top_k=5)
         run_eval(_make_run(loop, reranker_graph), yaml_path=filtered_yaml, label="LLMReranker (top_k=20→5)")
 
         pathlib.Path(filtered_yaml).unlink(missing_ok=True)
