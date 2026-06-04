@@ -80,6 +80,37 @@ class FGAClient:
             )
             return resp.allowed is True
 
+    async def list_all_tuples(self) -> list[tuple[str, str, str]]:
+        """store의 모든 (user, relation, object) 튜플 전수 읽기 (seed --prune 재조정용).
+
+        빈 ReadRequestTupleKey는 필터 없는 전수 조회. continuation_token으로 페이지네이션."""
+        from openfga_sdk import OpenFgaClient, ClientConfiguration, ReadRequestTupleKey
+        cfg = ClientConfiguration(
+            api_url=self._config.api_url,
+            store_id=self._config.store_id,
+        )
+        if self._config.api_key:
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
+                configuration=CredentialConfiguration(api_token=self._config.api_key),
+            )
+        out: list[tuple[str, str, str]] = []
+        async with OpenFgaClient(cfg) as client:
+            token = None
+            while True:
+                options: dict = {"page_size": 100}
+                if token:
+                    options["continuation_token"] = token
+                resp = await client.read(ReadRequestTupleKey(), options=options)
+                for t in resp.tuples or []:
+                    k = t.key
+                    out.append((k.user, k.relation, k.object))
+                token = resp.continuation_token
+                if not token:
+                    break
+        return out
+
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
         from openfga_sdk import OpenFgaClient, ClientConfiguration
         from openfga_sdk.client.models import ClientListObjectsRequest

@@ -7,6 +7,13 @@
 - 부서 명시권한: department:{d}#member dept_viewer    folder:{path}    (dept_viewers)
 - 전사 열람권:   role:{r}#member       super_reader   folder:{path}    (super_readers)
 - 폴더 parent:   folder:{parent}       parent         folder:{path}    (path 계층에서 자동 도출)
+
+시드는 추가식(멱등)이라 부서·사용자 개명 시 옛 튜플이 잔존한다. `--prune`를 주면
+config(_build_tuples)에 없는 stale 튜플을 삭제해 라이브 store를 config와 정합화한다.
+⚠️ 멤버십 source of truth는 OpenFGA이고 config는 부트스트랩 입력일 뿐이라(ADR-0044),
+`--prune`는 개명·리셋 같은 의도적 재정합 전용이다 — 운영 중 manage_permission으로
+부여된 튜플도 config에 없으면 삭제하므로 일상 운영에 쓰지 말 것.
+사용법: `python -m scripts.seed_fga [--prune]`
 """
 import asyncio
 from pathlib import Path
@@ -107,7 +114,20 @@ def _build_tuples(users: list[dict], folders: dict) -> list[dict]:
     return tuples
 
 
-async def main() -> None:
+async def _prune(client: FGAClient, desired: list[dict]) -> list[tuple[str, str, str]]:
+    """config(desired)에 없는 라이브 튜플(stale)을 삭제하고 삭제 목록을 반환한다.
+
+    desired = _build_tuples(...) 결과. 라이브를 전수 읽어 차집합만 삭제(전체 wipe 아님 →
+    런타임에 정당히 추가된 튜플은 desired에 포함되지 않으면 삭제되니 주의)."""
+    desired_keys = {(t["user"], t["relation"], t["object"]) for t in desired}
+    live = await client.list_all_tuples()
+    stale = [k for k in live if k not in desired_keys]
+    for user, relation, object_ in stale:
+        await client.revoke_tuple(user, relation, object_)
+    return stale
+
+
+async def main(prune: bool = False) -> None:
     cfg = load_config()
     fga_config = FGAConfig(
         api_url=cfg.fga_api_url,
@@ -129,9 +149,24 @@ async def main() -> None:
         await client._write_fga_tuples([t])
         print(f"  {t['user']:32} {t['relation']:8} {t['object']}")
 
+    pruned: list[tuple[str, str, str]] = []
+    if prune:
+        # write(추가) 이후에 prune(삭제) — 결과적으로 라이브 store == config.
+        pruned = await _prune(client, tuples)
+        for user, relation, object_ in pruned:
+            print(f"  - prune {user:32} {relation:8} {object_}")
+
     await pool.close()
-    print(f"FGA 시드 완료 ({len(tuples)} 튜플)")
+    print(f"FGA 시드 완료 ({len(tuples)} 튜플" + (f", prune {len(pruned)} 삭제)" if prune else ")"))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import argparse
+
+    parser = argparse.ArgumentParser(description="FGA 시드 (config → 튜플)")
+    parser.add_argument(
+        "--prune", action="store_true",
+        help="config(_build_tuples)에 없는 stale 튜플 삭제 — 개명 후 잔재 정리",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(prune=args.prune))

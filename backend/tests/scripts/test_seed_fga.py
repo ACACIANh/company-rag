@@ -1,4 +1,7 @@
-from scripts.seed_fga import _build_tuples, _parent_of
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+from scripts.seed_fga import _build_tuples, _parent_of, _prune
 
 
 def _find(tuples, **kw):
@@ -92,3 +95,46 @@ def test_legal_private_and_dept_viewer():
         tuples, user="department:법무팀#member", relation="dept_viewer",
         object="folder:/company/legal",
     )
+
+
+# ── _prune 재조정: config에 없는 stale 튜플만 삭제 ──────────────
+@pytest.mark.asyncio
+async def test_prune_deletes_only_stale():
+    desired = [
+        {"user": "user:user-jisoo", "relation": "member", "object": "department:개발팀"},
+        {"user": "user:*", "relation": "public_viewer", "object": "folder:/company"},
+    ]
+    live = [
+        ("user:user-jisoo", "member", "department:개발팀"),          # 유지(desired)
+        ("user:*", "public_viewer", "folder:/company"),             # 유지
+        ("user:user-minjun", "member", "department:hr"),            # stale(옛 부서)
+        ("user:user-seoyeon", "allow_update_delete", "capability:sql"),  # stale(죽은 relation)
+    ]
+    client = MagicMock()
+    client.list_all_tuples = AsyncMock(return_value=live)
+    client.revoke_tuple = AsyncMock()
+
+    stale = await _prune(client, desired)
+
+    assert set(stale) == {
+        ("user:user-minjun", "member", "department:hr"),
+        ("user:user-seoyeon", "allow_update_delete", "capability:sql"),
+    }
+    assert client.revoke_tuple.await_count == 2
+    client.revoke_tuple.assert_any_await("user:user-minjun", "member", "department:hr")
+    # 유지 대상은 절대 삭제하지 않는다
+    for u, r, o in [("user:user-jisoo", "member", "department:개발팀")]:
+        assert ((u, r, o)) not in set(stale)
+
+
+@pytest.mark.asyncio
+async def test_prune_noop_when_live_matches_config():
+    desired = [{"user": "user:a", "relation": "member", "object": "department:x"}]
+    client = MagicMock()
+    client.list_all_tuples = AsyncMock(return_value=[("user:a", "member", "department:x")])
+    client.revoke_tuple = AsyncMock()
+
+    stale = await _prune(client, desired)
+
+    assert stale == []
+    client.revoke_tuple.assert_not_awaited()
