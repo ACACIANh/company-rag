@@ -19,8 +19,8 @@ class ToolRegistry:
     tool_defs: list[Tool]   # bind_tools용
 
 
-def build_tool_registry(*, llm: LLMClient, sql_pool, fga_client: FGAClient) -> ToolRegistry:
-    sql = SqlToolHandler(llm=llm, sql_pool=sql_pool)
+def build_tool_registry(*, llm: LLMClient, sql_pool, sql_rw_pool=None, fga_client: FGAClient) -> ToolRegistry:
+    sql = SqlToolHandler(llm=llm, sql_pool=sql_pool, sql_rw_pool=sql_rw_pool)
     permission = PermissionToolHandler(
         llm=llm, fga_client=fga_client, validator=PermissionValidator.from_config()
     )

@@ -1,7 +1,49 @@
-from unittest.mock import MagicMock
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from app.graph.tools.sql_tool import SqlToolHandler
+from core.sql.risk import RISK_SELECT, RISK_UPDATE_DELETE
+
+
+def _pool(fetch_return=None, execute_return="UPDATE 2"):
+    conn = AsyncMock()
+    conn.fetch = AsyncMock(return_value=fetch_return or [{"salary": 100}])
+    conn.execute = AsyncMock(return_value=execute_return)
+    conn.transaction = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=None), __aexit__=AsyncMock(return_value=None)))
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn), __aexit__=AsyncMock(return_value=None)))
+    return pool, conn
+
+
+@pytest.mark.asyncio
+async def test_select_uses_ro_pool():
+    ro, ro_conn = _pool()
+    rw, rw_conn = _pool()
+    h = SqlToolHandler(llm=MagicMock(), sql_pool=ro, sql_rw_pool=rw)
+    await h.execute("SELECT salary FROM business.employees WHERE emp_id='x'", RISK_SELECT)
+    ro_conn.fetch.assert_awaited_once()
+    rw_conn.execute.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_update_uses_rw_pool_and_reports_rows():
+    ro, ro_conn = _pool()
+    rw, rw_conn = _pool(execute_return="UPDATE 3")
+    h = SqlToolHandler(llm=MagicMock(), sql_pool=ro, sql_rw_pool=rw)
+    result = await h.execute("UPDATE business.employees SET salary=1 WHERE emp_id='x'", RISK_UPDATE_DELETE)
+    rw_conn.execute.assert_awaited_once()
+    ro_conn.fetch.assert_not_awaited()
+    assert "3" in result
+
+
+@pytest.mark.asyncio
+async def test_update_without_rw_pool_errors():
+    ro, _ = _pool()
+    h = SqlToolHandler(llm=MagicMock(), sql_pool=ro, sql_rw_pool=None)
+    result = await h.execute("UPDATE business.employees SET salary=1 WHERE emp_id='x'", RISK_UPDATE_DELETE)
+    assert "오류" in result
 
 
 def test_plan_generates_sql_and_classifies_risk():

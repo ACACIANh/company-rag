@@ -18,7 +18,7 @@ async def justify_execute_node(state: dict, *, registry, audit_sink: AuditSink) 
     for p in pending:
         handler = registry.handlers.get(p["name"])
         if justified and handler is not None:
-            result = await handler.execute(p["planned_action"])
+            result = await handler.execute(p["planned_action"], p["risk"])
             messages.append(ToolMessage(content=result, tool_call_id=p["id"]))
             reason = state.get("justification", "")
         else:
