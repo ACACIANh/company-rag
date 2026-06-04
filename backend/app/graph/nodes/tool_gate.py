@@ -13,7 +13,7 @@ from core.observability.audit.base import AuditRecord, AuditSink
 from app.graph.tools._utils import normalize_sql
 from core.sql.gate import (
     gate_decision,
-    DECISION_ALLOW, DECISION_DENY, DECISION_JUSTIFY_AND_APPROVE,
+    DECISION_ALLOW, DECISION_DENY,
 )
 
 _DENY_TEXT = "거부됨: 현재 권한으로 실행할 수 없는 요청입니다."
@@ -50,6 +50,20 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
 
         decision, reason = await gate_decision(fga_client.check, user_id, risk)
 
+        if decision == DECISION_ALLOW:
+            result = await handler.execute(planned_action, risk)
+            new_messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
+            result_summary = str(result)[:200]
+        elif decision == DECISION_DENY:
+            new_messages.append(ToolMessage(content=_DENY_TEXT, tool_call_id=tc["id"]))
+            result_summary = ""
+        else:  # JUSTIFY_AND_APPROVE
+            pending.append({
+                "id": tc["id"], "name": tc["name"], "args": tc["args"],
+                "planned_action": planned_action, "risk": risk, "decision": decision,
+            })
+            result_summary = ""
+
         await audit_sink.record(AuditRecord(
             user_id=user_id,
             department=",".join(departments),
@@ -59,20 +73,9 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             sql_risk=risk,
             gate_decision=decision,
             reason=reason,
-            result_summary="",
+            result_summary=result_summary,
             thread_id=state.get("thread_id", ""),
         ))
-
-        if decision == DECISION_ALLOW:
-            result = await handler.execute(planned_action, risk)
-            new_messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
-        elif decision == DECISION_DENY:
-            new_messages.append(ToolMessage(content=_DENY_TEXT, tool_call_id=tc["id"]))
-        else:  # JUSTIFY_AND_APPROVE
-            pending.append({
-                "id": tc["id"], "name": tc["name"], "args": tc["args"],
-                "planned_action": planned_action, "risk": risk, "decision": decision,
-            })
 
     out: dict = {}
     if new_messages:

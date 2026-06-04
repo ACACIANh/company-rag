@@ -24,8 +24,8 @@ _DESCRIPTION = (
 )
 
 _QUERY = (
-    "SELECT user_id, department, question, generated_sql, sql_risk, "
-    "gate_decision, reason, created_at "
+    "SELECT user_id, department, role, question, generated_sql, sql_risk, "
+    "gate_decision, reason, result_summary, created_at "
     "FROM gate_audit_log "
     "WHERE ($1::text IS NULL OR user_id = $1) "
     "  AND ($2::text IS NULL OR gate_decision = $2) "
@@ -48,13 +48,18 @@ class _Input(BaseModel):
 def _format_rows(rows: list) -> str:
     if not rows:
         return "(결과 없음)"
-    lines = []
+    header = "| 시각 | 유저 | 부서/역할 | 결정 | SQL | 사유 | 결과요약 |"
+    sep    = "|---|---|---|---|---|---|---|"
+    lines = [header, sep]
     for r in rows:
         ts = str(r["created_at"])[:16]
-        sql_preview = str(r["generated_sql"])[:60]
+        dept_role = f"{r['department'] or ''} / {r['role'] or ''}".strip(" /")
+        sql_preview = str(r["generated_sql"])[:50].replace("|", "\\|")
+        result_preview = str(r["result_summary"] or "")[:50].replace("|", "\\|")
+        reason = str(r["reason"] or "").replace("|", "\\|")
         lines.append(
-            f"[{ts}] {r['user_id']} | {r['gate_decision']} | "
-            f"{sql_preview} | 사유: {r['reason']}"
+            f"| {ts} | {r['user_id']} | {dept_role} | {r['gate_decision']} | "
+            f"`{sql_preview}` | {reason} | {result_preview} |"
         )
     return "\n".join(lines)
 

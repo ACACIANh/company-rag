@@ -89,7 +89,7 @@ def build_graph(
     g.add_node("agent", partial(agent_node, chat_model=bound))
     g.add_node("tool_gate", partial(tool_gate_node, registry=registry, fga_client=fga_client, audit_sink=audit_sink))
     g.add_node("confirm", confirm_node)
-    g.add_node("justify_execute", partial(justify_execute_node, registry=registry, audit_sink=audit_sink))
+    g.add_node("justify_execute", partial(justify_execute_node, registry=registry, audit_sink=audit_sink, fga_client=fga_client))
     g.add_node("agent_answer", agent_answer_node)
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))

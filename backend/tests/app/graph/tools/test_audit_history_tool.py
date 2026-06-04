@@ -123,9 +123,12 @@ async def test_execute_admin_formats_rows():
     row.__getitem__ = lambda self, k: {
         "created_at": "2026-06-04 10:00:00+00",
         "user_id": "jisoo",
+        "department": "개발팀",
+        "role": "c_level",
         "gate_decision": "DENY",
         "generated_sql": "SELECT * FROM employees",
         "reason": "capability 미부여",
+        "result_summary": "",
     }[k]
     h, _ = _make(has_access=True, rows=[row])
     result = await h.execute(
@@ -135,6 +138,9 @@ async def test_execute_admin_formats_rows():
     )
     assert "jisoo" in result
     assert "DENY" in result
+    assert "|" in result  # 마크다운 표 형식
+    assert "개발팀" in result
+    assert "c_level" in result
 
 
 @pytest.mark.asyncio
