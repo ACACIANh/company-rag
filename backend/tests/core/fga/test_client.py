@@ -208,6 +208,31 @@ async def test_revoke_tuple_invalidates_bare_user_id():
 
 
 @pytest.mark.asyncio
+async def test_grant_revoke_roundtrip_invalidates_cache():
+    """ADR-0046 revoke 종단: grant→캐시 무효화→재캐시→revoke→캐시 무효화 왕복.
+
+    실제 InMemoryCacheBackend로 부여·회수가 모두 폴더 캐시를 즉시 비우는지 종단 확인.
+    """
+    cache = InMemoryCacheBackend()
+    await cache.set("user-jisoo", ["/company"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def write(self, req): pass
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()), \
+         patch.object(client, "_write_fga_tuples", new=AsyncMock()):
+        await client.grant_tuple("user:user-jisoo", "member", "department:개발팀")
+        assert await cache.get("user-jisoo") is None       # grant가 캐시를 비움
+
+        await cache.set("user-jisoo", ["/company"], ttl_seconds=60)
+        await client.revoke_tuple("user:user-jisoo", "member", "department:개발팀")
+        assert await cache.get("user-jisoo") is None       # revoke도 캐시를 비움
+
+
+@pytest.mark.asyncio
 async def test_grant_tuple_invalidates_non_user_subject_unchanged():
     # 비-user subject는 "user:"가 없으므로 그대로 전달(무해한 no-op).
     client = _client()

@@ -22,11 +22,17 @@
     {
       "type": "department",
       "relations": {
-        "member": {"this": {}}
+        "member": {"this": {}},
+        "admin": {"this": {}}
       },
       "metadata": {
         "relations": {
           "member": {
+            "directly_related_user_types": [
+              {"type": "user"}
+            ]
+          },
+          "admin": {
             "directly_related_user_types": [
               {"type": "user"}
             ]
@@ -194,6 +200,23 @@
             ]
           },
           "justify_grant": {
+            "directly_related_user_types": [
+              {"type": "user"},
+              {"type": "department", "relation": "member"},
+              {"type": "role", "relation": "member"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "table",
+      "relations": {
+        "can_access": {"this": {}}
+      },
+      "metadata": {
+        "relations": {
+          "can_access": {
             "directly_related_user_types": [
               {"type": "user"},
               {"type": "department", "relation": "member"},
