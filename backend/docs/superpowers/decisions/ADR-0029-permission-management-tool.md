@@ -109,7 +109,8 @@ grant가 JUSTIFY로 떨어지면 SP1(ADR-0023/0024)의 `tool_gate → confirm(�
 
 - `gate_decision` 시그니처는 불변(risk만 추가). SP2a 게이트 테스트는 RISK_GRANT 케이스만 확장.
 - capability 타입이 sql relation(8) + grant relation(2)을 함께 정의 — 인스턴스(`capability:sql`/`capability:admin`)로 용도 구분.
-- 권한 변경 즉시성: `folder_viewer`/`capability` grant는 FGA 캐시 TTL만큼 지연 반영(즉시 필요 시 후속 과제).
+- 권한 변경 즉시성 — 🟢 해소(2026-06-04, feat/adr-followups): `grant_tuple`/`revoke_tuple`이 캐시를 **BARE user id**로 무효화하도록 키 포맷 버그 수정(이전엔 `user:<id>` 전체표기로 `invalidate` 호출 → bare-key 캐시와 불일치 → 무효화가 조용한 no-op이었음). 이제 `folder_viewer` grant/revoke가 폴더 캐시를 실제 즉시 무효화한다. (`capability`는 본래 폴더 캐시를 안 타고 `check()` 라이브 조회라 항상 즉시 반영.)
+- FGA 쓰기 경로 credential 일관화 — 🟢 해소(2026-06-04, feat/adr-followups): 읽기 경로·`revoke_tuple`만 api_token을 붙이고 `_write_fga_tuples`/`remove_department_member`/`delete_user_tuples`는 누락하던 불일치를, 단일 헬퍼 `FGAClient._client_config()`로 통일(api_key 설정 시 모든 read·write 경로가 Credentials 부착). store 인증 활성 시 쓰기 실패 위험 제거.
 - 감사: grant/revoke도 기존 `AuditRecord`로 기록(generated_sql 필드에 planned_action, reason에 사유).
 - **SP2b 제외**: 역할 멤버십(c_level 부여), 차등 위임, folder_viewer 캐시 즉시 무효화 — 필요 시 후속.
 

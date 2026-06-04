@@ -13,6 +13,31 @@ class FGAClient:
         self._cache = cache
         self._pg_pool = pg_pool
 
+    def _client_config(self):
+        """ClientConfiguration 빌더 — api_key가 truthy면 api_token Credentials 부착.
+
+        읽기·쓰기 모든 경로가 이 헬퍼를 거쳐 store 인증을 일관되게 적용한다.
+        """
+        from openfga_sdk import ClientConfiguration
+        cfg = ClientConfiguration(
+            api_url=self._config.api_url,
+            store_id=self._config.store_id,
+        )
+        if self._config.api_key:
+            from openfga_sdk.credentials import Credentials, CredentialConfiguration
+            cfg.credentials = Credentials(
+                method="api_token",
+                configuration=CredentialConfiguration(api_token=self._config.api_key),
+            )
+        return cfg
+
+    @staticmethod
+    def _cache_key_for(subject: str) -> str:
+        """캐시 무효화 키 정규화 — 폴더 캐시는 bare user id로 키잉되므로
+        "user:" 접두사를 떼고 반환한다. 비-user subject는 그대로(무해한 no-op)."""
+        prefix = "user:"
+        return subject[len(prefix):] if subject.startswith(prefix) else subject
+
     # ── 순수 함수 ────────────────────────────────────────────
     def build_pg_filter(self, allowed_folders: list[str]) -> tuple[str, list]:
         """allowed_folders(ListObjects가 상속까지 푼 가시 폴더 목록) → path 정확 매칭 WHERE절.
@@ -62,18 +87,9 @@ class FGAClient:
 
     async def check(self, user: str, relation: str, object_: str) -> bool:
         """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
-        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientCheckRequest
-        cfg = ClientConfiguration(
-            api_url=self._config.api_url,
-            store_id=self._config.store_id,
-        )
-        if self._config.api_key:
-            from openfga_sdk.credentials import Credentials, CredentialConfiguration
-            cfg.credentials = Credentials(
-                method="api_token",
-                configuration=CredentialConfiguration(api_token=self._config.api_key),
-            )
+        cfg = self._client_config()
         async with OpenFgaClient(cfg) as client:
             resp = await client.check(
                 ClientCheckRequest(user=user, relation=relation, object=object_)
@@ -84,17 +100,8 @@ class FGAClient:
         """store의 모든 (user, relation, object) 튜플 전수 읽기 (seed --prune 재조정용).
 
         빈 ReadRequestTupleKey는 필터 없는 전수 조회. continuation_token으로 페이지네이션."""
-        from openfga_sdk import OpenFgaClient, ClientConfiguration, ReadRequestTupleKey
-        cfg = ClientConfiguration(
-            api_url=self._config.api_url,
-            store_id=self._config.store_id,
-        )
-        if self._config.api_key:
-            from openfga_sdk.credentials import Credentials, CredentialConfiguration
-            cfg.credentials = Credentials(
-                method="api_token",
-                configuration=CredentialConfiguration(api_token=self._config.api_key),
-            )
+        from openfga_sdk import OpenFgaClient, ReadRequestTupleKey
+        cfg = self._client_config()
         out: list[tuple[str, str, str]] = []
         async with OpenFgaClient(cfg) as client:
             token = None
@@ -112,19 +119,10 @@ class FGAClient:
         return out
 
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
-        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientListObjectsRequest
         from openfga_sdk.exceptions import ValidationException
-        cfg = ClientConfiguration(
-            api_url=self._config.api_url,
-            store_id=self._config.store_id,
-        )
-        if self._config.api_key:
-            from openfga_sdk.credentials import Credentials, CredentialConfiguration
-            cfg.credentials = Credentials(
-                method="api_token",
-                configuration=CredentialConfiguration(api_token=self._config.api_key),
-            )
+        cfg = self._client_config()
         try:
             async with OpenFgaClient(cfg) as client:
                 resp = await client.list_objects(
@@ -143,12 +141,9 @@ class FGAClient:
             raise
 
     async def _write_fga_tuples(self, tuples: list[dict]) -> None:
-        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = ClientConfiguration(
-            api_url=self._config.api_url,
-            store_id=self._config.store_id,
-        )
+        cfg = self._client_config()
         async with OpenFgaClient(cfg) as client:
             try:
                 await client.write(ClientWriteRequest(
@@ -168,19 +163,13 @@ class FGAClient:
         await self._write_fga_tuples([
             {"user": subject, "relation": relation, "object": object_}
         ])
-        await self._cache.invalidate(subject)
+        await self._cache.invalidate(self._cache_key_for(subject))
 
     async def revoke_tuple(self, subject: str, relation: str, object_: str) -> None:
         """범용 권한 회수(ADR-0029). 멱등(없는 튜플 삭제는 무시)."""
-        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = ClientConfiguration(api_url=self._config.api_url, store_id=self._config.store_id)
-        if self._config.api_key:
-            from openfga_sdk.credentials import Credentials, CredentialConfiguration
-            cfg.credentials = Credentials(
-                method="api_token",
-                configuration=CredentialConfiguration(api_token=self._config.api_key),
-            )
+        cfg = self._client_config()
         async with OpenFgaClient(cfg) as client:
             try:
                 await client.write(ClientWriteRequest(
@@ -189,7 +178,7 @@ class FGAClient:
             except Exception as e:
                 if not self._is_idempotent_fga_error(e):
                     raise
-        await self._cache.invalidate(subject)
+        await self._cache.invalidate(self._cache_key_for(subject))
 
     async def add_department_member(self, user_id: str, department_id: str) -> None:
         await self._write_fga_tuples([
@@ -198,9 +187,9 @@ class FGAClient:
         await self._cache.invalidate(user_id)
 
     async def remove_department_member(self, user_id: str, department_id: str) -> None:
-        from openfga_sdk import OpenFgaClient, ClientConfiguration
+        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = ClientConfiguration(api_url=self._config.api_url, store_id=self._config.store_id)
+        cfg = self._client_config()
         async with OpenFgaClient(cfg) as client:
             try:
                 await client.write(ClientWriteRequest(
@@ -219,12 +208,9 @@ class FGAClient:
             {"user": f"user:{user_id}", "relation": "member", "object": d} for d in departments
         ]
         if tuples_to_delete:
-            from openfga_sdk import OpenFgaClient, ClientConfiguration
+            from openfga_sdk import OpenFgaClient
             from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-            cfg = ClientConfiguration(
-                api_url=self._config.api_url,
-                store_id=self._config.store_id,
-            )
+            cfg = self._client_config()
             async with OpenFgaClient(cfg) as client:
                 try:
                     await client.write(ClientWriteRequest(
