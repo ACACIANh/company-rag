@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from app.graph.tools.sql_tool import SqlToolHandler
+from app.graph.tools.sql_tool import SqlToolHandler, _format_rows
 from core.sql.risk import RISK_SELECT, RISK_UPDATE_DELETE
 
 
@@ -77,3 +77,31 @@ def test_plan_accepts_arg1_key():
     planned, risk = h.plan({"__arg1": "엔지니어링 부서원 이름"})
     assert "business.employees" in planned
     assert risk == "select"
+
+
+# ── _format_rows 표 형식 테스트 ──────────────────────────────
+
+
+def test_format_rows_empty():
+    assert _format_rows([]) == "(결과 없음)"
+
+
+def test_format_rows_markdown_table_structure():
+    rows = [{"name": "Alice", "salary": 5000}, {"name": "Bob", "salary": 6000}]
+    result = _format_rows(rows)
+    lines = result.splitlines()
+    # 헤더 | 구분선 | 데이터 2행 = 4줄
+    assert len(lines) == 4
+    assert lines[0] == "| name | salary |"
+    assert lines[1] == "| --- | --- |"
+    assert lines[2] == "| Alice | 5000 |"
+    assert lines[3] == "| Bob | 6000 |"
+
+
+def test_format_rows_single_column():
+    rows = [{"count": 42}]
+    result = _format_rows(rows)
+    lines = result.splitlines()
+    assert lines[0] == "| count |"
+    assert lines[1] == "| --- |"
+    assert lines[2] == "| 42 |"

@@ -143,7 +143,7 @@ flowchart TD
     hc -- "실패 AND retry < 3" --> gen
 
     ag["agent<br/><small>LLM + 도구 바인딩<br/>claude-sonnet</small>"]:::agt
-    tg{"tool_gate<br/><small>FGA 게이트 판정<br/>ALLOW / DENY / JUSTIFY</small>"}:::cond
+    tg{"tool_gate<br/><small>FGA 게이트 판정<br/>ALLOW / DENY / JUSTIFY<br/>plan() + gate_decision()</small>"}:::cond
     cf["confirm<br/><small>HITL interrupt()<br/>사유 기재 요청</small>"]:::hitl
     je["justify_execute<br/><small>사유 검증 후 실행<br/>executed_sql 중복 차단</small>"]:::hitl
     aa["agent_answer<br/><small>에이전트 최종 답변 조합</small>"]:::agt
@@ -156,6 +156,16 @@ flowchart TD
     tg -- "JUSTIFY_AND_APPROVE" --> cf
     cf --> je --> ag
     aa --> sm
+
+    subgraph TOOLBOX["📦 Tool Registry (ADR-0023)"]
+        direction TB
+        t_sql["query_business_data<br/><small>업무 DB 조회 / 수정 / 삭제<br/>SELECT→ALLOW · UPDATE·DELETE→JUSTIFY</small>"]:::tool
+        t_perm["manage_permission<br/><small>부서·폴더·SQL 권한 부여 / 회수<br/>RISK_GRANT→JUSTIFY</small>"]:::tool
+        t_audit["query_audit_history<br/><small>게이트 감사 이력 조회 (ADR-0040)<br/>RISK_SELECT→ALLOW · admin 전용</small>"]:::tool
+    end
+
+    tg -. "plan() + gate()" .-> TOOLBOX
+    je -. "execute()" .-> TOOLBOX
 
     cp["capability<br/><small>기능 목록 안내 (정적)</small>"]:::cap
     ro -- "capability" --> cp
@@ -171,6 +181,7 @@ flowchart TD
     classDef agt  fill:#0a2e2e,stroke:#2dd4bf,color:#99f6e4
     classDef hitl fill:#3b0f0f,stroke:#f87171,color:#fecaca
     classDef cap  fill:#1f2937,stroke:#6b7280,color:#d1d5db
+    classDef tool fill:#1e1e35,stroke:#6272a4,color:#c5c9e0
     </pre>
   </div>
 </main>
@@ -178,7 +189,7 @@ flowchart TD
 <footer>
   backend/app/graph — builder.py · edges.py · nodes/* &nbsp;|&nbsp;
   AgentState (TypedDict) &nbsp;|&nbsp;
-  ADR-0015 FGA &nbsp;·&nbsp; ADR-0023 HITL Gate &nbsp;·&nbsp; ADR-0031 Router &nbsp;·&nbsp; ADR-0034 SQL 이중계정
+  ADR-0015 FGA &nbsp;·&nbsp; ADR-0023 HITL Gate &nbsp;·&nbsp; ADR-0031 Router &nbsp;·&nbsp; ADR-0034 SQL 이중계정 &nbsp;·&nbsp; ADR-0040 query_audit_history
 </footer>
 
 <script>
