@@ -26,6 +26,7 @@ from app.graph.edges import (
     route_after_router,
 )
 from app.graph.nodes.check_hallucination import check_hallucination_node
+from app.graph.nodes.clarify import clarify_node
 from app.graph.nodes.confirm import confirm_node
 from app.graph.nodes.generate import generate_node
 from app.graph.nodes.grade_documents import grade_documents_node
@@ -93,6 +94,7 @@ def build_graph(
     g.add_node("generate", partial(generate_node, llm=llm))
     g.add_node("check_hallucination", partial(check_hallucination_node, llm=llm))
     g.add_node("capability", capability_node)
+    g.add_node("clarify", clarify_node)
     g.add_node("save_memory", save_memory_node)
 
     g.add_edge(START, "load_memory")
@@ -107,9 +109,18 @@ def build_graph(
             "multi_query": "multi_query",
             "agent": "agent",
             "capability": "capability",
+            "clarify": "clarify",
         },
     )
     g.add_edge("multi_query", "permission")
+    g.add_conditional_edges(
+        "clarify",
+        lambda state: state["route"],
+        {
+            "doc_search": "permission",
+            "agent": "agent",
+        },
+    )
 
     g.add_edge("permission", "retrieve")
     g.add_edge("retrieve", "grade_documents")
