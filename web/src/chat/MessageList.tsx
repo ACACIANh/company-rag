@@ -113,6 +113,11 @@ export function MessageList({
                 <CopyMessageButton content={msg.content} />
               </div>
             )}
+            {msg.role === "user" && (
+              <div className="flex justify-end mt-1 px-1">
+                <CopyMessageButton content={msg.content} />
+              </div>
+            )}
           </div>
         );
       })}
