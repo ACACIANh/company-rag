@@ -100,6 +100,45 @@ def test_router_decides_on_original_question_not_rewritten():
     assert "추가 절차와 방법은 무엇인가요?" not in prompt
 
 
+def test_router_includes_chat_history_in_prompt():
+    """라우터 프롬프트에 이전 대화가 포함되어야 한다."""
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "agent:none:0.95"
+    state = {
+        "question": "롤백해줘",
+        "chat_history": [
+            {"role": "user", "content": "이민준 급여 500만원 올려줘"},
+            {"role": "assistant", "content": "이민준 님 급여를 85,000,000원으로 업데이트했습니다."},
+        ],
+    }
+    router_node(state, llm=mock_llm)
+    prompt = mock_llm.complete.call_args[0][0]
+    assert "이민준 급여 500만원 올려줘" in prompt
+    assert "85,000,000원으로 업데이트" in prompt
+
+
+def test_router_handles_missing_chat_history():
+    """chat_history가 없어도 동작해야 한다."""
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "doc_search:none:0.95"
+    result = router_node({"question": "연차 정책"}, llm=mock_llm)
+    prompt = mock_llm.complete.call_args[0][0]
+    assert "없음" in prompt
+    assert result["route"] == "doc_search"
+
+
+def test_router_limits_history_to_last_4_messages():
+    """긴 대화 이력은 최근 4개(2턴) 메시지만 프롬프트에 포함한다."""
+    mock_llm = MagicMock()
+    mock_llm.complete.return_value = "agent:none:0.95"
+    history = [{"role": "user", "content": f"메시지{i}"} for i in range(10)]
+    router_node({"question": "질문", "chat_history": history}, llm=mock_llm)
+    prompt = mock_llm.complete.call_args[0][0]
+    assert "메시지9" in prompt
+    assert "메시지6" in prompt
+    assert "메시지5" not in prompt
+
+
 def test_router_parses_confidence_score():
     mock_llm = MagicMock()
     mock_llm.complete.return_value = "doc_search:none:0.9"

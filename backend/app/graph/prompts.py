@@ -76,21 +76,28 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 - 정책·규정·방침·방법 등 문서 서술이 필요하다 → doc_search
 - 시스템이 무엇을 할 수 있는지, 어떻게 사용하는지를 묻는다 → capability
 - 모호하면 doc_search로 답한다 (agent은 비용·위험이 커 불확실할 땐 doc_search로 기운다)
+- 이전 대화에서 DB 쓰기(INSERT/UPDATE/DELETE)가 수행되었고, 현재 질문이 "롤백", "취소", "되돌려줘", "원래대로" 등 실행 취소 의도면 → agent:none:0.95
 
 경계 예시:
 - "연차는 며칠까지 쌓을 수 있어?" → doc_search:none:0.95 (규정 = 문서)
 - "내 연차 며칠 남았어?" → agent:none:0.95 (개인 레코드 값 = DB)
 - "급여 인상 정책 알려줘" → doc_search:none:0.95 (방침 = 문서)
 - "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none:0.90 (테이블 집계 = DB)
-- "alice를 engineering 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
-- "finance 폴더 접근 권한을 회수해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "김지수를 개발팀 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "재무 폴더 접근 권한을 회수해줘" → agent:none:0.95 (권한 변경 = 도구)
 - "뭘 도와줄 수 있어?" → capability:none:1.0
 - "어떤 기능 있어?" → capability:none:1.0
 - "사용법 알려줘" → capability:none:1.0
+- "롤백해줘" (이전 대화에 DB 변경 있음) → agent:none:0.95 (DB 되돌리기 = 도구)
+- "방금 한 거 취소해줘" (이전 대화에 DB 변경 있음) → agent:none:0.95 (DB 되돌리기 = 도구)
+- "원래 값으로 되돌려줘" (이전 대화에 DB 변경 있음) → agent:none:0.95 (DB 되돌리기 = 도구)
 
 strategy 선택지 (doc_search에만 적용, 그 외는 none):
 - none: 질문이 단순하고 명확해 그대로 검색
 - multi_query: 질문이 복잡하거나 여러 항목 비교/열거 → 하위 쿼리로 분해 검색
+
+이전 대화 (최근 2턴):
+{chat_history}
 
 출력 형식: <route>:<strategy>:<확신도>
 - 확신도: 0.0(완전 불확실) ~ 1.0(완전 확신), 소수점 두 자리
@@ -117,7 +124,7 @@ SQL_GENERATE_PROMPT = """\
 스키마:
 {schema}
 
-카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: "엔지니어링"이 아니라 'engineering'):
+카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: 'engineering'이 아니라 '개발팀'):
 {value_hints}
 
 질문: {question}
@@ -151,7 +158,7 @@ PERMISSION_PARSE_PROMPT = """\
   부서 멤버십: subject="user:<유저id>", relation="member", object="department:<부서>"
   폴더 부서 접근권: subject="department:<부서>#member", relation="dept_viewer", object="folder:<경로>"
   SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
-    relation 은 allow_select/justify_select/allow_bulk_select/justify_bulk_select/allow_update_delete/justify_update_delete/allow_ddl/justify_ddl 중 하나, object="capability:sql"
+    relation 은 allow_select/justify_select/allow_bulk_select/justify_bulk_select/justify_update_delete/allow_ddl/justify_ddl 중 하나, object="capability:sql"
 
 grant/revoke 키: action, subject, relation, object 네 개.
 query 키: action, target_user_id 두 개.

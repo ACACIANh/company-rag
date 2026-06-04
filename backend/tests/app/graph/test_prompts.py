@@ -34,8 +34,9 @@ def test_check_hallucination_judges_factual_claims_not_style():
 
 # ── ROUTER_PROMPT: 데이터 원천 기준 + 경계 few-shot + 폴백 (ADR-0022) ──
 def test_router_prompt_keeps_question_placeholder():
-    """{question}만 남고 {schema}는 정의 시점에 치환되어야 한다."""
+    """{question}, {chat_history}만 남고 {schema}는 정의 시점에 치환되어야 한다."""
     assert "{question}" in ROUTER_PROMPT
+    assert "{chat_history}" in ROUTER_PROMPT
     assert "{schema}" not in ROUTER_PROMPT
 
 
@@ -70,6 +71,12 @@ def test_router_prompt_leans_doc_search_when_ambiguous():
     assert "모호하면 doc_search" in ROUTER_PROMPT
 
 
+def test_router_prompt_has_rollback_fewshot():
+    """이전 대화 맥락 기반 롤백/취소 패턴이 agent few-shot에 포함되어야 한다."""
+    assert "롤백해줘" in ROUTER_PROMPT
+    assert "취소해줘" in ROUTER_PROMPT
+
+
 def test_sql_generate_shares_same_schema_constant():
     """스키마 drift 방지 — 라우터와 SQL 생성이 같은 단일 출처를 쓴다."""
     assert _BUSINESS_SCHEMA in SQL_GENERATE_PROMPT
@@ -81,7 +88,7 @@ def test_sql_generate_shares_same_schema_constant():
 def test_sql_generate_injects_value_hints():
     """카테고리형 컬럼의 실제 저장값(영문 코드)이 주입되고, format이 깨지지 않아야 한다."""
     assert "business.employees.department" in SQL_GENERATE_PROMPT
-    assert "engineering" in SQL_GENERATE_PROMPT      # value mismatch 처방
+    assert "개발팀" in SQL_GENERATE_PROMPT      # value mismatch 처방
     assert "{value_hints}" not in SQL_GENERATE_PROMPT
     # format이 KeyError 없이 동작(값 힌트의 중괄호 오인 회귀 방지).
     rendered = SQL_GENERATE_PROMPT.format(question="엔지니어링 부서 평균 급여")

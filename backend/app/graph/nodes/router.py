@@ -8,7 +8,11 @@ _CLARIFY_THRESHOLD = 0.75
 
 def router_node(state: dict, *, llm: LLMClient) -> dict:
     # 라우팅·도구입력은 원본 질문으로 — rewrite(문서검색 편향) 비결정성 차단 (ADR-0031)
-    prompt = ROUTER_PROMPT.format(question=state["question"])
+    history = state.get("chat_history", [])
+    history_text = "\n".join(
+        f"{m['role']}: {m['content']}" for m in history[-4:]
+    ) if history else "없음"
+    prompt = ROUTER_PROMPT.format(question=state["question"], chat_history=history_text)
     response = llm.complete(prompt).strip().lower()
 
     parts = response.split(":")
