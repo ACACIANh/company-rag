@@ -1,4 +1,4 @@
-"""권한 관리 도구 핸들러 (ADR-0029). NL 지시 → 구조화 파싱 → 화이트리스트 검증 →
+"""권한 관리 도구 에이전트 (ADR-0029). NL 지시 → 구조화 파싱 → 화이트리스트 검증 →
 (게이트) → FGA 튜플 쓰기. SQL 도구(query_business_data)와 동형.
 
 plan은 LLM이 파싱한 {action,subject,relation,object}를 검증한다. 검증 실패는
@@ -26,7 +26,7 @@ _DESCRIPTION = (
 )
 
 
-class PermissionToolHandler:
+class PermissionAgent:
     name = "manage_permission"
 
     def __init__(self, *, llm: LLMClient, fga_client: FGAClient, validator: PermissionValidator) -> None:

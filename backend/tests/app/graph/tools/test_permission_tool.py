@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.graph.tools.permission_tool import PermissionToolHandler
+from app.graph.tools.permission_tool import PermissionAgent
 from core.fga.permission_validator import PermissionValidator
 from core.sql.gate import RISK_GRANT
 from core.sql.risk import RISK_DENY
@@ -21,7 +21,7 @@ def _llm(reply: str):
 
 
 def test_plan_valid_grant_returns_risk_grant():
-    handler = PermissionToolHandler(
+    handler = PermissionAgent(
         llm=_llm('{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
@@ -31,7 +31,7 @@ def test_plan_valid_grant_returns_risk_grant():
 
 
 def test_plan_invalid_target_returns_deny():
-    handler = PermissionToolHandler(
+    handler = PermissionAgent(
         llm=_llm('{"action":"grant","subject":"user:user-eve","relation":"member","object":"department:engineering"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
@@ -40,7 +40,7 @@ def test_plan_invalid_target_returns_deny():
 
 
 def test_plan_unparseable_llm_output_returns_deny():
-    handler = PermissionToolHandler(
+    handler = PermissionAgent(
         llm=_llm("죄송하지만 도와드릴 수 없습니다"),
         fga_client=MagicMock(), validator=_validator(),
     )
@@ -50,7 +50,7 @@ def test_plan_unparseable_llm_output_returns_deny():
 
 def test_plan_accepts_arg1_key():
     """bind_tools가 넘기는 {'__arg1': ...} 형태에서도 instruction을 추출한다 (ADR-0032)."""
-    handler = PermissionToolHandler(
+    handler = PermissionAgent(
         llm=_llm('{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
@@ -63,7 +63,7 @@ def test_plan_accepts_arg1_key():
 async def test_execute_grant_calls_grant_tuple():
     fga = MagicMock()
     fga.grant_tuple = AsyncMock()
-    handler = PermissionToolHandler(llm=MagicMock(), fga_client=fga, validator=_validator())
+    handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await handler.execute("grant user:user-alice member department:engineering", "RISK_GRANT")
     fga.grant_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
     assert "완료" in result
@@ -73,6 +73,6 @@ async def test_execute_grant_calls_grant_tuple():
 async def test_execute_revoke_calls_revoke_tuple():
     fga = MagicMock()
     fga.revoke_tuple = AsyncMock()
-    handler = PermissionToolHandler(llm=MagicMock(), fga_client=fga, validator=_validator())
+    handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     await handler.execute("revoke user:user-alice member department:engineering", "RISK_GRANT")
     fga.revoke_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
