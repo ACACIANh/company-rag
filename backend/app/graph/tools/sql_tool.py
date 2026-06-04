@@ -1,7 +1,7 @@
 """SQL 조회 도구 핸들러 (ADR-0023). NL 질문 → SQL → 위험도 → (게이트) → 실행.
 
 NL→SQL·위험도 분류·결과 포매팅은 기존 노드 로직(ADR-0016/0017/0021)을 재사용한다.
-실행은 read-only 제한계정 풀(ADR-0020)에서만 한다.
+실행은 read-only 제한계정 풀(SELECT)과 쓰기 제한계정 풀(UPDATE/DELETE)로 분리한다(ADR-0020/0034).
 """
 import asyncpg
 from langchain_core.tools import Tool
