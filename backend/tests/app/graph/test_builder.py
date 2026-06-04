@@ -872,3 +872,92 @@ async def test_stream_answer_resume_after_justify():
     token_content = "".join(e["content"] for e in events2 if e["type"] == "token")
     assert token_content == "급여 분포 요약 답변"
     assert types2[-1] == "done"
+
+
+def _rw_pool(execute_return="UPDATE 1"):
+    conn = AsyncMock()
+    conn.execute = AsyncMock(return_value=execute_return)
+    conn.transaction = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=None), __aexit__=AsyncMock(return_value=None)))
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=AsyncMock(
+        __aenter__=AsyncMock(return_value=conn), __aexit__=AsyncMock(return_value=None)))
+    return pool
+
+
+@pytest.mark.asyncio
+async def test_engineering_update_justify_then_resume_writes():
+    """engineering × WHERE 있는 UPDATE → JUSTIFY → 사유 resume → 쓰기 풀 실행 → 행수 답변."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "5번 직원 연봉 변경",                                                  # rewrite
+        "agent",                                                          # router
+        "UPDATE business.employees SET salary = 70000000 WHERE emp_id = 'user-5'",  # plan → SQL
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(question="연봉 변경"),                                  # 1차: 도구 호출 → interrupt
+        AIMessage(content="1개 행을 변경했습니다."),                            # 2차: resume 후 최종 답변
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool("UPDATE 1"),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "eng-update-1"}}
+
+    result = await graph.ainvoke(_make_initial_state("5번 직원 연봉 7000만으로 바꿔줘"), config=config)
+    assert "__interrupt__" in result
+
+    final = await graph.ainvoke(Command(resume="인사평가 반영 연봉 조정"), config=config)
+    assert final["answer"] == "1개 행을 변경했습니다."
+
+
+@pytest.mark.asyncio
+async def test_general_update_denied_without_capability():
+    """무소속(general) × UPDATE → justify_update_delete 미보유 → DENY, interrupt 없음."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "연봉 변경",                                                          # rewrite
+        "agent",                                                          # router
+        "UPDATE business.employees SET salary = 0 WHERE emp_id = 'user-5'",  # plan → SQL
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(question="연봉 변경"),
+        AIMessage(content="권한이 없어 실행할 수 없습니다."),
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["sales"]),   # justify_update_delete 미보유
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "general-update-deny-1"}}
+    final = await graph.ainvoke(_make_initial_state("연봉 0으로 바꿔"), config=config)
+    assert "__interrupt__" not in final
+    assert final["answer"] == "권한이 없어 실행할 수 없습니다."
+
+
+@pytest.mark.asyncio
+async def test_update_without_where_denied_even_for_engineering():
+    """engineering이라도 WHERE 없는 UPDATE는 risk=deny → DENY, interrupt 없음."""
+    llm = MagicMock()
+    llm.complete.side_effect = [
+        "전체 연봉 변경",                                                      # rewrite
+        "agent",                                                          # router
+        "UPDATE business.employees SET salary = 0",                          # plan → WHERE 없음 → deny
+    ]
+    chat = _mock_chat_model([
+        _tool_call_msg(question="전체 연봉 변경"),
+        AIMessage(content="무조건 변경은 허용되지 않습니다."),
+    ])
+    graph = build_graph(
+        retriever=_make_retriever(), llm=llm,
+        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
+        chat_model=chat,
+    )
+    config = {"configurable": {"thread_id": "no-where-deny-1"}}
+    final = await graph.ainvoke(_make_initial_state("전체 직원 연봉 0으로"), config=config)
+    assert "__interrupt__" not in final
+    assert final["answer"] == "무조건 변경은 허용되지 않습니다."
