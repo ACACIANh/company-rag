@@ -21,7 +21,7 @@ folders:
     # 상속 — 세일즈 공개 문서
   /company/hr:
     private: true              # 인사 문서 — 공개 차단
-    dept_viewers: [hr]
+    dept_viewers: [인사팀]
   /company/finance:
     private: true              # 재무 문서 — 공개 차단
     dept_viewers: [재무팀]

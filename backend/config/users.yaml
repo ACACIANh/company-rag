@@ -17,7 +17,7 @@ users:
     password: minjun123
     user_id: user-minjun
     roles: [user]
-    departments: [hr]
+    departments: [인사팀]
     display_name: 이민준
     email: minjun.lee@techcorp.example
   - username: seoyeon
@@ -80,6 +80,6 @@ users:
     password: taeyang123
     user_id: user-taeyang
     roles: [user]
-    departments: [hr, 법무팀]
+    departments: [인사팀, 법무팀]
     display_name: 신태양
     email: taeyang.shin@techcorp.example
