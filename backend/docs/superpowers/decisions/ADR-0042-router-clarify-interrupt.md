@@ -41,13 +41,13 @@
 2. **라우터 출력 형식** (ROUTER_PROMPT 갱신):
    ```json
    {
-       "route": "doc_search|agent|ambiguous",
+       "route": "doc_search|agent|clarify",
        "confidence": 0.85,
        "reasoning": "..."
    }
    ```
    - 기존: `{"route": "doc_search"}` (confidence 없음)
-   - 신규: confidence < 0.75면 `router_node`에서 `route="ambiguous"` 반환
+   - 신규: confidence < 0.75면 `router_node`에서 `route="clarify"` 반환
 
 3. **clarify_node** (`app/graph/nodes/clarify.py` 신규):
    ```python
@@ -69,7 +69,7 @@
    ```python
    def route_after_router(state: dict) -> str:
        route = state.get("route")
-       if route == "ambiguous":
+       if route == "clarify":
            return "clarify"
        elif route == "doc_search":
            return "doc_search_node"
@@ -82,7 +82,7 @@
    router_node
        ├─→ [route="doc_search"] → doc_search_node
        ├─→ [route="agent"] → capability_router
-       └─→ [route="ambiguous"] → clarify_node
+       └─→ [route="clarify"] → clarify_node
                                     ↓
                           (user choice via interrupt)
                                     ↓
