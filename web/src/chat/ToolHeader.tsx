@@ -6,6 +6,7 @@ export function ToolHeader({ tools }: { tools: string[] }) {
       {tools.map((t) => (
         <span
           key={t}
+          title={t}
           className="text-[10px] font-normal bg-primary-muted text-primary-deep px-2 py-0.5 rounded-pill tracking-[0.1px] uppercase"
         >
           {t}
