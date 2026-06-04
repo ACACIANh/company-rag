@@ -54,7 +54,7 @@ class PermissionToolHandler:
         subject, relation, object_, action = validated
         return f"{action} {subject} {relation} {object_}", RISK_GRANT
 
-    async def execute(self, planned_action: str) -> str:
+    async def execute(self, planned_action: str, risk: str) -> str:
         parts = planned_action.split(" ")
         if len(parts) != 4:
             return "권한 실행 오류: 잘못된 동작 형식"

@@ -15,6 +15,6 @@ class ToolHandler(Protocol):
         """도구 인자 → (구체화된 동작, core.sql.risk 위험도 등급)."""
         ...
 
-    async def execute(self, planned_action: str) -> str:
-        """구체화된 동작 실행 → 결과 텍스트."""
+    async def execute(self, planned_action: str, risk: str) -> str:
+        """구체화된 동작 실행 → 결과 텍스트. risk는 실행 경로(읽기/쓰기) 선택에 쓴다."""
         ...

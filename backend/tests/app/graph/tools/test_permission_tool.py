@@ -64,7 +64,7 @@ async def test_execute_grant_calls_grant_tuple():
     fga = MagicMock()
     fga.grant_tuple = AsyncMock()
     handler = PermissionToolHandler(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await handler.execute("grant user:user-alice member department:engineering")
+    result = await handler.execute("grant user:user-alice member department:engineering", "RISK_GRANT")
     fga.grant_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
     assert "완료" in result
 
@@ -74,5 +74,5 @@ async def test_execute_revoke_calls_revoke_tuple():
     fga = MagicMock()
     fga.revoke_tuple = AsyncMock()
     handler = PermissionToolHandler(llm=MagicMock(), fga_client=fga, validator=_validator())
-    await handler.execute("revoke user:user-alice member department:engineering")
+    await handler.execute("revoke user:user-alice member department:engineering", "RISK_GRANT")
     fga.revoke_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
