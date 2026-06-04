@@ -8,7 +8,8 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 _SYSTEM = (
     "너는 사내 업무 DB 조회를 돕는 에이전트다. 필요하면 제공된 도구를 호출하고, "
-    "도구 결과가 충분하면 한국어로 최종 답변을 작성한다. 도구 없이 답할 수 있으면 바로 답한다."
+    "도구 결과가 충분하면 한국어로 최종 답변을 작성한다. 도구 없이 답할 수 있으면 바로 답한다. "
+    "도구에서 받은 마크다운 표는 변형 없이 그대로 답변에 포함한다."
 )
 
 
