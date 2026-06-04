@@ -40,7 +40,7 @@
 
 ## 미해결 / 후속
 
-- **Decision 3) 라우팅 정확도 eval 하니스 — 부분 완료**: `tests/eval/questions.yaml`에 `expected_route: "doc_search"/"tool_call"` 라벨이 추가됨(30문항). 단, `tests/eval/runner.py`에 confusion matrix·정확도 산출 코드는 미구현 — `runner.py`는 recall/mrr/kw만 집계 중. route 정확도 측정 코드는 여전히 후속 과제.
+- **Decision 3) 라우팅 정확도 eval 하니스 — 🟢 해소(2026-06-04, feat/adr-followups)**: `tests/eval/questions.yaml`의 `expected_route` 라벨(30문항)에 더해, 순수·단위테스트 가능한 채점 코어(`tests/eval/route_metrics.py`: accuracy + expected×predicted 혼동행렬)와 `runner.py:run_route_eval(predict_route, ...)`(predict 콜러블 주입식 → LLM 비의존)를 구현. 라벨 어휘는 ADR-0031 개명을 반영해 채점 시 `tool_call`→`agent`로 정규화(`_EXPECTED_ALIASES` 단일 출처). 단위테스트 7건 통과. 단, 실 LLM 라우팅 정확도 측정(`python -m tests.eval.runner`)은 라이브 키 필요로 미실행 — 주입식 채점 코어만 오프라인 검증됨.
 - **(3) 구조화 출력/신뢰도** — 1·2·4 적용 후에도 경계 오분류가 남으면 reason·confidence 출력으로 확장 검토.
 - **(5) clarify 노드** — 진짜 양의적 질문 비율이 eval에서 유의하게 관측되면 `interrupt` 기반 의도 명확화 노드를 **별도 ADR**로 설계. `confirm_node`와 합치지 않는다(승인 게이트 ≠ 의도 명확화).
 - **tool_call의 도구 확장** — 향후 tool_call이 SQL 외 웹검색 등으로 늘면(에이전트화 과제) "테이블로 답되나" 판별식을 도구 목록 기반으로 일반화해야 한다.
