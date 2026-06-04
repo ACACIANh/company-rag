@@ -32,10 +32,10 @@ def _format_rows(rows: list) -> str:
     if not rows:
         return "(결과 없음)"
     cols = list(rows[0].keys())
-    lines = [" | ".join(cols)]
-    for r in rows:
-        lines.append(" | ".join(str(r[c]) for c in cols))
-    return "\n".join(lines)
+    header = "| " + " | ".join(cols) + " |"
+    separator = "| " + " | ".join("---" for _ in cols) + " |"
+    data_lines = ["| " + " | ".join(str(r[c]) for c in cols) + " |" for r in rows]
+    return "\n".join([header, separator, *data_lines])
 
 
 class SqlToolHandler:
