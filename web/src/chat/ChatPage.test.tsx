@@ -228,3 +228,114 @@ describe("ChatPage interrupt(JUSTIFY) 흐름", () => {
     );
   });
 });
+
+describe("ChatPage clarify 흐름", () => {
+  beforeEach(() => {
+    mockUseAuth.mockReturnValue({
+      user: { user_id: "user-admin", roles: ["admin"], departments: [] },
+      logout: vi.fn(),
+    });
+    vi.mocked(streamChat).mockReset();
+    vi.mocked(getSessions).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("clarify 이벤트 수신 시 선택지 버튼을 렌더한다", async () => {
+    vi.mocked(streamChat).mockReturnValue(
+      (async function* () {
+        yield {
+          type: "clarify",
+          message: '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
+          options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+        };
+        yield { type: "done", session_id: "s-1" };
+      })()
+    );
+
+    render(<ChatPage />);
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "연차 어떻게 해?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "전송" }));
+
+    expect(
+      await screen.findByRole("button", { name: "사내 문서에서 찾기" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "업무 DB 조회 / 권한 도구 사용" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("위에서 방식을 선택해주세요")
+    ).toBeInTheDocument();
+  });
+
+  it("선택지 버튼 클릭 시 streamChat을 해당 레이블로 호출한다", async () => {
+    vi.mocked(streamChat)
+      .mockReturnValueOnce(
+        (async function* () {
+          yield {
+            type: "clarify",
+            message: '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
+            options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+          };
+          yield { type: "done", session_id: "s-1" };
+        })()
+      )
+      .mockReturnValueOnce(
+        (async function* () {
+          yield { type: "token", content: "연차 정책은..." };
+          yield { type: "done", session_id: "s-1" };
+        })()
+      );
+
+    render(<ChatPage />);
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "연차 어떻게 해?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "전송" }));
+
+    const docBtn = await screen.findByRole("button", { name: "사내 문서에서 찾기" });
+    fireEvent.click(docBtn);
+
+    await waitFor(() => expect(streamChat).toHaveBeenCalledTimes(2));
+    expect(streamChat).toHaveBeenLastCalledWith("사내 문서에서 찾기", "s-1");
+    await waitFor(() =>
+      expect(
+        screen.getByPlaceholderText(/질문을 입력하세요/)
+      ).toBeInTheDocument()
+    );
+  });
+
+  it("clarify 대기 중 세션 전환 시 awaitingClarify가 해제된다", async () => {
+    vi.mocked(getSessions).mockResolvedValue([
+      { thread_id: "s-other", title: "다른 세션", created_at: "2026-06-03T00:00:00Z" },
+    ]);
+    vi.mocked(getSessionMessages).mockResolvedValue([
+      { role: "user", content: "다른 질문", sources: [] },
+    ]);
+    vi.mocked(streamChat).mockReturnValue(
+      (async function* () {
+        yield {
+          type: "clarify",
+          message: '"연차?" — 방식을 선택하세요.',
+          options: ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+        };
+        yield { type: "done", session_id: "s-1" };
+      })()
+    );
+
+    render(<ChatPage />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "연차?" } });
+    fireEvent.click(screen.getByRole("button", { name: "전송" }));
+    await screen.findByRole("button", { name: "사내 문서에서 찾기" });
+
+    fireEvent.click(await screen.findByText("다른 세션"));
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText(/질문을 입력하세요/)).toBeInTheDocument()
+    );
+  });
+});

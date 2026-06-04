@@ -15,6 +15,7 @@ export function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [awaitingJustification, setAwaitingJustification] = useState(false);
+  const [awaitingClarify, setAwaitingClarify] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -70,6 +71,7 @@ export function ChatPage() {
     isNearBottomRef.current = true;
     const isNewSession = sessionId === null;
     setAwaitingJustification(false);
+    setAwaitingClarify(false);
     setError(null);
     setPending(true);
     if (question !== "") {
@@ -121,6 +123,16 @@ export function ChatPage() {
             { role: "assistant", content: "", interrupt: event.actions },
           ]);
           setAwaitingJustification(true);
+        } else if (event.type === "clarify") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "",
+              clarify: { message: event.message, options: event.options },
+            },
+          ]);
+          setAwaitingClarify(true);
         } else if (event.type === "error") {
           setError(event.message);
         }
@@ -140,6 +152,11 @@ export function ChatPage() {
     }
   };
 
+  const handleClarifySelect = (label: string) => {
+    setAwaitingClarify(false);
+    send(label);
+  };
+
   const handleSelectSession = async (id: string) => {
     if (id === sessionId) return;
     selectingSessionRef.current = id;
@@ -157,6 +174,7 @@ export function ChatPage() {
       );
       setSessionId(id);
       setAwaitingJustification(false);
+      setAwaitingClarify(false);
       localStorage.setItem("session_id", id);
     } catch {
       if (selectingSessionRef.current === id) {
@@ -174,6 +192,7 @@ export function ChatPage() {
     setMessages([]);
     setError(null);
     setAwaitingJustification(false);
+    setAwaitingClarify(false);
     localStorage.removeItem("session_id");
   };
 
@@ -183,6 +202,7 @@ export function ChatPage() {
       setSessionId(null);
       setMessages([]);
       setAwaitingJustification(false);
+      setAwaitingClarify(false);
       localStorage.removeItem("session_id");
     }
     try {
@@ -281,7 +301,14 @@ export function ChatPage() {
                 대화 기록을 불러오는 중…
               </p>
             ) : (
-              <MessageList messages={messages} onCancel={() => send("")} pending={pending} awaitingJustification={awaitingJustification} />
+              <MessageList
+                messages={messages}
+                onCancel={() => send("")}
+                pending={pending}
+                awaitingJustification={awaitingJustification}
+                onClarifySelect={handleClarifySelect}
+                awaitingClarify={awaitingClarify}
+              />
             )}
             {pending && (
               <div className="flex items-center gap-2 mt-4">
@@ -310,6 +337,7 @@ export function ChatPage() {
               onSend={send}
               disabled={pending || loadingHistory}
               awaitingJustification={awaitingJustification}
+              awaitingClarify={awaitingClarify}
             />
           </div>
         </div>
