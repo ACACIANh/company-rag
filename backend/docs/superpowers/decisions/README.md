@@ -37,14 +37,14 @@
 | [0032](ADR-0032-gated-tool-single-arg.md) | 게이트 도구 단일 입력 인자(`__arg1`) 처리 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0033](ADR-0033-terminology-naming-deadcode-cleanup.md) | 캡슐화 기반 명명 표준 + 유령 SQL 코드 제거 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0034](ADR-0034-business-write-gate.md) | 게이트 통제 하 business 스키마 쓰기 허용(UPDATE/DELETE) | 🟢 적용완료 |
-| [0035](ADR-0035-capability-discovery-route.md) | 기능 안내 route 추가 — capability discovery | ⚪ 제안됨 |
-| [0036](ADR-0036-no-source-notice-scope.md) | "출처를 찾지 못했습니다" 멘트 — RAG 경로 한정 표시 | ⚪ 제안됨 |
-| [0037](ADR-0037-citation-relevance-filter.md) | citations — 실제 사용 문서만 표시 | ⚪ 제안됨 |
-| [0038](ADR-0038-followup-parroting-bug.md) | 재질문 앵무새 버그 — chat_history가 생성 답변을 지배하는 문제 | ⚪ 제안됨 |
-| [0039](ADR-0039-new-session-input-autofocus.md) | "+ 새 대화" 클릭 시 입력창 자동 포커싱 | ⚪ 제안됨 |
+| [0035](ADR-0035-capability-discovery-route.md) | 기능 안내 route 추가 — capability discovery | 🟢 적용완료 |
+| [0036](ADR-0036-no-source-notice-scope.md) | "출처를 찾지 못했습니다" 멘트 — RAG 경로 한정 표시 | 🟢 적용완료 |
+| [0037](ADR-0037-citation-relevance-filter.md) | citations — 실제 사용 문서만 표시 | 🟢 적용완료 |
+| [0038](ADR-0038-followup-parroting-bug.md) | 재질문 앵무새 버그 — chat_history가 생성 답변을 지배하는 문제 | 🟢 적용완료 |
+| [0039](ADR-0039-new-session-input-autofocus.md) | "+ 새 대화" 클릭 시 입력창 자동 포커싱 | 🟢 적용완료 |
 | [0040](ADR-0040-audit-history-tool.md) | query_audit_history 도구 — ReAct 루프 내 감사 이력 조회 | 🟢 적용완료 |
 | [0041](ADR-0041-permission-agent-rename-query.md) | ToolHandler → ToolAgent 개명 + PermissionAgent query 액션 | 🟢 적용완료 |
-| [0042](ADR-0042-router-clarify-interrupt.md) | 라우터 모호 질문 clarify — HITL 범위 확장 | 🔵 승인됨 |
+| [0042](ADR-0042-router-clarify-interrupt.md) | 라우터 모호 질문 clarify — HITL 범위 확장 | 🟢 적용완료 |
 
 ## 상태 범례
 

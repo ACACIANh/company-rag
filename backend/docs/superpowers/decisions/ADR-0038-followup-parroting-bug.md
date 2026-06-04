@@ -1,6 +1,6 @@
 # ADR-0038: 재질문 앵무새 버그 — chat_history가 생성 답변을 지배하는 문제
 
-> **Status**: ⚪ 제안됨
+> **Status**: 🟢 적용완료
 
 **Date**: 2026-06-04
 **Context**: 동일 주제로 재질문하면 직전 답변을 반복(앵무새)하는 버그. `RAG_GENERATE` 프롬프트의 `{chat_history}` 블록에 이전 `assistant` 답변이 포함되고, 유사한 follow-up 질문에서 LLM이 새 문서보다 이 이전 답변을 근거로 삼아 복사·재출력한다.

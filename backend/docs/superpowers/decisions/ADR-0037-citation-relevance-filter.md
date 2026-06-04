@@ -1,6 +1,6 @@
 # ADR-0037: citations — 실제 사용 문서만 표시
 
-> **Status**: ⚪ 제안됨
+> **Status**: 🟢 적용완료
 
 **Date**: 2026-06-04
 **Context**: `generate_node`에서 `citations`를 `state["documents"]` 전체(rerank 후 top_k=5)로 만든다(`citations = [SourceRef(source=d.chunk.source) for d in state["documents"]]`). LLM이 실제로 참조하지 않은 문서도 출처로 표시되어 신뢰도를 해친다.

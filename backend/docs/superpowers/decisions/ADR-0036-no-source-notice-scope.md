@@ -1,6 +1,6 @@
 # ADR-0036: "출처를 찾지 못했습니다" 멘트 — RAG 경로 한정 표시
 
-> **Status**: ⚪ 제안됨
+> **Status**: 🟢 적용완료
 
 **Date**: 2026-06-04
 **Context**: `generate.py`의 `_NO_DOC_NOTICE`("⚠️ 관련 사내 문서를 찾지 못했습니다.")는 `is_doc_search and no_relevant_docs` 조건에만 반환된다. 그러나 프론트엔드가 `citations`가 빈 배열이면 출처 없음 문구를 노출해, agent·capability 경로(citations 항상 `[]`)에서도 같은 멘트가 표시된다.
