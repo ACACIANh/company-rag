@@ -215,6 +215,7 @@ export function ChatPage() {
   const handleLogout = () => {
     setMessages([]);
     setSessionId(null);
+    setAwaitingClarify(false);
     localStorage.removeItem("session_id");
     logout();
   };

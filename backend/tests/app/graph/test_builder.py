@@ -875,6 +875,52 @@ async def test_stream_answer_resume_after_justify():
     assert types2[-1] == "done"
 
 
+@pytest.mark.asyncio
+async def test_stream_answer_clarify_emits_clarify_event():
+    """clarify_node interrupt payload가 있으면 type:clarify SSE 이벤트를 전송한다."""
+    from app.graph.builder import stream_answer
+
+    clarify_payload = {
+        "message": '"연차 어떻게 해?" — 어떤 방식으로 처리할까요?',
+        "options": ["사내 문서에서 찾기", "업무 DB 조회 / 권한 도구 사용"],
+    }
+
+    mock_interrupt = MagicMock()
+    mock_interrupt.value = clarify_payload
+
+    final = {"__interrupt__": [mock_interrupt]}
+
+    mock_graph = AsyncMock()
+    mock_graph.aget_state.return_value = MagicMock(next=None, tasks=[], values={})
+    mock_graph.ainvoke.return_value = final
+
+    token_queue = asyncio.Queue()
+    mock_session_store = AsyncMock()
+
+    await stream_answer(
+        graph=mock_graph,
+        question="연차 어떻게 해?",
+        config={"configurable": {"thread_id": "t-1"}},
+        user_id="user-1",
+        token_queue=token_queue,
+        session_store=mock_session_store,
+        session_id="s-1",
+        is_new_session=False,
+    )
+
+    events = []
+    while not token_queue.empty():
+        events.append(await token_queue.get())
+
+    clarify_events = [e for e in events if e.get("type") == "clarify"]
+    assert len(clarify_events) == 1
+    assert clarify_events[0]["message"] == clarify_payload["message"]
+    assert clarify_events[0]["options"] == clarify_payload["options"]
+
+    interrupt_events = [e for e in events if e.get("type") == "interrupt"]
+    assert len(interrupt_events) == 0
+
+
 def _rw_pool(execute_return="UPDATE 1"):
     conn = AsyncMock()
     conn.execute = AsyncMock(return_value=execute_return)
