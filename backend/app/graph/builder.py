@@ -331,11 +331,12 @@ async def stream_answer(
         answer = final["answer"]
         for i in range(0, len(answer), _STREAM_CHUNK_SIZE):
             await token_queue.put({"type": "token", "content": answer[i:i + _STREAM_CHUNK_SIZE]})
+        route = final.get("route", "doc_search")
         await token_queue.put({
             "type": "sources",
             "sources": [s.source for s in final["citations"]],
-            "route": final.get("route", "doc_search"),
-            "tools": collect_tool_labels(final.get("route", "doc_search"), final.get("agent_messages", [])),
+            "route": route,
+            "tools": collect_tool_labels(route, final.get("agent_messages", [])),
         })
         try:
             if is_new_session:
