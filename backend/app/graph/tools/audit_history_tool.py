@@ -24,7 +24,10 @@ _DESCRIPTION = (
     "감사 이력(게이트 결정·SQL 실행 사유)을 조회합니다. 관리자 전용. "
     "limit(건수 기본 20 최대 100), user_id(유저 필터), "
     "decision(ALLOW/DENY/JUSTIFY_AND_APPROVE), "
-    "start_date/end_date(YYYY-MM-DD) 인자를 조합해 최신순으로 반환합니다."
+    "start_date/end_date(YYYY-MM-DD) 인자를 조합해 최신순으로 반환합니다. "
+    "user_id는 반드시 'user-xxx' 형식(예: user-seoyeon)이어야 합니다. "
+    "이름(예: 박서연)만 주어진 경우 user_id를 추측하지 말고 user_id=None으로 전체 조회한 뒤 "
+    "결과에서 해당 유저를 찾아 안내하십시오."
 )
 
 _QUERY = (
@@ -41,7 +44,10 @@ _QUERY = (
 
 class _Input(BaseModel):
     limit: int = Field(default=_DEFAULT_LIMIT, description="반환 건수 (최대 100)")
-    user_id: str | None = Field(default=None, description="특정 유저 ID 필터")
+    user_id: str | None = Field(
+        default=None,
+        description="유저 ID 필터. 반드시 'user-xxx' 형식(예: user-seoyeon). 한국어 이름·이메일 입력 금지.",
+    )
     decision: str | None = Field(
         default=None, description="ALLOW / DENY / JUSTIFY_AND_APPROVE"
     )
