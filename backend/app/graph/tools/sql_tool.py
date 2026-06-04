@@ -40,7 +40,7 @@ def _format_rows(rows: list) -> str:
 class SqlToolHandler:
     name = "query_business_data"
 
-    def __init__(self, *, llm: LLMClient, sql_pool: asyncpg.Pool, sql_rw_pool: asyncpg.Pool = None, row_limit: int = _DEFAULT_ROW_LIMIT) -> None:
+    def __init__(self, *, llm: LLMClient, sql_pool: asyncpg.Pool | None, sql_rw_pool: asyncpg.Pool | None = None, row_limit: int = _DEFAULT_ROW_LIMIT) -> None:
         self._llm = llm
         self._pool = sql_pool
         self._rw_pool = sql_rw_pool
