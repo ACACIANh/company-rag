@@ -2,7 +2,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.graph.tools.permission_tool import PermissionAgent
+from app.graph.tools.permission_tool import (
+    PermissionAgent,
+    _format_permission_snapshot,
+    _resolve_capabilities,
+)
 from core.fga.permission_validator import PermissionValidator
 from core.sql.gate import RISK_GRANT
 from core.sql.risk import RISK_DENY
@@ -80,8 +84,9 @@ async def test_execute_revoke_calls_revoke_tuple():
 
 @pytest.mark.asyncio
 async def test_execute_query_self_returns_snapshot():
-    """본인 조회: caller == target → 관리자 확인 없이 FGA 3종 조회."""
+    """본인 조회: caller == target → 부서/역할/폴더 + capability 스냅샷 (별도 admin 게이트 없음)."""
     fga = MagicMock()
+    fga.check = AsyncMock(return_value=True)
     fga.user_departments = AsyncMock(return_value=["개발팀"])
     fga.user_roles = AsyncMock(return_value=["admin"])
     fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
@@ -90,7 +95,7 @@ async def test_execute_query_self_returns_snapshot():
     assert "user-jisoo" in result
     assert "개발팀" in result
     assert "/engineering/specs" in result
-    fga.check.assert_not_called()
+    assert "SQL/관리 권한" in result
 
 
 @pytest.mark.asyncio
@@ -103,7 +108,7 @@ async def test_execute_query_other_as_admin_succeeds():
     fga.get_readable_folders = AsyncMock(return_value=[])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query admin-user user-minjun", "RISK_SELECT")
-    fga.check.assert_awaited_once_with("user:admin-user", "justify_grant", "capability:admin")
+    fga.check.assert_any_await("user:admin-user", "justify_grant", "capability:admin")
     assert "user-minjun" in result
 
 
@@ -141,3 +146,38 @@ def test_plan_query_other_returns_risk_select():
     planned, risk = agent.plan({"instruction": "이민준 권한 알려줘", "__caller_id": "user-jisoo"})
     assert risk == RISK_SELECT
     assert planned == "query user-jisoo user-minjun"
+
+
+@pytest.mark.asyncio
+async def test_resolve_capabilities_maps_decisions_to_labels():
+    """각 위험도를 gate_decision으로 판정 → 한국어 라벨 3종(즉시 허용/사유 기재 후 허용/불가)."""
+    grants = {
+        ("allow_select", "capability:sql"): True,            # SELECT → ALLOW
+        ("justify_bulk_select", "capability:sql"): True,     # 대량 SELECT → JUSTIFY
+        ("justify_update_delete", "capability:sql"): True,   # UPDATE/DELETE → JUSTIFY
+        ("justify_ddl", "capability:sql"): False,            # DDL → DENY
+        ("justify_grant", "capability:admin"): True,         # grant → JUSTIFY
+    }
+
+    async def fake_check(user, relation, object_):
+        return grants.get((relation, object_), False)
+
+    caps = await _resolve_capabilities(fake_check, "user-admin")
+    assert caps == [
+        ("SELECT", "즉시 허용"),
+        ("대량 SELECT", "사유 기재 후 허용"),
+        ("UPDATE/DELETE", "사유 기재 후 허용"),
+        ("DDL", "불가"),
+        ("권한 부여(grant)", "사유 기재 후 허용"),
+    ]
+
+
+def test_format_snapshot_renders_capability_section():
+    """스냅샷에 'SQL/관리 권한' 섹션과 각 항목이 'label: 결정' 형식으로 렌더링된다."""
+    out = _format_permission_snapshot(
+        "user-admin", [], ["c_level"], ["/company"],
+        [("SELECT", "즉시 허용"), ("DDL", "불가")],
+    )
+    assert "SQL/관리 권한" in out
+    assert "SELECT: 즉시 허용" in out
+    assert "DDL: 불가" in out

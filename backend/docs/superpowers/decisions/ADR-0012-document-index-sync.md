@@ -1,6 +1,6 @@
 # ADR-0012: 문서 인덱스 동기화 — 버전 스냅샷 + 최신 프로젝션
 
-> **Status**: 🟢 적용완료 — 버전 보존 정책(최근 N개/N일)은 미적용
+> **Status**: 🟢 적용완료 (부분 축소) — `document_versions` 이력 레이어·`PostgresDocumentVersionStore`·버전 보존 정책·스케줄러는 포트폴리오 범위 외로 폐기. 현재 구현: pgvector 최신 버전 단일 투영 + `content_hash` 변경 감지 + 원자적 스왑만 유지.
 
 - 상태: 채택(Accepted)
 - 날짜: 2026-06-01
@@ -77,6 +77,7 @@ class VectorStore(ABC):
 - 롤백은 즉시가 아니라 해당 버전 재임베딩 1회를 거친다.
 - "전체 라이브 문서 목록"은 `document_id`별 `MAX(version)` group by가 필요(동기화 잡에서만 사용, 쿼리 타임 무관).
 
-**유보(향후 결정)**
-- 버전 보존 정책(최근 N개 / N일) — 무한 누적 방지. 지금은 미적용.
-- 스케줄러(주기 트리거) — 위 엔드포인트를 주기 호출하는 형태로 후속.
+**폐기된 설계 (2026-06-04)**
+- ~~`document_versions` 이력 테이블 (Postgres)~~ — 스키마만 생성됐고 실제 read/write 구현 없이 방치됨. 포트폴리오 범위에서 불필요로 판단하여 `core/document_version/` 모듈·테스트·`chat.py` lifespan 호출 전체 삭제. 기존에 `ensure_table()`로 생성된 테이블은 `DROP TABLE IF EXISTS document_versions;`로 수동 정리 필요.
+- ~~버전 보존 정책(최근 N개 / N일)~~ — 이력 레이어 폐기로 불필요.
+- ~~스케줄러(주기 트리거)~~ — 포트폴리오 범위 제외.
