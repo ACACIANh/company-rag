@@ -56,13 +56,14 @@ def build_graph(
     checkpointer: BaseCheckpointSaver | None = None,
     audit_sink: Any = None,
     sql_pool: Any = None,
+    sql_rw_pool: Any = None,
     chat_model: Any = None,
 ) -> CompiledStateGraph:
     if fga_client is None:
         raise ValueError("fga_client is required")
     if chat_model is None:
         chat_model = create_chat_llm(load_config())
-    registry = build_tool_registry(llm=llm, sql_pool=sql_pool, fga_client=fga_client)
+    registry = build_tool_registry(llm=llm, sql_pool=sql_pool, sql_rw_pool=sql_rw_pool, fga_client=fga_client)
     bound = chat_model.bind_tools(registry.tool_defs)
     g = StateGraph(AgentState)
 

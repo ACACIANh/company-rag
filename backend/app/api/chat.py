@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI):
     await audit_sink.ensure_table()
     # SQL 도구 전용 read-only 제한계정 풀(ADR-0020). 미설정 시 SQL 게이트 비활성.
     sql_pool = await asyncpg.create_pool(config.sql_tool_dsn) if config.sql_tool_dsn else None
+    sql_rw_pool = await asyncpg.create_pool(config.sql_tool_rw_dsn) if config.sql_tool_rw_dsn else None
 
     retriever = BasicRetriever(store=store, embedder=embedder)
     llm = create_llm(config)
@@ -91,6 +92,7 @@ async def lifespan(app: FastAPI):
         graph = build_graph(
             retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client,
             checkpointer=checkpointer, audit_sink=audit_sink, sql_pool=sql_pool,
+            sql_rw_pool=sql_rw_pool,
         )
 
         app.state.pool = pool
@@ -103,6 +105,8 @@ async def lifespan(app: FastAPI):
 
         if sql_pool is not None:
             await sql_pool.close()
+        if sql_rw_pool is not None:
+            await sql_rw_pool.close()
         await pool.close()
 
 
