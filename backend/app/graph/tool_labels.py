@@ -17,6 +17,8 @@ def collect_tool_labels(route: str, agent_messages: list) -> list[str]:
     for msg in agent_messages:
         for call in getattr(msg, "tool_calls", None) or []:
             name = call.get("name") if isinstance(call, dict) else getattr(call, "name", None)
+            if not name:
+                continue
             label = label_map.get(name)
             if label and label not in labels:
                 labels.append(label)
