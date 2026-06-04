@@ -61,16 +61,51 @@ function InterruptCard({
   );
 }
 
+function ClarifyCard({
+  clarify,
+  onSelect,
+  disabled,
+}: {
+  clarify: NonNullable<ChatMessage["clarify"]>;
+  onSelect: (label: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div
+      className="bg-canvas-cream border border-hairline rounded-xl px-4 py-3"
+      style={{ boxShadow: "rgba(0,55,112,0.08) 0 1px 3px" }}
+    >
+      <p className="text-[13px] font-normal text-ink-mute mb-3">{clarify.message}</p>
+      <div className="flex gap-2">
+        {clarify.options.map((label) => (
+          <button
+            key={label}
+            onClick={() => onSelect(label)}
+            disabled={disabled}
+            className="flex-1 px-3 py-2 text-[13px] font-normal rounded-lg border border-hairline bg-canvas hover:bg-primary-muted hover:text-primary-deep hover:border-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MessageList({
   messages,
   onCancel,
   pending,
   awaitingJustification,
+  onClarifySelect,
+  awaitingClarify,
 }: {
   messages: ChatMessage[];
   onCancel: () => void;
   pending: boolean;
   awaitingJustification: boolean;
+  onClarifySelect: (label: string) => void;
+  awaitingClarify: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -79,6 +114,17 @@ export function MessageList({
           return (
             <div key={idx} className="self-start max-w-[85%]">
               <InterruptCard actions={msg.interrupt} onCancel={onCancel} pending={pending} awaitingJustification={awaitingJustification} />
+            </div>
+          );
+        }
+        if (msg.clarify) {
+          return (
+            <div key={idx} className="self-start max-w-[85%]">
+              <ClarifyCard
+                clarify={msg.clarify}
+                onSelect={onClarifySelect}
+                disabled={!awaitingClarify}
+              />
             </div>
           );
         }
