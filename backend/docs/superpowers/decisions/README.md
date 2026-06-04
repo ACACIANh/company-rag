@@ -42,6 +42,7 @@
 | [0037](ADR-0037-citation-relevance-filter.md) | citations — 실제 사용 문서만 표시 | ⚪ 제안됨 |
 | [0038](ADR-0038-followup-parroting-bug.md) | 재질문 앵무새 버그 — chat_history가 생성 답변을 지배하는 문제 | ⚪ 제안됨 |
 | [0039](ADR-0039-new-session-input-autofocus.md) | "+ 새 대화" 클릭 시 입력창 자동 포커싱 | ⚪ 제안됨 |
+| [0040](ADR-0040-audit-history-tool.md) | query_audit_history 도구 — ReAct 루프 내 감사 이력 조회 | 🟢 적용완료 |
 
 ## 상태 범례
 
