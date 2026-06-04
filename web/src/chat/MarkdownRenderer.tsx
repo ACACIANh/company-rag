@@ -44,6 +44,38 @@ const components: Components = {
     }
     return <code className={className}>{children}</code>;
   },
+  table({ children }) {
+    return (
+      <div className="overflow-x-auto my-3 rounded-lg border border-hairline text-[13px]">
+        <table className="min-w-full border-collapse">{children}</table>
+      </div>
+    );
+  },
+  thead({ children }) {
+    return (
+      <thead className="bg-canvas-soft border-b border-hairline">{children}</thead>
+    );
+  },
+  th({ children }) {
+    return (
+      <th className="px-3 py-2 text-left text-[11px] font-semibold text-ink-mute tracking-wide whitespace-nowrap">
+        {children}
+      </th>
+    );
+  },
+  tbody({ children }) {
+    return <tbody className="divide-y divide-hairline">{children}</tbody>;
+  },
+  tr({ children }) {
+    return (
+      <tr className="hover:bg-canvas-soft/60 transition-colors">{children}</tr>
+    );
+  },
+  td({ children }) {
+    return (
+      <td className="px-3 py-2 text-ink align-top max-w-[260px]">{children}</td>
+    );
+  },
 };
 
 export function MarkdownRenderer({ content }: { content: string }) {

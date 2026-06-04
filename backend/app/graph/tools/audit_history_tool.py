@@ -5,6 +5,7 @@ execute()는 FGA admin 역할 확인 후 gate_audit_log를 SELECT한다.
 caller_id는 tool_gate_node가 __caller_id 키로 주입한다.
 """
 import json
+import re
 
 import asyncpg
 from langchain_core.tools import StructuredTool
@@ -12,6 +13,9 @@ from pydantic import BaseModel, Field
 
 from core.fga.client import FGAClient
 from core.sql.risk import RISK_DENY, RISK_SELECT
+
+# tool_gate_node가 남기는 시스템 사유 패턴 (사용자 직접 입력 아님)
+_SYSTEM_REASON_RE = re.compile(r"^capability .+@.+ (?:보유|미부여) → .+$")
 
 _VALID_DECISIONS = frozenset({"ALLOW", "DENY", "JUSTIFY_AND_APPROVE"})
 _DEFAULT_LIMIT = 20
@@ -45,21 +49,74 @@ class _Input(BaseModel):
     end_date: str | None = Field(default=None, description="종료 날짜 YYYY-MM-DD")
 
 
+def _sql_preview(sql: str) -> str:
+    s = str(sql).strip()
+    if s.startswith("{"):
+        return "[감사조회]"
+    return s[:50]
+
+
+def _clean_result(raw: str) -> str:
+    """마크다운 표를 'col: val' 형태의 한 줄 텍스트로 변환한다."""
+    if not raw or "|" not in raw:
+        return raw[:80]
+    parts = [p.strip() for p in raw.split("|") if p.strip() and not re.match(r"^-+$", p.strip())]
+    if not parts:
+        return raw[:80]
+    n = len(parts)
+    mid = n // 2
+    if mid > 0 and mid * 2 == n:
+        return ", ".join(f"{h}: {v}" for h, v in zip(parts[:mid], parts[mid:]))[:80]
+    return " / ".join(parts)[:80]
+
+
+def _merge_system_pairs(rows: list) -> list:
+    """JUSTIFY_AND_APPROVE 쌍 중 시스템 사유 행을 제거하고 사용자 사유 행만 남긴다.
+
+    tool_gate_node(시스템 사유)와 justify_execute_node(사용자 사유)가 각각
+    레코드를 남기므로 DESC 정렬 시 사용자 사유 행이 먼저, 시스템 사유 행이 바로 뒤에 온다.
+    """
+    result: list = []
+    i = 0
+    while i < len(rows):
+        r = rows[i]
+        reason = str(r.get("reason") or "")
+        is_system = bool(_SYSTEM_REASON_RE.match(reason))
+        if not is_system and i + 1 < len(rows):
+            nxt = rows[i + 1]
+            nxt_reason = str(nxt.get("reason") or "")
+            same_key = (
+                nxt["user_id"] == r["user_id"]
+                and str(nxt["generated_sql"])[:30] == str(r["generated_sql"])[:30]
+                and nxt["gate_decision"] == r["gate_decision"]
+                and bool(_SYSTEM_REASON_RE.match(nxt_reason))
+            )
+            if same_key:
+                result.append(r)
+                i += 2
+                continue
+        result.append(r)
+        i += 1
+    return result
+
+
 def _format_rows(rows: list) -> str:
     if not rows:
         return "(결과 없음)"
+    rows = _merge_system_pairs(rows)
     header = "| 시각 | 유저 | 부서/역할 | 결정 | SQL | 사유 | 결과요약 |"
     sep    = "|---|---|---|---|---|---|---|"
     lines = [header, sep]
     for r in rows:
         ts = str(r["created_at"])[:16]
         dept_role = f"{r['department'] or ''} / {r['role'] or ''}".strip(" /")
-        sql_preview = str(r["generated_sql"])[:50].replace("|", "\\|")
-        result_preview = str(r["result_summary"] or "")[:50].replace("|", "\\|")
-        reason = str(r["reason"] or "").replace("|", "\\|")
+        sql_col = _sql_preview(str(r["generated_sql"]))
+        result_raw = str(r["result_summary"] or "").replace("\n", " ").replace("\r", "")
+        result_col = _clean_result(result_raw)
+        reason = str(r["reason"] or "").replace("\n", " ").replace("|", "\\|")
         lines.append(
             f"| {ts} | {r['user_id']} | {dept_role} | {r['gate_decision']} | "
-            f"`{sql_preview}` | {reason} | {result_preview} |"
+            f"`{sql_col}` | {reason} | {result_col} |"
         )
     return "\n".join(lines)
 
