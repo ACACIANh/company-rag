@@ -1,6 +1,6 @@
 # ADR-0012: 문서 인덱스 동기화 — 버전 스냅샷 + 최신 프로젝션
 
-> **Status**: 🟢 적용완료 (부분 축소) — `document_versions` 이력 레이어·`PostgresDocumentVersionStore`·버전 보존 정책·스케줄러는 포트폴리오 범위 외로 폐기. 현재 구현: pgvector 최신 버전 단일 투영 + `content_hash` 변경 감지 + 원자적 스왑만 유지.
+> **Status**: 🟢 적용완료 (대폭 축소) — 아래 결정사항 중 실제 코드에 남은 것은 **"pgvector 단일 투영(최신 청크만)"** 개념뿐. `document_versions` 이력 레이어·`PostgresDocumentVersionStore`·버전 보존 정책·스케줄러·`content_hash` 변경 감지·`delete_by_document`·원자적 스왑·`/admin/index/sync`는 **모두 미구현/폐기**. 현재 구현: `POST /admin/index/rebuild`(전체 재구성)만 존재. 아래 Decision 섹션은 원래 설계의 역사 기록이며 현행 코드를 반영하지 않는다.
 
 - 상태: 채택(Accepted)
 - 날짜: 2026-06-01
