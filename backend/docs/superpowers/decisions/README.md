@@ -36,6 +36,7 @@
 | [0031](ADR-0031-router-agent-label-permission-routing.md) | 라우터 route 라벨 `agent` 명명 + 권한관리 라우팅 포함 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0032](ADR-0032-gated-tool-single-arg.md) | 게이트 도구 단일 입력 인자(`__arg1`) 처리 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0033](ADR-0033-terminology-naming-deadcode-cleanup.md) | 캡슐화 기반 명명 표준 + 유령 SQL 코드 제거 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0034](ADR-0034-business-write-gate.md) | 게이트 통제 하 business 스키마 쓰기 허용(UPDATE/DELETE) | 🟢 적용완료 |
 
 ## 상태 범례
 
