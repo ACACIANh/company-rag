@@ -4,16 +4,16 @@ from core.auth.jwt_handler import create_token, decode_token
 
 def test_create_and_decode_token():
     token = create_token(
-        user_id="user-alice",
+        user_id="user-jisoo",
         roles=["user"],
-        departments=["engineering", "all"],
+        departments=["개발팀", "all"],
         secret="test-secret",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="test-secret")
-    assert payload["sub"] == "user-alice"
+    assert payload["sub"] == "user-jisoo"
     assert payload["roles"] == ["user"]
-    assert payload["departments"] == ["engineering", "all"]
+    assert payload["departments"] == ["개발팀", "all"]
     assert "allowed_doc_ids" not in payload
 
 
@@ -38,12 +38,12 @@ def test_departments_encoded_and_decoded():
     token = create_token(
         user_id="u1",
         roles=["user"],
-        departments=["engineering"],
+        departments=["개발팀"],
         secret="s",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="s")
-    assert payload["departments"] == ["engineering"]
+    assert payload["departments"] == ["개발팀"]
 
 
 def test_empty_departments_encoded():

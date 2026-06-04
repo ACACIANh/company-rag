@@ -103,8 +103,8 @@
   <div class="legend-item"><span class="dot" style="background:#f59e0b"></span>라우터 / 분기 조건</div>
   <div class="legend-item"><span class="dot" style="background:#3ecf8e"></span>RAG 문서 검색 경로</div>
   <div class="legend-item"><span class="dot" style="background:#2dd4bf"></span>에이전트 도구 경로</div>
-  <div class="legend-item"><span class="dot" style="background:#f87171"></span>HITL — 사유 기재 승인</div>
-  <div class="legend-item"><span class="dot" style="background:#9ca3af"></span>기능 안내</div>
+  <div class="legend-item"><span class="dot" style="background:#f87171"></span>HITL — 사유 기재 승인 / 라우팅 선택</div>
+  <div class="legend-item"><span class="dot" style="background:#9ca3af"></span>기능 안내 (FGA 역할 분기)</div>
 </div>
 
 <main>
@@ -118,7 +118,7 @@ flowchart TD
     lm["load_memory<br/><small>이전 대화 기억 로드</small>"]:::mem
     rq["rewrite_query<br/><small>질문 재작성<br/>none / contextual / multi_query</small>"]:::mem
 
-    ro{"router<br/><small>route 결정</small>"}:::cond
+    ro{"router<br/><small>route 결정<br/>confidence &lt; 0.75 → clarify</small>"}:::cond
 
     S --> lm --> rq --> ro
 
@@ -141,6 +141,12 @@ flowchart TD
     gen --> hc
     hc -- "통과 OR retry >= 3" --> sm
     hc -- "실패 AND retry < 3" --> gen
+
+    cl["clarify<br/><small>HITL interrupt()<br/>처리 방식 선택 요청<br/>ADR-0042</small>"]:::hitl
+
+    ro -- "clarify (confidence &lt; 0.75)" --> cl
+    cl -- "사내 문서에서 찾기" --> pm
+    cl -- "업무 DB / 권한 도구 사용" --> ag
 
     ag["agent<br/><small>LLM + 도구 바인딩<br/>claude-sonnet</small>"]:::agt
     tg{"tool_gate<br/><small>FGA 게이트 판정<br/>ALLOW / DENY / JUSTIFY<br/>plan() + gate_decision()</small>"}:::cond
@@ -167,7 +173,7 @@ flowchart TD
     tg -. "plan() + gate()" .-> TOOLBOX
     je -. "execute()" .-> TOOLBOX
 
-    cp["capability<br/><small>기능 목록 안내 (정적)</small>"]:::cap
+    cp["capability<br/><small>FGA justify_grant 확인<br/>일반: 검색·조회 안내<br/>admin: +권한 관리 안내</small>"]:::cap
     ro -- "capability" --> cp
     cp --> sm
 
@@ -189,7 +195,7 @@ flowchart TD
 <footer>
   backend/app/graph — builder.py · edges.py · nodes/* &nbsp;|&nbsp;
   AgentState (TypedDict) &nbsp;|&nbsp;
-  ADR-0015 FGA &nbsp;·&nbsp; ADR-0023 HITL Gate &nbsp;·&nbsp; ADR-0031 Router &nbsp;·&nbsp; ADR-0034 SQL 이중계정 &nbsp;·&nbsp; ADR-0040 query_audit_history
+  ADR-0015 FGA &nbsp;·&nbsp; ADR-0023 HITL Gate &nbsp;·&nbsp; ADR-0031 Router &nbsp;·&nbsp; ADR-0034 SQL 이중계정 &nbsp;·&nbsp; ADR-0040 query_audit_history &nbsp;·&nbsp; ADR-0042 clarify HITL
 </footer>
 
 <script>

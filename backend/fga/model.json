@@ -151,13 +151,9 @@
       "relations": {
         "allow_select":          {"this": {}},
         "justify_select":        {"this": {}},
-        "allow_bulk_select":     {"this": {}},
         "justify_bulk_select":   {"this": {}},
-        "allow_update_delete":   {"this": {}},
         "justify_update_delete": {"this": {}},
-        "allow_ddl":             {"this": {}},
         "justify_ddl":           {"this": {}},
-        "allow_grant":           {"this": {}},
         "justify_grant":         {"this": {}}
       },
       "metadata": {
@@ -176,23 +172,9 @@
               {"type": "role", "relation": "member"}
             ]
           },
-          "allow_bulk_select": {
-            "directly_related_user_types": [
-              {"type": "user", "wildcard": {}},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
-            ]
-          },
           "justify_bulk_select": {
             "directly_related_user_types": [
               {"type": "user", "wildcard": {}},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
-            ]
-          },
-          "allow_update_delete": {
-            "directly_related_user_types": [
-              {"type": "user"},
               {"type": "department", "relation": "member"},
               {"type": "role", "relation": "member"}
             ]
@@ -204,21 +186,7 @@
               {"type": "role", "relation": "member"}
             ]
           },
-          "allow_ddl": {
-            "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
-            ]
-          },
           "justify_ddl": {
-            "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
-            ]
-          },
-          "allow_grant": {
             "directly_related_user_types": [
               {"type": "user"},
               {"type": "department", "relation": "member"},

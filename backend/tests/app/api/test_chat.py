@@ -6,7 +6,7 @@ from core.models import Answer, SourceRef
 
 
 def _get_token(client: TestClient) -> str:
-    res = client.post("/auth/token", json={"username": "alice", "password": "alice123"})
+    res = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"})
     return res.json()["access_token"]
 
 
@@ -77,7 +77,7 @@ def test_chat_uses_provided_session_id():
 
     assert data["session_id"] == "my-session-123"
     call_config = mock_aq.call_args[1]["config"]
-    assert call_config["configurable"]["thread_id"] == "user-alice:my-session-123"
+    assert call_config["configurable"]["thread_id"] == "user-jisoo:my-session-123"
 
 
 def test_chat_generates_new_session_id_when_not_provided():

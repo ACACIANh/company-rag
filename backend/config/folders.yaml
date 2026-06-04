@@ -12,7 +12,7 @@ folders:
     # 상속 — 엔지니어링 공개 문서
   /company/engineering/ops:
     private: true              # 배포·인시던트 운영 문서 — 공개 차단
-    dept_viewers: [engineering]
+    dept_viewers: [개발팀]
   /company/product:
     # 상속 — 프로덕트 공개 문서
   /company/design:
@@ -24,7 +24,7 @@ folders:
     dept_viewers: [hr]
   /company/finance:
     private: true              # 재무 문서 — 공개 차단
-    dept_viewers: [finance]
+    dept_viewers: [재무팀]
   /company/legal:
     private: true              # 법무 문서 — 공개 차단
-    dept_viewers: [legal]
+    dept_viewers: [법무팀]

@@ -8,12 +8,13 @@ from pathlib import Path
 
 import yaml
 
-# SP2a capability relation 고정 8종(ADR-0028) — grant 대상이 되는 SQL 권한.
+# capability relation 화이트리스트 — manage_permission으로 grant 가능한 SQL 권한.
+# 매트릭스 정리: 단순 SELECT만 즉시 허용(allow_select), 그 외 위험군은 justify-only(사유·기록 강제).
 _CAPABILITY_RELATIONS = {
     "allow_select", "justify_select",
-    "allow_bulk_select", "justify_bulk_select",
-    "allow_update_delete", "justify_update_delete",
-    "allow_ddl", "justify_ddl",
+    "justify_bulk_select",
+    "justify_update_delete",
+    "justify_ddl",
 }
 
 

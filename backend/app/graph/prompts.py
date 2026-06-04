@@ -158,7 +158,7 @@ PERMISSION_PARSE_PROMPT = """\
   부서 멤버십: subject="user:<유저id>", relation="member", object="department:<부서>"
   폴더 부서 접근권: subject="department:<부서>#member", relation="dept_viewer", object="folder:<경로>"
   SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
-    relation 은 allow_select/justify_select/allow_bulk_select/justify_bulk_select/justify_update_delete/allow_ddl/justify_ddl 중 하나, object="capability:sql"
+    relation 은 allow_select/justify_select/justify_bulk_select/justify_update_delete/justify_ddl 중 하나, object="capability:sql"
 
 grant/revoke 키: action, subject, relation, object 네 개.
 query 키: action, target_user_id 두 개.

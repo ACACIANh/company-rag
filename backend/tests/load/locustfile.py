@@ -16,7 +16,7 @@ class ChatUser(HttpUser):
     def on_start(self) -> None:
         res = self.client.post(
             "/auth/token",
-            json={"username": "alice", "password": "alice123"},
+            json={"username": "jisoo", "password": "jisoo123"},
         )
         self.token = res.json().get("access_token", "")
 

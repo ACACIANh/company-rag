@@ -19,8 +19,8 @@ def _make_pool():
 
 def _record(**overrides) -> AuditRecord:
     base = dict(
-        user_id="user-alice",
-        department="engineering",
+        user_id="user-jisoo",
+        department="개발팀",
         role="member",
         question="전직원 급여 보여줘",
         generated_sql="SELECT salary FROM business.employees",
@@ -37,7 +37,7 @@ def _record(**overrides) -> AuditRecord:
 # ── AuditRecord 구조 ────────────────────────────────────────
 def test_audit_record_has_gate_fields():
     r = _record()
-    assert r.user_id == "user-alice"
+    assert r.user_id == "user-jisoo"
     assert r.sql_risk == "bulk_select"
     assert r.gate_decision == "JUSTIFY_AND_APPROVE"
     assert r.thread_id == "thread-1"

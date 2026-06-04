@@ -70,7 +70,7 @@ class PermissionAgent:
             _, caller, target = parts
             if target != caller:
                 try:
-                    admin_ok = await self._fga.check(f"user:{caller}", "member", "capability:admin")
+                    admin_ok = await self._fga.check(f"user:{caller}", "justify_grant", "capability:admin")
                 except Exception:
                     return "권한 없음: 관리자 확인 실패"
                 if not admin_ok:

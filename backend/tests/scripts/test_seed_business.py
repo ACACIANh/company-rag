@@ -7,23 +7,23 @@ from scripts.seed_business import (
 
 _USERS = [
     {"username": "admin", "user_id": "user-admin", "fga_roles": ["c_level"]},
-    {"username": "alice", "user_id": "user-alice", "departments": ["engineering"]},
-    {"username": "carol", "user_id": "user-carol", "departments": []},
-    {"username": "ivan", "user_id": "user-ivan", "departments": ["engineering", "product"]},
+    {"username": "jisoo", "user_id": "user-jisoo", "departments": ["개발팀"]},
+    {"username": "seoyeon", "user_id": "user-seoyeon", "departments": []},
+    {"username": "junseo", "user_id": "user-junseo", "departments": ["개발팀", "제품팀"]},
 ]
 
 
 # ── _primary_department ─────────────────────────────────────
 def test_primary_department_first_of_list():
-    assert _primary_department({"departments": ["engineering", "product"]}) == "engineering"
+    assert _primary_department({"departments": ["개발팀", "제품팀"]}) == "개발팀"
 
 
 def test_primary_department_c_level_is_executive():
-    assert _primary_department({"fga_roles": ["c_level"]}) == "executive"
+    assert _primary_department({"fga_roles": ["c_level"]}) == "임원"
 
 
 def test_primary_department_unassigned():
-    assert _primary_department({"departments": []}) == "unassigned"
+    assert _primary_department({"departments": []}) == "미배정"
 
 
 # ── build_employee_rows ─────────────────────────────────────
@@ -48,8 +48,8 @@ def test_employee_rows_deterministic():
 
 def test_employee_cross_department_uses_first():
     rows = build_employee_rows(_USERS)
-    ivan = next(r for r in rows if r[0] == "user-ivan")
-    assert ivan[2] == "engineering"
+    ivan = next(r for r in rows if r[0] == "user-junseo")
+    assert ivan[2] == "개발팀"
 
 
 # ── build_sales_rows ────────────────────────────────────────
