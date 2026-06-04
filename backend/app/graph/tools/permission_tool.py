@@ -12,8 +12,20 @@ from langchain_core.tools import Tool
 from core.fga.client import FGAClient
 from core.fga.permission_validator import PermissionValidator
 from core.llm.base import LLMClient
-from core.sql.gate import RISK_GRANT
-from core.sql.risk import RISK_DENY, RISK_SELECT
+from core.sql.gate import (
+    DECISION_ALLOW,
+    DECISION_DENY,
+    DECISION_JUSTIFY_AND_APPROVE,
+    RISK_GRANT,
+    gate_decision,
+)
+from core.sql.risk import (
+    RISK_BULK_SELECT,
+    RISK_DDL,
+    RISK_DENY,
+    RISK_SELECT,
+    RISK_UPDATE_DELETE,
+)
 from app.graph.prompts import PERMISSION_PARSE_PROMPT
 from app.graph.tools._utils import strip_code_fence
 from app.graph.tools._args import single_text_arg
@@ -79,9 +91,10 @@ class PermissionAgent:
                 departments = await self._fga.user_departments(target)
                 roles = await self._fga.user_roles(target)
                 folders = await self._fga.get_readable_folders(target)
+                capabilities = await _resolve_capabilities(self._fga.check, target)
             except Exception as exc:
                 return f"권한 조회 오류: {type(exc).__name__}"
-            return _format_permission_snapshot(target, departments, roles, folders)
+            return _format_permission_snapshot(target, departments, roles, folders, capabilities)
 
         parts = planned_action.split(" ")
         if len(parts) != 4:
@@ -99,7 +112,38 @@ class PermissionAgent:
             return f"권한 실행 오류: {type(exc).__name__}"
 
 
-def _format_permission_snapshot(uid: str, departments: list, roles: list, folders: list) -> str:
+# 권한 조회 스냅샷에 노출할 capability 작업 — (라벨, 위험도). 게이트 매트릭스(core.sql.gate)가
+# 위험도→capability 매핑·3-state 판정의 단일 출처이므로 여기선 표시 순서·라벨만 둔다.
+_CAPABILITY_DISPLAY = [
+    ("SELECT", RISK_SELECT),
+    ("대량 SELECT", RISK_BULK_SELECT),
+    ("UPDATE/DELETE", RISK_UPDATE_DELETE),
+    ("DDL", RISK_DDL),
+    ("권한 부여(grant)", RISK_GRANT),
+]
+
+_DECISION_LABEL = {
+    DECISION_ALLOW: "즉시 허용",
+    DECISION_JUSTIFY_AND_APPROVE: "사유 기재 후 허용",
+    DECISION_DENY: "불가",
+}
+
+
+async def _resolve_capabilities(check, user_id: str) -> list[tuple[str, str]]:
+    """표시 대상 작업별로 gate_decision 판정 → (라벨, 한국어 결정) 목록.
+
+    게이트(core.sql.gate)를 재사용한다 — 매트릭스 복제 없이 단일 출처. 위험도당 FGA check 1~2회.
+    """
+    out: list[tuple[str, str]] = []
+    for label, risk in _CAPABILITY_DISPLAY:
+        decision, _ = await gate_decision(check, user_id, risk)
+        out.append((label, _DECISION_LABEL.get(decision, decision)))
+    return out
+
+
+def _format_permission_snapshot(
+    uid: str, departments: list, roles: list, folders: list, capabilities: list
+) -> str:
     dept_text = ", ".join(departments) if departments else "(없음)"
     role_text = ", ".join(roles) if roles else "(없음)"
     if folders:
@@ -107,9 +151,11 @@ def _format_permission_snapshot(uid: str, departments: list, roles: list, folder
         folder_text = f"{len(folders)}개:\n{folder_lines}"
     else:
         folder_text = "(없음)"
+    cap_lines = "\n".join(f"  - {label}: {decision}" for label, decision in capabilities)
     return (
         f"사용자: {uid}\n"
         f"소속 부서: {dept_text}\n"
         f"역할(role): {role_text}\n"
-        f"접근 가능 폴더 {folder_text}"
+        f"접근 가능 폴더 {folder_text}\n"
+        f"SQL/관리 권한:\n{cap_lines}"
     )

@@ -19,6 +19,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - HITL: `interrupt()` — (1) agent 도구 호출 경로(`confirm.py`), (2) 라우터 모호 분기(`clarify.py`). `MemorySaver` checkpointer 필수. (ADR-0042)
 - FGA: 폴더 트리 pre-filter. `ListObjects(can_read, folder)`로 읽을 수 있는 폴더 목록을 받아, 그 폴더에 정확 매칭(`path = ANY`)되는 청크만 검색(prefix 확장 안 함 — private 하위 누수 방지). 권한 주체는 부서(department) 단위 — 개인 단위 메타데이터·sensitivity 없음. 상세: ADR-0015.
 - FGA 캐시: PostgreSQL TTL 캐시 (Redis 미사용).
+- 부서 멤버십 source of truth: **OpenFGA** (`user:X member department:Y` 튜플). `config/users.yaml`은 부트스트랩 시드 입력일 뿐(`scripts/seed_fga.py`, 멱등·일방향), 운영 중 멤버 추가/제거는 OpenFGA 직접 조작(관리자 API `add/remove_department_member` 또는 `manage_permission` 도구)으로만. PostgreSQL은 멤버십 미저장(캐시·감사 로그만).
 - SQL 도구 쓰기: 읽기=sql_tool_ro, 게이트 통과한 쓰기(UPDATE/DELETE)=sql_tool_rw 이중 계정. WHERE 필수. 상세: ADR-0034.
 - 명명 원칙: 외부 경계 노출 이름은 역할(role), 내부 구현은 how 허용(캡슐화). 상세: ADR-0033.
 
