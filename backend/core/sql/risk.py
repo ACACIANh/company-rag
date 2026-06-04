@@ -26,17 +26,23 @@ RISK_RANK = {
 }
 
 _DDL_TYPES = (exp.Create, exp.Drop, exp.Alter, exp.TruncateTable)
-_WRITE_TYPES = (exp.Insert, exp.Update, exp.Delete, exp.Merge)
 
 
 def _classify_statement(stmt: exp.Expression) -> str:
     # sqlglot이 구조화하지 못한 raw 구문(Command, 예: VACUUM)은 미지원 → DENY
     if isinstance(stmt, exp.Command) or list(stmt.find_all(exp.Command)):
         return RISK_DENY
-    # DDL > 쓰기 > 읽기 순으로 가장 위험한 등급 확정 (CTE 내 data-modifying 포함)
+    # DDL은 별도 최상위 등급
     if list(stmt.find_all(*_DDL_TYPES)):
         return RISK_DDL
-    if list(stmt.find_all(*_WRITE_TYPES)):
+    # INSERT·MERGE는 본 게이트 범위 밖(쓰기 허용은 UPDATE/DELETE 한정) → DENY
+    if list(stmt.find_all(exp.Insert, exp.Merge)):
+        return RISK_DENY
+    # UPDATE/DELETE: WHERE 절이 없는 무조건 변경(전체 레코드 영향)은 차단
+    writes = list(stmt.find_all(exp.Update, exp.Delete))
+    if writes:
+        if any(w.args.get("where") is None for w in writes):
+            return RISK_DENY
         return RISK_UPDATE_DELETE
     if isinstance(stmt, exp.Select) or list(stmt.find_all(exp.Select)):
         return RISK_SELECT
