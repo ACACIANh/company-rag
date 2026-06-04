@@ -45,6 +45,33 @@ class PermissionValidator:
     def _strip(self, value: str, prefix: str) -> str | None:
         return value[len(prefix):] if value.startswith(prefix) else None
 
+    def _resolve_user(self, token: str) -> str | None:
+        """비격식 user 참조를 정식 "user:<id>"로 결정론적 정규화 (ADR-0031 후속).
+
+        진실원천은 _user_ids 뿐 — 화이트리스트 확장 금지. "user:" 접두는 떼고 본문만 매칭한다.
+        후보 수집 규칙(합집합):
+          1) 정확 일치        (uid == body)              # 이미 정식 id
+          2) "user-" 접두 보정 (uid == "user-" + body)    # "alice" → "user-alice"
+          3) 접미 일치        (uid endswith "-" + body)  # "...-alice"
+        모든 규칙의 후보를 한 집합으로 모은 뒤 유일할 때만 정식 id를 채택한다.
+        후보가 0개(미지)거나 2개 이상(모호)이면 None — fail-closed, 절대 추측 금지.
+        """
+        if not isinstance(token, str):
+            return None
+        body = self._strip(token, "user:")
+        if body is None:
+            body = token
+        if not body:
+            return None
+        candidates = {
+            uid
+            for uid in self._user_ids
+            if uid == body or uid == "user-" + body or uid.endswith("-" + body)
+        }
+        if len(candidates) == 1:
+            return "user:" + next(iter(candidates))
+        return None
+
     def validate(self, parsed: dict) -> tuple | None:
         action = parsed.get("action")
         subject = parsed.get("subject", "")
@@ -60,10 +87,11 @@ class PermissionValidator:
             return None
 
         if relation == "member":
-            uid = self._strip(subject, "user:")
+            resolved = self._resolve_user(subject)
             dept = self._strip(object_, "department:")
-            if uid not in self._user_ids or dept not in self._departments:
+            if resolved is None or dept not in self._departments:
                 return None
+            subject = resolved
         elif relation == "dept_viewer":
             dept = self._strip(subject, "department:")
             if dept is not None and dept.endswith("#member"):
@@ -76,9 +104,9 @@ class PermissionValidator:
         elif relation in _CAPABILITY_RELATIONS:
             if object_ != "capability:sql":
                 return None
-            uid = self._strip(subject, "user:")
-            if uid in self._user_ids:
-                pass
+            resolved = self._resolve_user(subject)
+            if resolved is not None:
+                subject = resolved
             else:
                 dept = self._strip(subject, "department:")
                 if dept is not None and dept.endswith("#member"):

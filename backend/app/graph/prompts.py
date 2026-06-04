@@ -160,6 +160,18 @@ PERMISSION_PARSE_PROMPT = """\
   SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
     relation 은 allow_select/justify_select/justify_bulk_select/justify_update_delete/justify_ddl 중 하나, object="capability:sql"
 
+id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
+- 비격식 이름·영문 단명·표시명(예: "지수", "jisoo", "김지수")은 반드시 정식 user id("user-jisoo")로 바꾼다.
+  위 카탈로그에서 해당 user id를 찾아 그대로 사용한다(임의 id 생성 금지).
+- "추가/넣어/소속" → relation "member"; "제거/빼" → action "revoke".
+- 어느 id인지 카탈로그에서 확정할 수 없으면 추측하지 말고 가장 가까운 식별자를 그대로 둔다(검증기가 거른다).
+
+예시:
+- "김지수를 개발팀에 추가" →
+  {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}}
+- "이민준 인사팀에서 빼줘" →
+  {{"action":"revoke","subject":"user:user-minjun","relation":"member","object":"department:인사팀"}}
+
 grant/revoke 키: action, subject, relation, object 네 개.
 query 키: action, target_user_id 두 개.
 JSON 객체만 출력(설명·코드펜스 금지).
