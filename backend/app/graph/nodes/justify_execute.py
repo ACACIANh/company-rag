@@ -31,4 +31,6 @@ async def justify_execute_node(state: dict, *, registry, audit_sink: AuditSink) 
             reason=reason, result_summary="", thread_id=state.get("thread_id", ""),
         ))
 
-    return {"agent_messages": messages, "pending_tool_calls": []}
+    executed_sql = list(state.get("executed_sql") or [])
+    executed_sql.extend(p["planned_action"] for p in pending if justified)
+    return {"agent_messages": messages, "pending_tool_calls": [], "executed_sql": executed_sql}

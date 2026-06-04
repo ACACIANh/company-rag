@@ -73,6 +73,7 @@ def _make_initial_state(question: str) -> dict:
         "user_id": "anonymous",
         "allowed_folders": [],
         "justification": "",
+        "executed_sql": [],
         "agent_messages": [],
         "pending_tool_calls": [],
     }

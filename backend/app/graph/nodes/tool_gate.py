@@ -16,6 +16,7 @@ from core.sql.gate import (
 )
 
 _DENY_TEXT = "거부됨: 현재 권한으로 실행할 수 없는 요청입니다."
+_ALREADY_EXECUTED_TEXT = "이미 실행 완료된 SQL입니다. 동일한 작업을 중복 실행하지 않습니다."
 
 
 def _last_tool_calls(messages: list) -> tuple[AIMessage | None, list]:
@@ -31,6 +32,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
     departments = await fga_client.user_departments(user_id)
 
     _, tool_calls = _last_tool_calls(state.get("agent_messages") or [])
+    executed_sql: set[str] = set(state.get("executed_sql") or [])
     new_messages: list = []
     pending: list = []
 
@@ -40,6 +42,11 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             new_messages.append(ToolMessage(content="알 수 없는 도구", tool_call_id=tc["id"]))
             continue
         planned_action, risk = handler.plan(tc["args"])
+
+        if planned_action in executed_sql:
+            new_messages.append(ToolMessage(content=_ALREADY_EXECUTED_TEXT, tool_call_id=tc["id"]))
+            continue
+
         decision, reason = await gate_decision(fga_client.check, user_id, risk)
 
         await audit_sink.record(AuditRecord(
