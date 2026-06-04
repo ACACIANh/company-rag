@@ -134,7 +134,7 @@ export function MessageList({
             className={
               msg.role === "user"
                 ? "self-end max-w-[75%]"
-                : "self-start max-w-[85%]"
+                : "self-start w-full max-w-[92%]"
             }
           >
             <div
