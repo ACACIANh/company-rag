@@ -161,8 +161,15 @@ def build_graph(
 
 
 def _interrupt_answer(final: dict) -> Answer:
-    intr = final["__interrupt__"][0].value
-    actions = intr.get("actions", []) if isinstance(intr, dict) else []
+    intr = final["__interrupt__"][0].value if isinstance(
+        final["__interrupt__"][0].value, dict
+    ) else {}
+    if "options" in intr:
+        return Answer(
+            text=f"{intr.get('message', '방식을 선택해주세요.')} (스트리밍 모드에서 선택 가능합니다.)",
+            sources=[],
+        )
+    actions = intr.get("actions", [])
     lines = "\n".join(f"- {a.get('tool')}: {a.get('planned_action')}" for a in actions)
     text = "이 작업은 사유 기재 후 실행됩니다. 실행하려면 사유를 회신하세요.\n" + lines
     return Answer(text=text, sources=[])
@@ -291,9 +298,9 @@ async def stream_answer(
             final = await graph.ainvoke(initial, config={**config, "recursion_limit": 25})
 
         if "__interrupt__" in final:
-            actions = final["__interrupt__"][0].value.get("actions", []) if isinstance(
+            intr_value = final["__interrupt__"][0].value if isinstance(
                 final["__interrupt__"][0].value, dict
-            ) else []
+            ) else {}
             # 새 세션이 interrupt로 멈추면, 사유 제출(resume) 요청이 세션 소유권
             # 검사를 통과하도록 세션을 먼저 기록한다. 답변은 아직 없으므로 메시지는
             # 저장하지 않는다(완료 시 정상 경로에서 기록).
@@ -302,7 +309,14 @@ async def stream_answer(
                     await session_store.create_session(session_id, user_id, question[:20])
                 except Exception:
                     logging.exception("session store create failed for session_id=%s", session_id)
-            await token_queue.put({"type": "interrupt", "actions": actions})
+            if "options" in intr_value:
+                await token_queue.put({
+                    "type": "clarify",
+                    "message": intr_value.get("message", ""),
+                    "options": intr_value.get("options", []),
+                })
+            else:
+                await token_queue.put({"type": "interrupt", "actions": intr_value.get("actions", [])})
             await token_queue.put({"type": "done", "session_id": session_id})
             return
         answer = final["answer"]

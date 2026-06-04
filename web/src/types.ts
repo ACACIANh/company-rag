@@ -32,6 +32,11 @@ export interface InterruptAction {
   planned_action: string;
 }
 
+export interface ClarifyPayload {
+  message: string;
+  options: string[];
+}
+
 export interface ChatMessage {
   role: ChatRole;
   content: string;
@@ -39,6 +44,7 @@ export interface ChatMessage {
   route?: string;
   streaming?: boolean;
   interrupt?: InterruptAction[];
+  clarify?: ClarifyPayload;
 }
 
 export class ApiError extends Error {
@@ -69,4 +75,5 @@ export type SSEEvent =
   | { type: "sources";   sources: string[]; route?: string }
   | { type: "done";      session_id: string }
   | { type: "error";     message: string }
-  | { type: "interrupt"; actions: InterruptAction[] };
+  | { type: "interrupt"; actions: InterruptAction[] }
+  | { type: "clarify";   message: string; options: string[] };
