@@ -33,7 +33,7 @@ def test_categorical_and_pii_are_disjoint():
 def test_value_hints_render_actual_stored_codes():
     text = catalog.value_hints_text()
     assert "business.employees.department" in text
-    assert "engineering" in text          # 영문 코드(한글 아님) — value mismatch 처방
+    assert "개발팀" in text          # 영문 코드(한글 아님) — value mismatch 처방
     assert "business.sales.period" in text
 
 

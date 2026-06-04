@@ -12,32 +12,32 @@ PII 불변식: PII 컬럼(name·salary·email)은 스키마에는 남기되 **�
 # ── 카테고리형 축 (시드와 프롬프트가 공유하는 단일 출처) ──────────────
 # 부서 코드 — employees.department / sales.department 가 공유한다.
 DEPARTMENTS = [
-    "executive",
-    "engineering",
-    "product",
-    "finance",
-    "sales",
-    "legal",
+    "임원",
+    "개발팀",
+    "제품팀",
+    "재무팀",
+    "영업팀",
+    "법무팀",
     "hr",
-    "design",
-    "unassigned",
+    "디자인팀",
+    "미배정",
 ]
 
 # 직급 리터럴
-POSITIONS = ["CTO", "Member"]
+POSITIONS = ["CTO", "팀원"]
 
 # 매출 분기
 SALES_PERIODS = ["2025-Q1", "2025-Q2", "2025-Q3", "2025-Q4", "2026-Q1"]
 
 # 매출이 잡히는 부서(부서 코드의 부분집합)
-SALES_DEPARTMENTS = ["sales", "product", "engineering", "finance"]
+SALES_DEPARTMENTS = ["영업팀", "제품팀", "개발팀", "재무팀"]
 
 # 부서 → 제품 (sales.product)
 DEPT_PRODUCT = {
-    "sales": "Enterprise License",
-    "product": "SaaS Subscription",
-    "engineering": "Platform API",
-    "finance": "Advisory",
+    "영업팀": "Enterprise License",
+    "제품팀": "SaaS Subscription",
+    "개발팀": "Platform API",
+    "재무팀": "Advisory",
 }
 
 # ── 컬럼 분류 ────────────────────────────────────────────────────────

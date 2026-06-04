@@ -47,17 +47,17 @@ async def test_user_roles_strips_prefix():
 async def test_user_departments_strips_prefix():
     client = _client()
     with patch.object(client, "_list_fga_objects",
-                      new=AsyncMock(return_value=["department:engineering", "department:product"])) as mock_list:
-        depts = await client.user_departments("user-ivan")
-    assert depts == ["engineering", "product"]
-    mock_list.assert_awaited_once_with("user:user-ivan", "member", "department")
+                      new=AsyncMock(return_value=["department:개발팀", "department:제품팀"])) as mock_list:
+        depts = await client.user_departments("user-junseo")
+    assert depts == ["개발팀", "제품팀"]
+    mock_list.assert_awaited_once_with("user:user-junseo", "member", "department")
 
 
 @pytest.mark.asyncio
 async def test_user_roles_empty():
     client = _client()
     with patch.object(client, "_list_fga_objects", new=AsyncMock(return_value=[])):
-        assert await client.user_roles("user-carol") == []
+        assert await client.user_roles("user-seoyeon") == []
 
 
 @pytest.mark.asyncio
@@ -140,12 +140,12 @@ async def test_check_returns_allowed_false():
         async def __aexit__(self, *a): return False
         async def check(self, req):
             assert req.user == "user:bob"
-            assert req.relation == "allow_ddl"
+            assert req.relation == "justify_ddl"
             assert getattr(req, "object") == "capability:sql"
             return _Resp()
 
     with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()):
-        result = await client.check("user:bob", "allow_ddl", "capability:sql")
+        result = await client.check("user:bob", "justify_ddl", "capability:sql")
     assert result is False
 
 
@@ -154,9 +154,9 @@ async def test_grant_tuple_writes_and_invalidates():
     client = _client()
     with patch.object(client, "_write_fga_tuples", new=AsyncMock()) as mock_write, \
          patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
-        await client.grant_tuple("user:alice", "member", "department:engineering")
+        await client.grant_tuple("user:user-jisoo", "member", "department:개발팀")
     mock_write.assert_awaited_once_with([
-        {"user": "user:alice", "relation": "member", "object": "department:engineering"}
+        {"user": "user:user-jisoo", "relation": "member", "object": "department:개발팀"}
     ])
     mock_inv.assert_awaited_once()
 
@@ -176,6 +176,6 @@ async def test_revoke_tuple_deletes_and_invalidates():
     fake = _FakeClient()
     with patch("openfga_sdk.OpenFgaClient", return_value=fake), \
          patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
-        await client.revoke_tuple("user:alice", "member", "department:engineering")
+        await client.revoke_tuple("user:user-jisoo", "member", "department:개발팀")
     assert fake.deleted is not None          # deletes 요청이 전달됨
     mock_inv.assert_awaited_once()

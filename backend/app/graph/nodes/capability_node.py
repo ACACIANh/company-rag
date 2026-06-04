@@ -29,6 +29,6 @@ _TEXT_ADMIN = """저는 다음과 같은 작업을 도와드릴 수 있습니다
 
 async def capability_node(state: dict, *, fga_client: FGAClient) -> dict:
     can_grant = await fga_client.check(
-        f"user:{state['user_id']}", "allow_grant", "capability:admin"
+        f"user:{state['user_id']}", "justify_grant", "capability:admin"
     )
     return {"answer": _TEXT_ADMIN if can_grant else _TEXT_USER, "citations": []}

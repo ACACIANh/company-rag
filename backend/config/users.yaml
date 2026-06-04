@@ -1,73 +1,85 @@
 users:
-  # admin: /admin 엔드포인트(재색인 등) 운영용. FGA 권한은 c_level 역할 → super_reader 전사 열람.
   - username: admin
     password: admin123
     user_id: user-admin
     roles: [admin, user]
     fga_roles: [c_level]
-  # alice: 엔지니어링. 공개 + /company/engineering/ops(private) 열람.
-  - username: alice
-    password: alice123
-    user_id: user-alice
+    display_name: 관리자
+    email: admin@techcorp.example
+  - username: jisoo
+    password: jisoo123
+    user_id: user-jisoo
     roles: [user]
-    departments: [engineering]
-  # bob: 인사. 공개 + /company/hr(private) 열람.
-  - username: bob
-    password: bob123
-    user_id: user-bob
+    departments: [개발팀]
+    display_name: 김지수
+    email: jisoo.kim@techcorp.example
+  - username: minjun
+    password: minjun123
+    user_id: user-minjun
     roles: [user]
     departments: [hr]
-  # carol: 무소속. 전체공개(public)만, private 차단.
-  - username: carol
-    password: carol123
-    user_id: user-carol
+    display_name: 이민준
+    email: minjun.lee@techcorp.example
+  - username: seoyeon
+    password: seoyeon123
+    user_id: user-seoyeon
     roles: [user]
     departments: []
-  # dave: 프로덕트(public).
-  - username: dave
-    password: dave123
-    user_id: user-dave
+    display_name: 박서연
+    email: seoyeon.park@techcorp.example
+  - username: dohyeon
+    password: dohyeon123
+    user_id: user-dohyeon
     roles: [user]
-    departments: [product]
-  # erin: 디자인(public).
-  - username: erin
-    password: erin123
-    user_id: user-erin
+    departments: [제품팀]
+    display_name: 최도현
+    email: dohyeon.choi@techcorp.example
+  - username: yujin
+    password: yujin123
+    user_id: user-yujin
     roles: [user]
-    departments: [design]
-  # frank: 세일즈(public).
-  - username: frank
-    password: frank123
-    user_id: user-frank
+    departments: [디자인팀]
+    display_name: 정유진
+    email: yujin.jung@techcorp.example
+  - username: minho
+    password: minho123
+    user_id: user-minho
     roles: [user]
-    departments: [sales]
-  # grace: 재무. 공개 + /company/finance(private).
-  - username: grace
-    password: grace123
-    user_id: user-grace
+    departments: [영업팀]
+    display_name: 강민호
+    email: minho.kang@techcorp.example
+  - username: jiyoung
+    password: jiyoung123
+    user_id: user-jiyoung
     roles: [user]
-    departments: [finance]
-  # heidi: 법무. 공개 + /company/legal(private).
-  - username: heidi
-    password: heidi123
-    user_id: user-heidi
+    departments: [재무팀]
+    display_name: 윤지영
+    email: jiyoung.yoon@techcorp.example
+  - username: subin
+    password: subin123
+    user_id: user-subin
     roles: [user]
-    departments: [legal]
-  # ivan: 교차부서 — 엔지니어링+프로덕트. 공개 + eng/ops(private).
-  - username: ivan
-    password: ivan123
-    user_id: user-ivan
+    departments: [법무팀]
+    display_name: 임수빈
+    email: subin.lim@techcorp.example
+  - username: junseo
+    password: junseo123
+    user_id: user-junseo
     roles: [user]
-    departments: [engineering, product]
-  # judy: 교차부서 — 세일즈+재무. 공개 + finance(private).
-  - username: judy
-    password: judy123
-    user_id: user-judy
+    departments: [개발팀, 제품팀]
+    display_name: 한준서
+    email: junseo.han@techcorp.example
+  - username: chaewon
+    password: chaewon123
+    user_id: user-chaewon
     roles: [user]
-    departments: [sales, finance]
-  # karl: 교차부서 — 인사+법무. 공개 + hr + legal(두 private).
-  - username: karl
-    password: karl123
-    user_id: user-karl
+    departments: [영업팀, 재무팀]
+    display_name: 오채원
+    email: chaewon.oh@techcorp.example
+  - username: taeyang
+    password: taeyang123
+    user_id: user-taeyang
     roles: [user]
-    departments: [hr, legal]
+    departments: [hr, 법무팀]
+    display_name: 신태양
+    email: taeyang.shin@techcorp.example

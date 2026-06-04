@@ -23,15 +23,15 @@ from core.sql import catalog
 # 부서별 연봉 기준액(원). index 가산으로 행마다 분산 → 결정론.
 # 키는 카탈로그의 부서 축과 일치해야 한다(값 힌트 ↔ 시드 drift 방지, ADR-0021).
 _DEPT_BASE_SALARY = {
-    "executive": 180_000_000,
-    "engineering": 95_000_000,
-    "product": 90_000_000,
-    "finance": 88_000_000,
-    "sales": 82_000_000,
-    "legal": 92_000_000,
+    "임원": 180_000_000,
+    "개발팀": 95_000_000,
+    "제품팀": 90_000_000,
+    "재무팀": 88_000_000,
+    "영업팀": 82_000_000,
+    "법무팀": 92_000_000,
     "hr": 78_000_000,
-    "design": 80_000_000,
-    "unassigned": 70_000_000,
+    "디자인팀": 80_000_000,
+    "미배정": 70_000_000,
 }
 
 # 매출 시드 축 — 카탈로그(단일 출처)에서 가져온다 (ADR-0021).
@@ -45,8 +45,8 @@ def _primary_department(user: dict) -> str:
     if depts:
         return depts[0]
     if "c_level" in (user.get("fga_roles") or []):
-        return "executive"
-    return "unassigned"
+        return "임원"
+    return "미배정"
 
 
 def build_employee_rows(users: list[dict]) -> list[tuple]:
@@ -56,10 +56,11 @@ def build_employee_rows(users: list[dict]) -> list[tuple]:
         dept = _primary_department(user)
         is_exec = "c_level" in (user.get("fga_roles") or [])
         position = catalog.POSITIONS[0] if is_exec else catalog.POSITIONS[1]
-        salary = _DEPT_BASE_SALARY.get(dept, _DEPT_BASE_SALARY["unassigned"]) + i * 1_000_000
+        salary = _DEPT_BASE_SALARY.get(dept, _DEPT_BASE_SALARY["미배정"]) + i * 1_000_000
         hire_date = date(2018 + i % 7, 1 + i % 12, 1)
-        email = f"{user['username']}@techcorp.example"
-        rows.append((user["user_id"], user["username"], dept, position, hire_date, salary, email))
+        email = user.get("email") or f"{user['username']}@techcorp.example"
+        name = user.get("display_name") or user["username"]
+        rows.append((user["user_id"], name, dept, position, hire_date, salary, email))
     return rows
 
 

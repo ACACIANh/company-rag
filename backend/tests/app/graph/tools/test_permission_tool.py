@@ -10,7 +10,7 @@ from core.sql.risk import RISK_DENY
 
 def _validator():
     return PermissionValidator(
-        user_ids={"user-alice"}, departments={"engineering"}, folders={"/company"}
+        user_ids={"user-jisoo"}, departments={"개발팀"}, folders={"/company"}
     )
 
 
@@ -22,17 +22,17 @@ def _llm(reply: str):
 
 def test_plan_valid_grant_returns_risk_grant():
     handler = PermissionAgent(
-        llm=_llm('{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}'),
+        llm=_llm('{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = handler.plan({"instruction": "alice를 engineering에 추가"})
+    planned, risk = handler.plan({"instruction": "김지수를 개발팀에 추가"})
     assert risk == RISK_GRANT
-    assert planned == "grant user:user-alice member department:engineering"
+    assert planned == "grant user:user-jisoo member department:개발팀"
 
 
 def test_plan_invalid_target_returns_deny():
     handler = PermissionAgent(
-        llm=_llm('{"action":"grant","subject":"user:user-eve","relation":"member","object":"department:engineering"}'),
+        llm=_llm('{"action":"grant","subject":"user:user-eve","relation":"member","object":"department:개발팀"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
     _, risk = handler.plan({"instruction": "eve를 추가"})
@@ -51,12 +51,12 @@ def test_plan_unparseable_llm_output_returns_deny():
 def test_plan_accepts_arg1_key():
     """bind_tools가 넘기는 {'__arg1': ...} 형태에서도 instruction을 추출한다 (ADR-0032)."""
     handler = PermissionAgent(
-        llm=_llm('{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}'),
+        llm=_llm('{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = handler.plan({"__arg1": "alice를 engineering에 추가"})
+    planned, risk = handler.plan({"__arg1": "김지수를 개발팀에 추가"})
     assert risk == RISK_GRANT
-    assert planned == "grant user:user-alice member department:engineering"
+    assert planned == "grant user:user-jisoo member department:개발팀"
 
 
 @pytest.mark.asyncio
@@ -64,8 +64,8 @@ async def test_execute_grant_calls_grant_tuple():
     fga = MagicMock()
     fga.grant_tuple = AsyncMock()
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await handler.execute("grant user:user-alice member department:engineering", "RISK_GRANT")
-    fga.grant_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
+    result = await handler.execute("grant user:user-jisoo member department:개발팀", "RISK_GRANT")
+    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발팀")
     assert "완료" in result
 
 
@@ -74,21 +74,21 @@ async def test_execute_revoke_calls_revoke_tuple():
     fga = MagicMock()
     fga.revoke_tuple = AsyncMock()
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    await handler.execute("revoke user:user-alice member department:engineering", "RISK_GRANT")
-    fga.revoke_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
+    await handler.execute("revoke user:user-jisoo member department:개발팀", "RISK_GRANT")
+    fga.revoke_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발팀")
 
 
 @pytest.mark.asyncio
 async def test_execute_query_self_returns_snapshot():
     """본인 조회: caller == target → 관리자 확인 없이 FGA 3종 조회."""
     fga = MagicMock()
-    fga.user_departments = AsyncMock(return_value=["engineering"])
+    fga.user_departments = AsyncMock(return_value=["개발팀"])
     fga.user_roles = AsyncMock(return_value=["admin"])
     fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-alice user-alice", "RISK_SELECT")
-    assert "user-alice" in result
-    assert "engineering" in result
+    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
+    assert "user-jisoo" in result
+    assert "개발팀" in result
     assert "/engineering/specs" in result
     fga.check.assert_not_called()
 
@@ -98,13 +98,13 @@ async def test_execute_query_other_as_admin_succeeds():
     """타인 조회: caller != target, admin → 성공."""
     fga = MagicMock()
     fga.check = AsyncMock(return_value=True)
-    fga.user_departments = AsyncMock(return_value=["product"])
+    fga.user_departments = AsyncMock(return_value=["제품팀"])
     fga.user_roles = AsyncMock(return_value=[])
     fga.get_readable_folders = AsyncMock(return_value=[])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query admin-user user-bob", "RISK_SELECT")
-    fga.check.assert_awaited_once_with("user:admin-user", "member", "capability:admin")
-    assert "user-bob" in result
+    result = await agent.execute("query admin-user user-minjun", "RISK_SELECT")
+    fga.check.assert_awaited_once_with("user:admin-user", "justify_grant", "capability:admin")
+    assert "user-minjun" in result
 
 
 @pytest.mark.asyncio
@@ -114,7 +114,7 @@ async def test_execute_query_other_as_non_admin_denied():
     fga.check = AsyncMock(return_value=False)
     fga.user_departments = MagicMock()
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-alice user-bob", "RISK_SELECT")
+    result = await agent.execute("query user-jisoo user-minjun", "RISK_SELECT")
     assert "권한 없음" in result
     fga.user_departments.assert_not_called()
 
@@ -126,18 +126,18 @@ def test_plan_query_self_returns_risk_select():
         llm=_llm('{"action":"query","target_user_id":null}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = agent.plan({"instruction": "내 권한 알려줘", "__caller_id": "user-alice"})
+    planned, risk = agent.plan({"instruction": "내 권한 알려줘", "__caller_id": "user-jisoo"})
     assert risk == RISK_SELECT
-    assert planned == "query user-alice user-alice"
+    assert planned == "query user-jisoo user-jisoo"
 
 
 def test_plan_query_other_returns_risk_select():
     """타인 query도 plan 단계엔 RISK_SELECT (관리자 확인은 execute에서)."""
     from core.sql.risk import RISK_SELECT
     agent = PermissionAgent(
-        llm=_llm('{"action":"query","target_user_id":"user-bob"}'),
+        llm=_llm('{"action":"query","target_user_id":"user-minjun"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = agent.plan({"instruction": "bob 권한 알려줘", "__caller_id": "user-alice"})
+    planned, risk = agent.plan({"instruction": "이민준 권한 알려줘", "__caller_id": "user-jisoo"})
     assert risk == RISK_SELECT
-    assert planned == "query user-alice user-bob"
+    assert planned == "query user-jisoo user-minjun"

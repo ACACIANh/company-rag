@@ -28,9 +28,9 @@ def _parent_of(path: str) -> str | None:
     return "/".join(parts[:-1])
 
 
-# capability:sql 기본부여(ADR-0028) — 현행 게이트 매트릭스를 튜플로 재현.
-# SELECT 전원 ALLOW / BULK_SELECT 전원 JUSTIFY / UPDATE_DELETE engineering·c_level JUSTIFY / DDL 전원 DENY(튜플 없음).
-# / 권한관리는 c_level만 justify_grant(ADR-0029)
+# capability:sql 기본부여(ADR-0028, 매트릭스 정리) — 현행 게이트 매트릭스를 튜플로 재현.
+# SELECT 전원 ALLOW / BULK_SELECT 전원 JUSTIFY / UPDATE_DELETE 개발팀·c_level JUSTIFY / DDL 전원 DENY(튜플 없음).
+# 단순 SELECT만 allow_*, 그 외 위험군은 justify-only(사유·기록). 권한관리는 c_level만 justify_grant(ADR-0029)
 _CAPABILITY_GRANTS = [
     {"user": "user:*", "relation": "allow_select", "object": "capability:sql"},
     {"user": "user:*", "relation": "justify_bulk_select", "object": "capability:sql"},

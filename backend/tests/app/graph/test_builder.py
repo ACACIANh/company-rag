@@ -37,7 +37,7 @@ def _mock_fga_client(roles=None, departments=None, capabilities=()):
 
 def _mock_sql_pool(fetch_return=None):
     conn = AsyncMock()
-    conn.fetch = AsyncMock(return_value=fetch_return or [{"name": "alice", "salary": 100}])
+    conn.fetch = AsyncMock(return_value=fetch_return or [{"name": "jisoo", "salary": 100}])
     pool = MagicMock()
     pool.acquire = MagicMock(return_value=AsyncMock(
         __aenter__=AsyncMock(return_value=conn),
@@ -144,11 +144,11 @@ async def test_agent_allow_executes_and_answers():
     ]
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출
-        AIMessage(content="직원 이름은 alice 입니다."),       # 2차: 도구 결과 받고 최종 답변
+        AIMessage(content="직원 이름은 김지수 입니다."),       # 2차: 도구 결과 받고 최종 답변
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["sales"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
+        fga_client=_mock_fga_client(departments=["영업팀"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -156,7 +156,7 @@ async def test_agent_allow_executes_and_answers():
 
     result = await graph.ainvoke(_make_initial_state("전직원 이름 보여줘"), config=config)
     assert "__interrupt__" not in result
-    assert result["answer"] == "직원 이름은 alice 입니다."
+    assert result["answer"] == "직원 이름은 김지수 입니다."
 
 
 @pytest.mark.asyncio
@@ -174,7 +174,7 @@ async def test_agent_justify_triggers_interrupt():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -201,7 +201,7 @@ async def test_agent_resume_after_justify_executes_and_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -230,7 +230,7 @@ async def test_agent_resume_empty_reason_cancels_then_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -258,7 +258,7 @@ async def test_agent_deny_blocks_without_interrupt():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["sales"]),   # general
+        fga_client=_mock_fga_client(departments=["영업팀"]),   # general
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -286,21 +286,21 @@ async def test_answer_question_justify_interrupt_then_resume():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "api-justify-resume-1"}}
 
     # 1차: interrupt 노출
-    first = await answer_question(graph, "전직원 급여 보여줘", config=config, user_id="bob")
+    first = await answer_question(graph, "전직원 급여 보여줘", config=config, user_id="minjun")
     assert isinstance(first, Answer)
     assert "사유" in first.text                              # 사유 회신 안내
     assert "SELECT salary FROM business.employees" in first.text  # 계획된 SQL 노출
     assert first.sources == []
 
     # 2차: 같은 config → resume 감지 → 최종 답변
-    second = await answer_question(graph, "감사 목적입니다", config=config, user_id="bob")
+    second = await answer_question(graph, "감사 목적입니다", config=config, user_id="minjun")
     assert second.text == "급여 분포 요약 답변"
 
 
@@ -371,7 +371,7 @@ async def test_stream_answer_puts_tokens_and_done_in_queue():
         graph=mock_graph,
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -415,7 +415,7 @@ async def test_stream_answer_puts_error_then_done_on_exception():
         graph=mock_graph,
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -486,7 +486,7 @@ async def test_stream_answer_falls_back_to_session_store_history():
         graph=mock_graph,
         question="후속 질문",
         config={"configurable": {"thread_id": "t-fallback"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-fallback",
@@ -517,7 +517,7 @@ async def test_stream_answer_does_not_load_store_for_new_session():
         graph=mock_graph,
         question="첫 질문",
         config={"configurable": {"thread_id": "t-new"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-new",
@@ -544,14 +544,14 @@ async def test_stream_answer_saves_session():
         graph=mock_graph,
         question="안녕",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-2",
         is_new_session=True,
     )
 
-    mock_store.create_session.assert_called_once_with("sess-2", "alice", "안녕")
+    mock_store.create_session.assert_called_once_with("sess-2", "jisoo", "안녕")
     assert mock_store.add_message.call_count == 2
 
 
@@ -570,7 +570,7 @@ async def test_stream_answer_empty_answer_skips_tokens_but_sends_done():
         graph=mock_graph,
         question="q",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=AsyncMock(),
         session_id="s1",
@@ -613,7 +613,7 @@ async def test_stream_answer_no_duplicate_on_hallucination_retry():
         graph=graph,
         question="배포는 어떤 절차로 진행해?",
         config={"configurable": {"thread_id": "hallu-retry-1"}},
-        user_id="alice",
+        user_id="jisoo",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-hallu",
@@ -650,7 +650,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -664,7 +664,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
         graph=graph,
         question="전직원 급여 보여줘",
         config=config,
-        user_id="bob",
+        user_id="minjun",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-justify",
@@ -710,7 +710,7 @@ async def test_stream_answer_justify_new_session_creates_session():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -724,7 +724,7 @@ async def test_stream_answer_justify_new_session_creates_session():
         graph=graph,
         question="전직원 급여 보여줘",
         config=config,
-        user_id="bob",
+        user_id="minjun",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-justify-new",
@@ -738,12 +738,12 @@ async def test_stream_answer_justify_new_session_creates_session():
     assert "interrupt" in types
     assert types[-1] == "done"
     # 새 세션이므로 resume이 소유권 검사를 통과하도록 세션을 생성해야 한다
-    mock_store.create_session.assert_called_once_with("sess-justify-new", "bob", "전직원 급여 보여줘")
+    mock_store.create_session.assert_called_once_with("sess-justify-new", "minjun", "전직원 급여 보여줘")
     # 답변이 아직 없으므로 메시지는 저장하지 않는다
     mock_store.add_message.assert_not_called()
 
 
-def _perm_tool_call_msg(instruction="alice를 eng 부서에 추가", tc_id="p1"):
+def _perm_tool_call_msg(instruction="김지수를 개발팀 부서에 추가", tc_id="p1"):
     return AIMessage(
         content="",
         tool_calls=[{"name": "manage_permission", "args": {"instruction": instruction}, "id": tc_id}],
@@ -756,9 +756,9 @@ async def test_manage_permission_justify_then_resume_executes():
     사유 resume → grant_tuple 실행 → 최종 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
-        "alice 추가",                                                          # rewrite
+        "김지수 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # permission plan 파싱
+        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}',  # permission plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),                                               # 1차: 도구 호출 → interrupt
@@ -772,12 +772,12 @@ async def test_manage_permission_justify_then_resume_executes():
     )
     config = {"configurable": {"thread_id": "perm-justify-1"}}
 
-    result = await graph.ainvoke(_make_initial_state("alice를 eng에 추가해"), config=config)
+    result = await graph.ainvoke(_make_initial_state("김지수를 개발팀에 추가해"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume="신규 입사자 부서 배정"), config=config)
     assert final["answer"] == "앨리스를 엔지니어링에 추가했습니다."
-    fga.grant_tuple.assert_awaited_once_with("user:user-alice", "member", "department:engineering")
+    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발팀")
 
 
 @pytest.mark.asyncio
@@ -785,15 +785,15 @@ async def test_manage_permission_deny_for_non_admin():
     """grant 권한(justify_grant) 없는 사용자 → DENY, interrupt 없이 거부 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
-        "alice 추가",                                                          # rewrite
+        "김지수 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-alice","relation":"member","object":"department:engineering"}',  # plan 파싱
+        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}',  # plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),
         AIMessage(content="권한이 없어 실행할 수 없습니다."),
     ])
-    fga = _mock_fga_client(departments=["sales"])   # justify_grant 미보유
+    fga = _mock_fga_client(departments=["영업팀"])   # justify_grant 미보유
     fga.grant_tuple = AsyncMock()
     graph = build_graph(
         retriever=_make_retriever(), llm=llm, fga_client=fga,
@@ -801,7 +801,7 @@ async def test_manage_permission_deny_for_non_admin():
     )
     config = {"configurable": {"thread_id": "perm-deny-1"}}
 
-    final = await graph.ainvoke(_make_initial_state("alice를 eng에 추가해"), config=config)
+    final = await graph.ainvoke(_make_initial_state("김지수를 개발팀에 추가해"), config=config)
     assert "__interrupt__" not in final
     assert final["answer"] == "권한이 없어 실행할 수 없습니다."
     fga.grant_tuple.assert_not_called()
@@ -825,7 +825,7 @@ async def test_stream_answer_resume_after_justify():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -840,7 +840,7 @@ async def test_stream_answer_resume_after_justify():
         graph=graph,
         question="전직원 급여 보여줘",
         config=config,
-        user_id="bob",
+        user_id="minjun",
         token_queue=queue1,
         session_store=mock_store,
         session_id="sess-resume",
@@ -857,7 +857,7 @@ async def test_stream_answer_resume_after_justify():
         graph=graph,
         question="감사 목적",
         config=config,
-        user_id="bob",
+        user_id="minjun",
         token_queue=queue2,
         session_store=mock_store,
         session_id="sess-resume",
@@ -947,7 +947,7 @@ async def test_engineering_update_justify_then_resume_writes():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool("UPDATE 1"),
         app_pool=AsyncMock(), chat_model=chat,
     )
@@ -975,7 +975,7 @@ async def test_general_update_denied_without_capability():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["sales"]),   # justify_update_delete 미보유
+        fga_client=_mock_fga_client(departments=["영업팀"]),   # justify_update_delete 미보유
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
         app_pool=AsyncMock(), chat_model=chat,
     )
@@ -1000,7 +1000,7 @@ async def test_update_without_where_denied_even_for_engineering():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
+        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
         app_pool=AsyncMock(), chat_model=chat,
     )

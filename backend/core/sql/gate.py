@@ -33,6 +33,13 @@ _RISK_GATE = {
     RISK_GRANT:         ("capability:admin", "grant"),
 }
 
+# allow_* 없이 justify_* 만 허용하는 위험도(매트릭스 정리). 단순 SELECT만 즉시 허용(allow_select)이고
+# 그 외 모든 위험군(BULK_SELECT·UPDATE/DELETE·DDL·GRANT)은 사유 기재 후 실행 — 이력에 남긴다.
+# allow_* relation을 모델에서 제거했으므로 allow Check 자체를 건너뛴다(undefined-relation 에러 방지).
+_JUSTIFY_ONLY_RISKS = frozenset({
+    RISK_BULK_SELECT, RISK_UPDATE_DELETE, RISK_DDL, RISK_GRANT,
+})
+
 
 async def gate_decision(
     check: Callable[[str, str, str], Awaitable[bool]],
@@ -43,13 +50,14 @@ async def gate_decision(
 
     allow_<base>@<obj> 보유 → ALLOW, 없으면 justify_<base>@<obj> 보유 →
     JUSTIFY_AND_APPROVE, 둘 다 없으면 DENY. 미지원 위험도는 보수적으로 DENY.
+    _JUSTIFY_ONLY_RISKS 에 속하는 위험도는 allow 체크를 건너뛴다.
     """
     entry = _RISK_GATE.get(risk)
     if entry is None:
         return DECISION_DENY, f"위험도={risk} 미지원 → DENY"
     obj, base = entry
     user = f"user:{user_id}"
-    if await check(user, f"allow_{base}", obj):
+    if risk not in _JUSTIFY_ONLY_RISKS and await check(user, f"allow_{base}", obj):
         return DECISION_ALLOW, f"capability allow_{base}@{obj} 보유 → ALLOW"
     if await check(user, f"justify_{base}", obj):
         return DECISION_JUSTIFY_AND_APPROVE, f"capability justify_{base}@{obj} 보유 → JUSTIFY_AND_APPROVE"

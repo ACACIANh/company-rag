@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 
 def _get_token(client: TestClient) -> str:
-    res = client.post("/auth/token", json={"username": "alice", "password": "alice123"})
+    res = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"})
     return res.json()["access_token"]
 
 

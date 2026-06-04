@@ -33,15 +33,12 @@ type folder
 
 type capability
   relations
-    # SQL 권한 2층(ADR-0028): allow_* → ALLOW, justify_* → JUSTIFY_AND_APPROVE
+    # SQL 권한(매트릭스 정리): 단순 SELECT만 allow_*(즉시 허용) 유지,
+    # 그 외 모든 위험군은 justify_*(사유 기재·이력) 전용. allow_* relation 자체를 두지 않는다.
     define allow_select:          [user:*, department#member, role#member]
     define justify_select:        [user:*, department#member, role#member]
-    define allow_bulk_select:     [user:*, department#member, role#member]
     define justify_bulk_select:   [user:*, department#member, role#member]
-    define allow_update_delete:   [user, department#member, role#member]
     define justify_update_delete: [user, department#member, role#member]
-    define allow_ddl:             [user, department#member, role#member]
     define justify_ddl:           [user, department#member, role#member]
-    # 권한 관리(ADR-0029): capability:admin 인스턴스가 사용
-    define allow_grant:           [user, department#member, role#member]
+    # 권한 관리(ADR-0029): capability:admin 인스턴스가 사용 — grant는 항상 사유 기재(justify_grant 전용)
     define justify_grant:         [user, department#member, role#member]

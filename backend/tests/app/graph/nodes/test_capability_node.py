@@ -12,9 +12,9 @@ def _mock_fga(can_grant: bool) -> MagicMock:
 async def test_capability_node_admin_text_when_can_grant():
     fga_client = _mock_fga(True)
 
-    result = await capability_node({"user_id": "alice"}, fga_client=fga_client)
+    result = await capability_node({"user_id": "jisoo"}, fga_client=fga_client)
 
-    fga_client.check.assert_called_once_with("user:alice", "allow_grant", "capability:admin")
+    fga_client.check.assert_called_once_with("user:jisoo", "justify_grant", "capability:admin")
     assert "권한 관리" in result["answer"]
     assert "부여" in result["answer"]
     assert result["citations"] == []
@@ -23,9 +23,9 @@ async def test_capability_node_admin_text_when_can_grant():
 async def test_capability_node_user_text_when_cannot_grant():
     fga_client = _mock_fga(False)
 
-    result = await capability_node({"user_id": "bob"}, fga_client=fga_client)
+    result = await capability_node({"user_id": "minjun"}, fga_client=fga_client)
 
-    fga_client.check.assert_called_once_with("user:bob", "allow_grant", "capability:admin")
+    fga_client.check.assert_called_once_with("user:minjun", "justify_grant", "capability:admin")
     assert "권한 확인" in result["answer"]
     assert "부여" not in result["answer"]
     assert result["citations"] == []
