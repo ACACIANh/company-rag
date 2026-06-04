@@ -281,7 +281,7 @@ export function ChatPage() {
                 대화 기록을 불러오는 중…
               </p>
             ) : (
-              <MessageList messages={messages} onCancel={() => send("")} pending={pending} />
+              <MessageList messages={messages} onCancel={() => send("")} pending={pending} awaitingJustification={awaitingJustification} />
             )}
             {pending && (
               <div className="flex items-center gap-2 mt-4">
