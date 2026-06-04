@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
         graph = build_graph(
             retriever=retriever, llm=llm, reranker=reranker, fga_client=fga_client,
             checkpointer=checkpointer, audit_sink=audit_sink, sql_pool=sql_pool,
-            sql_rw_pool=sql_rw_pool,
+            sql_rw_pool=sql_rw_pool, app_pool=pool,
         )
 
         app.state.pool = pool

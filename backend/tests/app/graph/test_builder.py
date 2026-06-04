@@ -149,7 +149,7 @@ async def test_agent_allow_executes_and_answers():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["sales"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "agent-allow-1"}}
@@ -175,7 +175,7 @@ async def test_agent_justify_triggers_interrupt():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "agent-justify-1"}}
@@ -202,7 +202,7 @@ async def test_agent_resume_after_justify_executes_and_answers():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "agent-resume-1"}}
@@ -231,7 +231,7 @@ async def test_agent_resume_empty_reason_cancels_then_answers():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "agent-cancel-1"}}
@@ -259,7 +259,7 @@ async def test_agent_deny_blocks_without_interrupt():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["sales"]),   # general
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "agent-deny-1"}}
@@ -287,7 +287,7 @@ async def test_answer_question_justify_interrupt_then_resume():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "api-justify-resume-1"}}
@@ -651,7 +651,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "stream-justify-1"}}
@@ -711,7 +711,7 @@ async def test_stream_answer_justify_new_session_creates_session():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "stream-justify-new-1"}}
@@ -768,7 +768,7 @@ async def test_manage_permission_justify_then_resume_executes():
     fga.grant_tuple = AsyncMock()
     graph = build_graph(
         retriever=_make_retriever(), llm=llm, fga_client=fga,
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), chat_model=chat,
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(), chat_model=chat,
     )
     config = {"configurable": {"thread_id": "perm-justify-1"}}
 
@@ -797,7 +797,7 @@ async def test_manage_permission_deny_for_non_admin():
     fga.grant_tuple = AsyncMock()
     graph = build_graph(
         retriever=_make_retriever(), llm=llm, fga_client=fga,
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), chat_model=chat,
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(), chat_model=chat,
     )
     config = {"configurable": {"thread_id": "perm-deny-1"}}
 
@@ -826,7 +826,7 @@ async def test_stream_answer_resume_after_justify():
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_bulk_select"]),
-        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(),
+        audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
     config = {"configurable": {"thread_id": "stream-resume-1"}}
@@ -903,7 +903,7 @@ async def test_engineering_update_justify_then_resume_writes():
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool("UPDATE 1"),
-        chat_model=chat,
+        app_pool=AsyncMock(), chat_model=chat,
     )
     config = {"configurable": {"thread_id": "eng-update-1"}}
 
@@ -931,7 +931,7 @@ async def test_general_update_denied_without_capability():
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["sales"]),   # justify_update_delete 미보유
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
-        chat_model=chat,
+        app_pool=AsyncMock(), chat_model=chat,
     )
     config = {"configurable": {"thread_id": "general-update-deny-1"}}
     final = await graph.ainvoke(_make_initial_state("연봉 0으로 바꿔"), config=config)
@@ -956,7 +956,7 @@ async def test_update_without_where_denied_even_for_engineering():
         retriever=_make_retriever(), llm=llm,
         fga_client=_mock_fga_client(departments=["engineering"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
-        chat_model=chat,
+        app_pool=AsyncMock(), chat_model=chat,
     )
     config = {"configurable": {"thread_id": "no-where-deny-1"}}
     final = await graph.ainvoke(_make_initial_state("전체 직원 연봉 0으로"), config=config)
