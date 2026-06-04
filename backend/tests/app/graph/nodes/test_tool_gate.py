@@ -107,3 +107,20 @@ async def test_already_executed_sql_different_format_skipped():
     tool_msgs = [m for m in out.get("agent_messages", []) if isinstance(m, ToolMessage)]
     assert tool_msgs and "이미 실행" in tool_msgs[0].content
     handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_caller_id_injected_into_plan():
+    """tool_gate_node가 handler.plan() 호출 시 __caller_id를 args에 주입한다."""
+    handler = _handler("SELECT 1", "select", result="ok")
+    state = {
+        "user_id": "alice",
+        "question": "q",
+        "agent_messages": [_ai([{"name": "query_business_data", "args": {"question": "x"}, "id": "c1"}])],
+    }
+    await tool_gate_node(
+        state, registry=_registry(handler),
+        fga_client=_fga([], ["sales"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
+    )
+    call_args = handler.plan.call_args[0][0]
+    assert call_args["__caller_id"] == "alice"

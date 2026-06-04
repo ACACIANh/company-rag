@@ -42,7 +42,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
         if handler is None:
             new_messages.append(ToolMessage(content="알 수 없는 도구", tool_call_id=tc["id"]))
             continue
-        planned_action, risk = handler.plan(tc["args"])
+        planned_action, risk = handler.plan({**tc["args"], "__caller_id": user_id})
 
         if normalize_sql(planned_action) in executed_sql:
             new_messages.append(ToolMessage(content=_ALREADY_EXECUTED_TEXT, tool_call_id=tc["id"]))
