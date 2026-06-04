@@ -5,6 +5,7 @@ ToolMessage를 만든다. 실행 후 pending을 비우고 에이전트로 복귀
 """
 from langchain_core.messages import ToolMessage
 
+from app.graph.tools._utils import normalize_sql
 from core.observability.audit.base import AuditRecord, AuditSink
 
 _CANCEL_TEXT = "취소됨: 사유가 입력되지 않아 실행하지 않았습니다."
@@ -32,5 +33,5 @@ async def justify_execute_node(state: dict, *, registry, audit_sink: AuditSink) 
         ))
 
     executed_sql = list(state.get("executed_sql") or [])
-    executed_sql.extend(p["planned_action"] for p in pending if justified)
+    executed_sql.extend(normalize_sql(p["planned_action"]) for p in pending if justified)
     return {"agent_messages": messages, "pending_tool_calls": [], "executed_sql": executed_sql}

@@ -42,3 +42,19 @@ async def test_rejects_pending_when_not_justified():
     assert "취소" in tms[0].content or "거부" in tms[0].content
     assert out["pending_tool_calls"] == []
     h.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_executed_sql_stored_normalized():
+    """저장되는 executed_sql은 소문자·세미콜론 제거 형태다."""
+    reg, h = _registry()
+    state = {
+        "confirmed": True, "justification": "사유",
+        "pending_tool_calls": [{"id": "c1", "name": "query_business_data",
+                                "planned_action": "UPDATE business.employees SET salary = 70000000 WHERE emp_id = 5;",
+                                "risk": "update_delete", "decision": "JUSTIFY_AND_APPROVE"}],
+        "user_id": "u1",
+        "executed_sql": [],
+    }
+    out = await justify_execute_node(state, registry=reg, audit_sink=AsyncMock())
+    assert "update business.employees set salary = 70000000 where emp_id = 5" in out["executed_sql"]

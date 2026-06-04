@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 
 from core.fga.client import FGAClient
 from core.observability.audit.base import AuditRecord, AuditSink
+from app.graph.tools._utils import normalize_sql
 from core.sql.gate import (
     gate_decision,
     DECISION_ALLOW, DECISION_DENY, DECISION_JUSTIFY_AND_APPROVE,
@@ -32,7 +33,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
     departments = await fga_client.user_departments(user_id)
 
     _, tool_calls = _last_tool_calls(state.get("agent_messages") or [])
-    executed_sql: set[str] = set(state.get("executed_sql") or [])
+    executed_sql: set[str] = {normalize_sql(s) for s in (state.get("executed_sql") or [])}
     new_messages: list = []
     pending: list = []
 
@@ -43,7 +44,7 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             continue
         planned_action, risk = handler.plan(tc["args"])
 
-        if planned_action in executed_sql:
+        if normalize_sql(planned_action) in executed_sql:
             new_messages.append(ToolMessage(content=_ALREADY_EXECUTED_TEXT, tool_call_id=tc["id"]))
             continue
 
