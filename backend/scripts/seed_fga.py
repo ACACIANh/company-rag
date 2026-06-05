@@ -48,6 +48,7 @@ _CAPABILITY_GRANTS = [
 
 # 테이블별 접근권(ADR-0047) — 위험도 게이트(capability:sql)와 AND. 부서별 업무 관련 테이블만.
 # employees(직원·PII)=인사팀·재무팀·개발팀·임원 / sales(매출)=영업팀·제품팀·재무팀·개발팀·임원.
+# equipment(장비·자산)=개발팀·임원.
 # 여기 없는 부서는 allow_select가 있어도 해당 테이블을 조회할 수 없다(fail-closed, 의도된 강화).
 _TABLE_GRANTS = [
     {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:employees"},
