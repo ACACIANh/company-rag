@@ -99,9 +99,9 @@ async def test_returns_nonempty_reason():
 
 # ── 테이블별 접근 게이트 (ADR-0047) ──────────────────────────────────
 def _table_checker(granted: set):
-    """granted = can_access 보유 table 객체 집합(예: {"table:employees"})."""
+    """granted = dept_viewer 보유 table 객체 집합(예: {"table:employees"})."""
     async def check(user, relation, object_):
-        return relation == "can_access" and object_ in granted
+        return relation == "dept_viewer" and object_ in granted
     return check
 
 
@@ -123,7 +123,7 @@ async def test_table_access_missing_one_denies():
 
 @pytest.mark.asyncio
 async def test_table_access_unknown_table_denies():
-    # can_access 튜플이 없는 테이블은 자연히 DENY(fail-closed).
+    # dept_viewer 튜플이 없는 테이블은 자연히 DENY(fail-closed).
     check = _table_checker({"table:employees"})
     ok, _ = await gate_table_access(check, "u", {"secret_table"})
     assert ok is False
