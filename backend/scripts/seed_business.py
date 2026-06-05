@@ -2,7 +2,7 @@
 
 신원×위험도 SQL 게이트(ADR-0016)의 자율 SQL 도구가 붙을 대상 DB.
 - 스키마: business (운영 객체가 있는 public 스키마와 논리 분리)
-- 테이블: business.employees(직원, salary·email = PII), business.sales(매출)
+- 테이블: business.employees(직원, salary·email = PII), business.sales(매출), business.equipment(자산 현황)
 - 제한계정: sql_tool_ro — business 스키마 read-only만. public 스키마 접근 차단.
 - 쓰기 제한계정: sql_tool_rw — business 스키마 SELECT/UPDATE/DELETE만. INSERT·DDL·public 차단 (ADR-0034).
 
@@ -76,7 +76,7 @@ def build_sales_rows() -> list[tuple]:
 
 def build_equipment_rows() -> list[tuple]:
     """business.equipment 시드 행. 결정론적 합성. 미배정 노트북 2개 이상 보장."""
-    return [
+    rows = [
         # (asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)
         ("NB-001", "맥북 프로 14인치",    "노트북", "미배정", None,     date(2024, 1, 10), None),
         ("NB-002", "맥북 에어 M3",         "노트북", "미배정", None,     date(2024, 3, 15), None),
@@ -87,6 +87,12 @@ def build_equipment_rows() -> list[tuple]:
         ("MN-002", "LG 32인치 모니터",    "모니터", "미배정", None,     date(2024, 4,  1), None),
         ("SV-001", "Dell PowerEdge R750", "서버",   "정상",  "개발팀", date(2021, 6,  1), None),
     ]
+    valid_cats = set(catalog.EQUIPMENT_CATEGORIES)
+    valid_stats = set(catalog.EQUIPMENT_STATUSES)
+    for r in rows:
+        assert r[2] in valid_cats,  f"equipment category drift: {r[2]!r}"
+        assert r[3] in valid_stats, f"equipment status drift: {r[3]!r}"
+    return rows
 
 
 _DDL = """
