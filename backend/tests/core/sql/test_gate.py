@@ -123,7 +123,7 @@ async def test_table_access_missing_one_denies():
 
 @pytest.mark.asyncio
 async def test_table_access_unknown_table_denies():
-    # dept_viewer 튜플이 없는 테이블은 자연히 DENY(fail-closed).
+    # viewer 권한이 없는 테이블은 자연히 DENY(fail-closed).
     check = _table_checker({"table:employees"})
     ok, _ = await gate_table_access(check, "u", {"secret_table"})
     assert ok is False
