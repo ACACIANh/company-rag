@@ -3,6 +3,7 @@ import pytest
 from langchain_core.messages import AIMessage, ToolMessage
 
 from app.graph.nodes.tool_gate import tool_gate_node
+from app.graph.tools.base import ToolResult
 
 
 def _fga(roles, depts, capabilities=(), tuples=()):
@@ -23,7 +24,7 @@ def _fga(roles, depts, capabilities=(), tuples=()):
 def _handler(planned, risk, result="rows"):
     h = MagicMock()
     h.plan.return_value = (planned, risk)
-    h.execute = AsyncMock(return_value=result)
+    h.execute = AsyncMock(return_value=ToolResult(text=result, summary=result))
     return h
 
 

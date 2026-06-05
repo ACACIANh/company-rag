@@ -3,11 +3,12 @@ import pytest
 from langchain_core.messages import ToolMessage
 
 from app.graph.nodes.justify_execute import justify_execute_node
+from app.graph.tools.base import ToolResult
 
 
 def _registry():
     h = MagicMock()
-    h.execute = AsyncMock(return_value="급여 결과")
+    h.execute = AsyncMock(return_value=ToolResult(text="급여 결과", summary="급여 결과"))
     reg = MagicMock(); reg.handlers = {"query_business_data": h}
     return reg, h
 

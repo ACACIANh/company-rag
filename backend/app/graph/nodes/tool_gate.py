@@ -87,8 +87,8 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
 
         if decision == DECISION_ALLOW:
             result = await handler.execute(planned_action, risk)
-            new_messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
-            result_summary = str(result)[:200]
+            new_messages.append(ToolMessage(content=result.text, tool_call_id=tc["id"]))
+            result_summary = result.summary
         elif decision == DECISION_DENY:
             new_messages.append(ToolMessage(content=_DENY_TEXT, tool_call_id=tc["id"]))
             result_summary = ""
