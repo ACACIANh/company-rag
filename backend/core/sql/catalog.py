@@ -52,10 +52,9 @@ CATEGORICAL_VALUES = {
     "business.sales.period": SALES_PERIODS,
     "business.sales.department": SALES_DEPARTMENTS,
     "business.sales.product": sorted(set(DEPT_PRODUCT.values())),
-    # equipment
-    "business.equipment.category":      EQUIPMENT_CATEGORIES,
-    "business.equipment.status":        EQUIPMENT_STATUSES,
-    "business.equipment.assigned_dept": DEPARTMENTS,
+    # equipment — assigned_dept는 NULL=미배정이므로 힌트 미노출 (LLM이 '미배정' 문자열로 필터 오생성 방지)
+    "business.equipment.category": EQUIPMENT_CATEGORIES,
+    "business.equipment.status":   EQUIPMENT_STATUSES,
 }
 
 # PII 컬럼 — 스키마엔 있으나 값 힌트 절대 금지(ADR-0016 게이트 경계 보강).

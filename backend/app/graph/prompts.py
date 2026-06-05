@@ -57,7 +57,7 @@ CHECK_HALLUCINATION = """\
 _BUSINESS_SCHEMA = """\
 - business.employees(emp_id, name, department, position, hire_date, salary, email)
 - business.sales(sale_id, period, department, product, amount, created_at)
-- business.equipment(asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)"""
+- business.equipment(asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)  -- assigned_dept·assigned_to는 미배정 시 NULL, '미배정' 여부는 status 컬럼으로 판단"""
 
 # route 구분 축은 "동작 동사"가 아니라 "무엇으로 답하는가(데이터 원천)" — 동사 충돌(조회/예약 등)로 인한
 # 오분류를 막는다. 경계 few-shot으로 "정책 vs 내 수치"를 직접 대조하고, 불확실하면 doc_search로 기운다 (ADR-0022).
