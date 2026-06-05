@@ -11,6 +11,7 @@ from core.sql.risk import RISK_SELECT, RISK_BULK_SELECT, RISK_UPDATE_DELETE, cla
 from app.graph.prompts import SQL_GENERATE_PROMPT, SQL_BULK_PII_PROMPT
 from app.graph.tools._utils import strip_code_fence
 from app.graph.tools._args import single_text_arg
+from app.graph.tools.base import ToolResult
 
 _DEFAULT_ROW_LIMIT = 100
 
@@ -66,20 +67,25 @@ class SqlAgent:
                 risk = RISK_BULK_SELECT
         return sql, risk
 
-    async def execute(self, planned_action: str, risk: str) -> str:
+    async def execute(self, planned_action: str, risk: str) -> ToolResult:
         if risk == RISK_UPDATE_DELETE:
             if self._rw_pool is None:
-                return "SQL 실행 오류: 쓰기 풀 미구성"
+                msg = "SQL 실행 오류: 쓰기 풀 미구성"
+                return ToolResult(text=msg, summary=msg)
             try:
                 async with self._rw_pool.acquire() as conn:
                     async with conn.transaction():
                         status = await conn.execute(planned_action)
-                return f"{_affected_rows(status)}개 행이 변경되었습니다."
+                n = _affected_rows(status)
+                return ToolResult(text=f"{n}개 행이 변경되었습니다.", summary=f"{n}행 변경")
             except Exception as exc:
-                return f"SQL 실행 오류: {type(exc).__name__}"
+                msg = f"SQL 실행 오류: {type(exc).__name__}"
+                return ToolResult(text=msg, summary=msg)
         try:
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(planned_action)
-            return _format_rows(list(rows)[:self._row_limit])
+            limited = list(rows)[:self._row_limit]
+            return ToolResult(text=_format_rows(limited), summary=f"{len(limited)}행 조회")
         except Exception as exc:
-            return f"SQL 실행 오류: {type(exc).__name__}"
+            msg = f"SQL 실행 오류: {type(exc).__name__}"
+            return ToolResult(text=msg, summary=msg)

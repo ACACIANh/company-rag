@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from app.graph.tools.sql_tool import SqlAgent, _DESCRIPTION, _format_rows
+from app.graph.tools.base import ToolResult
 from core.sql.risk import RISK_SELECT, RISK_UPDATE_DELETE
 
 
@@ -41,7 +42,7 @@ async def test_update_uses_rw_pool_and_reports_rows():
     result = await h.execute("UPDATE business.employees SET salary=1 WHERE emp_id='x'", RISK_UPDATE_DELETE)
     rw_conn.execute.assert_awaited_once()
     ro_conn.fetch.assert_not_awaited()
-    assert "3" in result
+    assert "3" in result.text
 
 
 @pytest.mark.asyncio
@@ -49,7 +50,7 @@ async def test_update_without_rw_pool_errors():
     ro, _ = _pool()
     h = SqlAgent(llm=MagicMock(), sql_pool=ro, sql_rw_pool=None)
     result = await h.execute("UPDATE business.employees SET salary=1 WHERE emp_id='x'", RISK_UPDATE_DELETE)
-    assert "오류" in result
+    assert "오류" in result.text
 
 
 def test_plan_generates_sql_and_classifies_risk():
@@ -111,3 +112,35 @@ def test_format_rows_single_column():
     assert lines[0] == "| count |"
     assert lines[1] == "| --- |"
     assert lines[2] == "| 42 |"
+
+
+@pytest.mark.asyncio
+async def test_execute_select_returns_toolresult_with_row_count():
+    ro, _ = _pool(fetch_return=[{"emp_id": 1, "name": "a"}, {"emp_id": 2, "name": "b"}])
+    agent = SqlAgent(llm=MagicMock(), sql_pool=ro)
+    result = await agent.execute("SELECT * FROM business.employees", RISK_SELECT)
+    assert isinstance(result, ToolResult)
+    assert result.summary == "2행 조회"
+    assert "emp_id" in result.text  # 마크다운 표
+
+
+@pytest.mark.asyncio
+async def test_execute_update_returns_toolresult_with_change_count():
+    ro, _ = _pool()
+    rw, _ = _pool(execute_return="UPDATE 3")
+    agent = SqlAgent(llm=MagicMock(), sql_pool=ro, sql_rw_pool=rw)
+    result = await agent.execute("UPDATE business.employees SET salary=1 WHERE emp_id='x'", RISK_UPDATE_DELETE)
+    assert isinstance(result, ToolResult)
+    assert result.summary == "3행 변경"
+    assert "3개 행" in result.text
+
+
+@pytest.mark.asyncio
+async def test_execute_select_error_returns_toolresult():
+    ro, ro_conn = _pool()
+    ro_conn.fetch = AsyncMock(side_effect=RuntimeError("boom"))
+    agent = SqlAgent(llm=MagicMock(), sql_pool=ro)
+    result = await agent.execute("SELECT 1", RISK_SELECT)
+    assert isinstance(result, ToolResult)
+    assert result.text.startswith("SQL 실행 오류")
+    assert result.summary == result.text
