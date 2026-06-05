@@ -36,6 +36,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> AuthUser:
             user_id=payload["sub"],
             roles=payload["roles"],
             departments=payload.get("departments", []),
+            display_name=payload.get("display_name") or payload["sub"],
         )
     except (jwt.InvalidTokenError, KeyError) as exc:
         logger.warning("token rejected: %s", type(exc).__name__)

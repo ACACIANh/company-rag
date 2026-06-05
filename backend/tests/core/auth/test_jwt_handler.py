@@ -56,3 +56,16 @@ def test_empty_departments_encoded():
     )
     payload = decode_token(token, secret="s")
     assert payload["departments"] == []
+
+
+def test_display_name_encoded_and_decoded():
+    token = create_token(
+        user_id="u1",
+        roles=["user"],
+        departments=[],
+        secret="s",
+        expire_minutes=60,
+        display_name="김지수",
+    )
+    payload = decode_token(token, secret="s")
+    assert payload["display_name"] == "김지수"
