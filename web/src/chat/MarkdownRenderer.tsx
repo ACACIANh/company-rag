@@ -73,7 +73,7 @@ const components: Components = {
   },
   td({ children }) {
     return (
-      <td className="px-3 py-2 text-ink align-top max-w-[260px]">{children}</td>
+      <td className="px-3 py-2 text-ink align-top">{children}</td>
     );
   },
 };
