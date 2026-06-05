@@ -68,3 +68,5 @@ type folder
 
 - **ADR-0011** — superseded. dept viewer 단일 축 모델을 4축 모델로 대체.
 - **ADR-0014** — 본 모델 확정 후 시드 데이터 전면 재구성을 진행할 수 있음(보류 해제 전제).
+
+> **후속(ADR-0051)**: `dept_viewer: [department#member]`는 `viewer: holder from gated_by`(permission 경유 TTU)로 전환, `dept_access`는 `access`로 개명됨. pre-filter 메커니즘(`ListObjects(can_read)` → 정확 매칭)은 불변.
