@@ -4,16 +4,16 @@ users:
     user_id: user-admin
     roles: [admin, user]
     fga_roles: [c_level]
-    display_name: 관리자
+    display_name: 이우진
     email: admin@techcorp.example
-  - username: jisoo
-    password: jisoo123
-    user_id: user-jisoo
+  - username: joohwan
+    password: joohwan123
+    user_id: user-joohwan
     roles: [user]
     departments: [개발]
     dept_admin_of: [개발]   # 부서 관리자 — 개발 멤버십 위임 (ADR-0046)
-    display_name: 김지수
-    email: jisoo.kim@techcorp.example
+    display_name: 노주환
+    email: joohwan.no@techcorp.example
   - username: minjun
     password: minjun123
     user_id: user-minjun
@@ -69,13 +69,13 @@ users:
     dept_admin_of: [법무]   # 부서 팀장 (ADR-0046/0051)
     display_name: 임수빈
     email: subin.lim@techcorp.example
-  - username: junseo
-    password: junseo123
-    user_id: user-junseo
+  - username: mido
+    password: mido123
+    user_id: user-mido
     roles: [user]
     departments: [개발, 제품]
-    display_name: 한준서
-    email: junseo.han@techcorp.example
+    display_name: 미도
+    email: mido@techcorp.example
   - username: chaewon
     password: chaewon123
     user_id: user-chaewon
@@ -160,13 +160,13 @@ users:
     departments: [영업]
     display_name: 오선우
     email: sunwoo.oh@techcorp.example
-  - username: sua
-    password: sua123
-    user_id: user-sua
+  - username: daesu
+    password: daesu123
+    user_id: user-daesu
     roles: [user]
     departments: [인사]
-    display_name: 이수아
-    email: sua.lee@techcorp.example
+    display_name: 오대수
+    email: daesu.oh@techcorp.example
   - username: jiyu
     password: jiyu123
     user_id: user-jiyu
