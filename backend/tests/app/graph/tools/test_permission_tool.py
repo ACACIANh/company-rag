@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.graph.tools.base import ToolResult
 from app.graph.tools.permission_tool import (
     PermissionAgent,
     delegated_membership_dept,
@@ -92,7 +93,8 @@ async def test_execute_grant_calls_grant_tuple():
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await handler.execute("grant user:user-jisoo member department:개발", "RISK_GRANT")
     fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
-    assert "완료" in result
+    assert result.text == "완료: grant user:user-jisoo member department:개발"
+    assert result.summary == "완료: grant user:user-jisoo member department:개발"
 
 
 @pytest.mark.asyncio
@@ -115,10 +117,11 @@ async def test_execute_query_self_returns_snapshot():
     fga.user_accessible_tables = AsyncMock(return_value=["employees"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
-    assert "user-jisoo" in result
-    assert "개발" in result
-    assert "/engineering/specs" in result
-    assert "SQL/관리 권한" in result
+    assert "user-jisoo" in result.text
+    assert "개발" in result.text
+    assert "/engineering/specs" in result.text
+    assert "SQL/관리 권한" in result.text
+    assert result.summary == "권한 스냅샷 조회(user-jisoo)"
 
 
 @pytest.mark.asyncio
@@ -133,7 +136,7 @@ async def test_execute_query_other_as_admin_succeeds():
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query admin-user user-minjun", "RISK_SELECT")
     fga.check.assert_any_await("user:admin-user", "justify_grant", "capability:admin")
-    assert "user-minjun" in result
+    assert "user-minjun" in result.text
 
 
 @pytest.mark.asyncio
@@ -144,7 +147,7 @@ async def test_execute_query_other_as_non_admin_denied():
     fga.user_departments = MagicMock()
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query user-jisoo user-minjun", "RISK_SELECT")
-    assert "권한 없음" in result
+    assert "권한 없음" in result.text
     fga.user_departments.assert_not_called()
 
 
@@ -270,7 +273,7 @@ async def test_execute_query_includes_table_access():
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
     fga.user_accessible_tables.assert_awaited_once_with("user-jisoo")
-    assert "employees" in result
+    assert "employees" in result.text
 
 
 def test_delegated_permission_grant_to_user():
@@ -289,3 +292,11 @@ def test_delegated_permission_to_department_none():
 def test_delegated_permission_non_holder_none():
     assert delegated_permission("grant user:user-jisoo member department:개발") is None
     assert delegated_permission("query u1 u2") is None
+
+
+@pytest.mark.asyncio
+async def test_execute_returns_toolresult_type():
+    fga = MagicMock(); fga.grant_tuple = AsyncMock()
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("grant user:u1 member department:개발", "RISK_GRANT")
+    assert isinstance(result, ToolResult)

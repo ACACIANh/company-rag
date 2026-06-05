@@ -27,6 +27,7 @@ from core.sql.risk import (
     RISK_UPDATE_DELETE,
 )
 from app.graph.prompts import PERMISSION_PARSE_PROMPT
+from app.graph.tools.base import ToolResult
 from app.graph.tools._utils import strip_code_fence
 from app.graph.tools._args import single_text_arg
 
@@ -75,19 +76,20 @@ class PermissionAgent:
         subject, relation, object_, action = validated
         return f"{action} {subject} {relation} {object_}", RISK_GRANT
 
-    async def execute(self, planned_action: str, risk: str) -> str:
+    async def execute(self, planned_action: str, risk: str) -> ToolResult:
         if planned_action.startswith("query "):
             parts = planned_action.split(" ", 2)
             if len(parts) != 3:
-                return "권한 조회 오류: 잘못된 동작 형식"
+                msg = "권한 조회 오류: 잘못된 동작 형식"
+                return ToolResult(text=msg, summary=msg)
             _, caller, target = parts
             if target != caller:
                 try:
                     admin_ok = await self._fga.check(f"user:{caller}", "justify_grant", "capability:admin")
                 except Exception:
-                    return "권한 없음: 관리자 확인 실패"
+                    return ToolResult(text="권한 없음: 관리자 확인 실패", summary="권한 없음")
                 if not admin_ok:
-                    return "권한 없음: 타인 조회는 관리자만 가능합니다."
+                    return ToolResult(text="권한 없음: 타인 조회는 관리자만 가능합니다.", summary="권한 없음")
             try:
                 departments = await self._fga.user_departments(target)
                 roles = await self._fga.user_roles(target)
@@ -95,12 +97,17 @@ class PermissionAgent:
                 capabilities = await _resolve_capabilities(self._fga.check, target)
                 tables = await self._fga.user_accessible_tables(target)
             except Exception as exc:
-                return f"권한 조회 오류: {type(exc).__name__}"
-            return _format_permission_snapshot(target, departments, roles, folders, capabilities, tables)
+                msg = f"권한 조회 오류: {type(exc).__name__}"
+                return ToolResult(text=msg, summary=msg)
+            return ToolResult(
+                text=_format_permission_snapshot(target, departments, roles, folders, capabilities, tables),
+                summary=f"권한 스냅샷 조회({target})",
+            )
 
         parts = planned_action.split(" ")
         if len(parts) != 4:
-            return "권한 실행 오류: 잘못된 동작 형식"
+            msg = "권한 실행 오류: 잘못된 동작 형식"
+            return ToolResult(text=msg, summary=msg)
         action, subject, relation, object_ = parts
         try:
             if action == "grant":
@@ -108,10 +115,13 @@ class PermissionAgent:
             elif action == "revoke":
                 await self._fga.revoke_tuple(subject, relation, object_)
             else:
-                return "권한 실행 오류: 알 수 없는 action"
-            return f"완료: {planned_action}"
+                msg = "권한 실행 오류: 알 수 없는 action"
+                return ToolResult(text=msg, summary=msg)
+            done = f"완료: {planned_action}"
+            return ToolResult(text=done, summary=done)
         except Exception as exc:
-            return f"권한 실행 오류: {type(exc).__name__}"
+            msg = f"권한 실행 오류: {type(exc).__name__}"
+            return ToolResult(text=msg, summary=msg)
 
 
 def delegated_membership_dept(planned_action: str) -> str | None:
