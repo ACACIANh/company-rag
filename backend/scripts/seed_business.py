@@ -55,7 +55,13 @@ def build_employee_rows(users: list[dict]) -> list[tuple]:
     for i, user in enumerate(users):
         dept = _primary_department(user)
         is_exec = "c_level" in (user.get("fga_roles") or [])
-        position = catalog.POSITIONS[0] if is_exec else catalog.POSITIONS[1]
+        is_lead = bool(user.get("dept_admin_of"))
+        if is_exec:
+            position = "CTO"
+        elif is_lead:
+            position = "팀장"
+        else:
+            position = "팀원"
         salary = _DEPT_BASE_SALARY.get(dept, _DEPT_BASE_SALARY["미배정"]) + i * 1_000_000
         hire_date = date(2018 + i % 7, 1 + i % 12, 1)
         email = user.get("email") or f"{user['username']}@techcorp.example"

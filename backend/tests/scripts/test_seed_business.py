@@ -54,6 +54,29 @@ def test_employee_cross_department_uses_first():
     assert ivan[2] == "개발"
 
 
+def test_employee_position_team_lead_for_dept_admin():
+    rows = build_employee_rows([
+        {"username": "lead", "user_id": "user-lead",
+         "departments": ["개발"], "dept_admin_of": ["개발"]},
+    ])
+    # (emp_id, name, department, position, ...)
+    assert rows[0][3] == "팀장"
+
+
+def test_employee_position_member_for_plain_user():
+    rows = build_employee_rows([
+        {"username": "plain", "user_id": "user-plain", "departments": ["개발"]},
+    ])
+    assert rows[0][3] == "팀원"
+
+
+def test_employee_position_cto_for_exec():
+    rows = build_employee_rows([
+        {"username": "boss", "user_id": "user-boss", "fga_roles": ["c_level"]},
+    ])
+    assert rows[0][3] == "CTO"
+
+
 # ── build_sales_rows ────────────────────────────────────────
 def test_sales_rows_deterministic_and_nonempty():
     rows = build_sales_rows()
