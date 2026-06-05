@@ -128,6 +128,11 @@ SQL_GENERATE_PROMPT = """\
 카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: 'engineering'이 아니라 '개발팀'):
 {value_hints}
 
+패턴 힌트(equipment 테이블):
+- "미배정" 장비 → WHERE status = '미배정'  (assigned_dept·assigned_to는 미배정 시 NULL이므로 status로 판단)
+- "수리중" 장비 → WHERE status = '수리중'
+- 직원에게 장비 지급 → UPDATE business.equipment SET assigned_to = (SELECT emp_id FROM business.employees WHERE name = '<이름>'), assigned_dept = (SELECT department FROM business.employees WHERE name = '<이름>'), status = '정상' WHERE asset_id = '<자산ID>'
+
 질문: {question}
 SQL:""".replace("{schema}", _BUSINESS_SCHEMA).replace("{value_hints}", _value_hints_text())
 
