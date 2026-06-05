@@ -24,10 +24,10 @@ def test_get_current_user_accepts_valid_token():
 def test_get_current_user_extracts_display_name():
     token = create_token(
         user_id="u1", roles=["member"], departments=["t1"],
-        secret=deps._config.jwt_secret, expire_minutes=60, display_name="김지수",
+        secret=deps._config.jwt_secret, expire_minutes=60, display_name="노주환",
     )
     user = deps.get_current_user(token=token)
-    assert user["display_name"] == "김지수"
+    assert user["display_name"] == "노주환"
 
 
 def test_get_current_user_display_name_falls_back_to_user_id():

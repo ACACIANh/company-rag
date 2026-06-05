@@ -3,7 +3,7 @@ from app.api.chat import app
 
 
 def test_login_success():
-    res = TestClient(app).post("/auth/token", json={"username": "jisoo", "password": "jisoo123"})
+    res = TestClient(app).post("/auth/token", json={"username": "joohwan", "password": "joohwan123"})
     assert res.status_code == 200
     data = res.json()
     assert "access_token" in data
@@ -11,16 +11,16 @@ def test_login_success():
 
 
 def test_login_wrong_password():
-    res = TestClient(app).post("/auth/token", json={"username": "jisoo", "password": "wrong"})
+    res = TestClient(app).post("/auth/token", json={"username": "joohwan", "password": "wrong"})
     assert res.status_code == 401
 
 
 def test_me_with_valid_token():
     client = TestClient(app)
-    token = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"}).json()["access_token"]
+    token = client.post("/auth/token", json={"username": "joohwan", "password": "joohwan123"}).json()["access_token"]
     res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
-    assert res.json()["user_id"] == "user-jisoo"
+    assert res.json()["user_id"] == "user-joohwan"
 
 
 def test_chat_without_token_returns_401():
@@ -28,9 +28,9 @@ def test_chat_without_token_returns_401():
     assert res.status_code == 401
 
 
-def test_me_returns_departments_for_김지수():
+def test_me_returns_departments_for_노주환():
     client = TestClient(app)
-    token = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"}).json()["access_token"]
+    token = client.post("/auth/token", json={"username": "joohwan", "password": "joohwan123"}).json()["access_token"]
     res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
     data = res.json()
@@ -40,10 +40,10 @@ def test_me_returns_departments_for_김지수():
 
 def test_me_returns_display_name():
     client = TestClient(app)
-    token = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"}).json()["access_token"]
+    token = client.post("/auth/token", json={"username": "joohwan", "password": "joohwan123"}).json()["access_token"]
     res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200
-    assert res.json()["display_name"] == "김지수"
+    assert res.json()["display_name"] == "노주환"
 
 
 def test_me_returns_departments_for_admin():

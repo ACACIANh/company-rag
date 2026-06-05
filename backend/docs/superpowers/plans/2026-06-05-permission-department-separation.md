@@ -42,16 +42,16 @@
 
 - [ ] **Step 1: `config/users.yaml` 부서명에서 "팀" 제거**
 
-`departments`와 `dept_admin_of` 값에서 `개발팀→개발`, `인사팀→인사`, `제품팀→제품`, `디자인팀→디자인`, `영업팀→영업`, `재무팀→재무`, `법무팀→법무`로 치환. 예시(jisoo·junseo·chaewon·taeyang은 다중/admin):
+`departments`와 `dept_admin_of` 값에서 `개발팀→개발`, `인사팀→인사`, `제품팀→제품`, `디자인팀→디자인`, `영업팀→영업`, `재무팀→재무`, `법무팀→법무`로 치환. 예시(joohwan·mido·chaewon·taeyang은 다중/admin):
 
 ```yaml
-  - username: jisoo
+  - username: joohwan
     # ...
     departments: [개발]
     dept_admin_of: [개발]   # 부서 관리자 — 개발 멤버십 위임 (ADR-0046→0051)
   - username: minjun
     departments: [인사]
-  - username: junseo
+  - username: mido
     departments: [개발, 제품]
   - username: chaewon
     departments: [영업, 재무]
@@ -537,7 +537,7 @@ git commit -m "feat(seed): permission 경유 튜플 생성(holder/gated_by/capab
 ```python
 def _validator():
     return PermissionValidator(
-        user_ids={"user-jisoo", "user-minjun"},
+        user_ids={"user-joohwan", "user-minjun"},
         departments={"개발", "영업"},
         permissions={"기본", "인사", "개발", "전사"},
     )
@@ -769,14 +769,14 @@ PERMISSION_PARSE_PROMPT = """\
 - "유저를 <부서>에 추가/소속" 처럼 부서 자체에 넣으라는 지시일 때만 relation="member".
 
 id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
-- 비격식 이름·영문 단명·표시명(예: "지수", "jisoo", "김지수")은 반드시 정식 user id("user-jisoo")로 바꾼다.
+- 비격식 이름·영문 단명·표시명(예: "지수", "joohwan", "노주환")은 반드시 정식 user id("user-joohwan")로 바꾼다.
 - 권한명은 부서 id와 같다(예: 인사·개발·재무·법무·영업·제품). "인사 문서/권한"은 permission:인사.
 - "추가/넣어/줘" → action "grant"; "제거/빼/회수" → action "revoke".
 - 어느 id인지 카탈로그에서 확정할 수 없으면 추측하지 말고 가장 가까운 식별자를 그대로 둔다(검증기가 거른다).
 
 예시:
-- "김지수를 개발 부서에 추가" →
-  {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}}
+- "노주환를 개발 부서에 추가" →
+  {{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}}
 - "이민준에게 인사 문서 열람 권한 줘" →
   {{"action":"grant","subject":"user:user-minjun","relation":"holder","object":"permission:인사"}}
 - "박서연 재무 권한 회수" →
@@ -889,7 +889,7 @@ from app.graph.tools.permission_tool import (
 
 def _validator():
     return PermissionValidator(
-        user_ids={"user-jisoo"}, departments={"개발"}, permissions={"개발", "인사"}
+        user_ids={"user-joohwan"}, departments={"개발"}, permissions={"개발", "인사"}
     )
 
 
@@ -907,7 +907,7 @@ def test_delegated_permission_to_department_none():
 
 
 def test_delegated_permission_non_holder_none():
-    assert delegated_permission("grant user:user-jisoo member department:개발") is None
+    assert delegated_permission("grant user:user-joohwan member department:개발") is None
     assert delegated_permission("query u1 u2") is None
 ```
 
@@ -915,8 +915,8 @@ def test_delegated_permission_non_holder_none():
 ```python
 def test_delegated_membership_dept_non_membership_none():
     # permission 배정·capability는 멤버십 위임 대상이 아니다 → None.
-    assert delegated_membership_dept("grant user:user-jisoo holder permission:개발") is None
-    assert delegated_membership_dept("grant user:user-jisoo justify_select capability:sql") is None
+    assert delegated_membership_dept("grant user:user-joohwan holder permission:개발") is None
+    assert delegated_membership_dept("grant user:user-joohwan justify_select capability:sql") is None
 ```
 
 `test_plan_valid_grant_*`/`test_execute_*`의 `department:개발팀`→`department:개발`로 일괄. `_validator()` 호출은 시그니처 변경으로 자동 반영.

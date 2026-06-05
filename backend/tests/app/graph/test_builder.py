@@ -41,7 +41,7 @@ def _mock_fga_client(roles=None, departments=None, capabilities=()):
 
 def _mock_sql_pool(fetch_return=None):
     conn = AsyncMock()
-    conn.fetch = AsyncMock(return_value=fetch_return or [{"name": "jisoo", "salary": 100}])
+    conn.fetch = AsyncMock(return_value=fetch_return or [{"name": "joohwan", "salary": 100}])
     pool = MagicMock()
     pool.acquire = MagicMock(return_value=AsyncMock(
         __aenter__=AsyncMock(return_value=conn),
@@ -148,7 +148,7 @@ async def test_agent_allow_executes_and_answers():
     ]
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출
-        AIMessage(content="직원 이름은 김지수 입니다."),       # 2차: 도구 결과 받고 최종 답변
+        AIMessage(content="직원 이름은 노주환 입니다."),       # 2차: 도구 결과 받고 최종 답변
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
@@ -160,7 +160,7 @@ async def test_agent_allow_executes_and_answers():
 
     result = await graph.ainvoke(_make_initial_state("전직원 이름 보여줘"), config=config)
     assert "__interrupt__" not in result
-    assert result["answer"] == "직원 이름은 김지수 입니다."
+    assert result["answer"] == "직원 이름은 노주환 입니다."
 
 
 @pytest.mark.asyncio
@@ -375,7 +375,7 @@ async def test_stream_answer_puts_tokens_and_done_in_queue():
         graph=mock_graph,
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -419,7 +419,7 @@ async def test_stream_answer_puts_error_then_done_on_exception():
         graph=mock_graph,
         question="질문",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-1",
@@ -490,7 +490,7 @@ async def test_stream_answer_falls_back_to_session_store_history():
         graph=mock_graph,
         question="후속 질문",
         config={"configurable": {"thread_id": "t-fallback"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-fallback",
@@ -521,7 +521,7 @@ async def test_stream_answer_does_not_load_store_for_new_session():
         graph=mock_graph,
         question="첫 질문",
         config={"configurable": {"thread_id": "t-new"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-new",
@@ -548,14 +548,14 @@ async def test_stream_answer_saves_session():
         graph=mock_graph,
         question="안녕",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-2",
         is_new_session=True,
     )
 
-    mock_store.create_session.assert_called_once_with("sess-2", "jisoo", "안녕")
+    mock_store.create_session.assert_called_once_with("sess-2", "joohwan", "안녕")
     assert mock_store.add_message.call_count == 2
 
 
@@ -574,7 +574,7 @@ async def test_stream_answer_empty_answer_skips_tokens_but_sends_done():
         graph=mock_graph,
         question="q",
         config={"configurable": {"thread_id": "t1"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=AsyncMock(),
         session_id="s1",
@@ -617,7 +617,7 @@ async def test_stream_answer_no_duplicate_on_hallucination_retry():
         graph=graph,
         question="배포는 어떤 절차로 진행해?",
         config={"configurable": {"thread_id": "hallu-retry-1"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=mock_store,
         session_id="sess-hallu",
@@ -747,7 +747,7 @@ async def test_stream_answer_justify_new_session_creates_session():
     mock_store.add_message.assert_not_called()
 
 
-def _perm_tool_call_msg(instruction="김지수를 개발 부서에 추가", tc_id="p1"):
+def _perm_tool_call_msg(instruction="노주환를 개발 부서에 추가", tc_id="p1"):
     return AIMessage(
         content="",
         tool_calls=[{"name": "manage_permission", "args": {"instruction": instruction}, "id": tc_id}],
@@ -760,9 +760,9 @@ async def test_manage_permission_justify_then_resume_executes():
     사유 resume → grant_tuple 실행 → 최종 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
-        "김지수 추가",                                                          # rewrite
+        "노주환 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}',  # permission plan 파싱
+        '{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}',  # permission plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),                                               # 1차: 도구 호출 → interrupt
@@ -776,12 +776,12 @@ async def test_manage_permission_justify_then_resume_executes():
     )
     config = {"configurable": {"thread_id": "perm-justify-1"}}
 
-    result = await graph.ainvoke(_make_initial_state("김지수를 개발에 추가해"), config=config)
+    result = await graph.ainvoke(_make_initial_state("노주환를 개발에 추가해"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume="신규 입사자 부서 배정"), config=config)
     assert final["answer"] == "앨리스를 엔지니어링에 추가했습니다."
-    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
+    fga.grant_tuple.assert_awaited_once_with("user:user-joohwan", "member", "department:개발")
 
 
 @pytest.mark.asyncio
@@ -789,9 +789,9 @@ async def test_manage_permission_deny_for_non_admin():
     """grant 권한(justify_grant) 없는 사용자 → DENY, interrupt 없이 거부 답변."""
     llm = MagicMock()
     llm.complete.side_effect = [
-        "김지수 추가",                                                          # rewrite
+        "노주환 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}',  # plan 파싱
+        '{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}',  # plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),
@@ -805,7 +805,7 @@ async def test_manage_permission_deny_for_non_admin():
     )
     config = {"configurable": {"thread_id": "perm-deny-1"}}
 
-    final = await graph.ainvoke(_make_initial_state("김지수를 개발에 추가해"), config=config)
+    final = await graph.ainvoke(_make_initial_state("노주환를 개발에 추가해"), config=config)
     assert "__interrupt__" not in final
     assert final["answer"] == "권한이 없어 실행할 수 없습니다."
     fga.grant_tuple.assert_not_called()
@@ -1052,7 +1052,7 @@ async def test_stream_answer_sources_event_includes_tools_key():
         graph=mock_graph,
         question="질문",
         config={"configurable": {"thread_id": "tools-key-test"}},
-        user_id="jisoo",
+        user_id="joohwan",
         token_queue=queue,
         session_store=AsyncMock(),
         session_id="sess-tools",

@@ -147,7 +147,7 @@ cd /Users/acacian/vscode/company-rag && git add backend/scripts/seed_business.py
 **Files:**
 - Modify: `backend/config/users.yaml` (dohyeon, minho, minjun, jiyoung, subin, yujin)
 
-jisoo(개발)는 이미 `dept_admin_of: [개발]` 보유 → 무변경.
+joohwan(개발)는 이미 `dept_admin_of: [개발]` 보유 → 무변경.
 
 - [ ] **Step 1: yaml 편집**
 
@@ -256,13 +256,13 @@ jisoo(개발)는 이미 `dept_admin_of: [개발]` 보유 → 무변경.
     departments: [영업]
     display_name: 오선우
     email: sunwoo.oh@techcorp.example
-  - username: sua
+  - username: daesu
     password: sua123
-    user_id: user-sua
+    user_id: user-daesu
     roles: [user]
     departments: [인사]
-    display_name: 이수아
-    email: sua.lee@techcorp.example
+    display_name: 오대수
+    email: daesu.oh@techcorp.example
   - username: jiyu
     password: jiyu123
     user_id: user-jiyu

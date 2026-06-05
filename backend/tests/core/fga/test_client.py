@@ -48,9 +48,9 @@ async def test_user_departments_strips_prefix():
     client = _client()
     with patch.object(client, "_list_fga_objects",
                       new=AsyncMock(return_value=["department:개발", "department:제품"])) as mock_list:
-        depts = await client.user_departments("user-junseo")
+        depts = await client.user_departments("user-mido")
     assert depts == ["개발", "제품"]
-    mock_list.assert_awaited_once_with("user:user-junseo", "member", "department")
+    mock_list.assert_awaited_once_with("user:user-mido", "member", "department")
 
 
 @pytest.mark.asyncio
@@ -154,9 +154,9 @@ async def test_grant_tuple_writes_and_invalidates():
     client = _client()
     with patch.object(client, "_write_fga_tuples", new=AsyncMock()) as mock_write, \
          patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
-        await client.grant_tuple("user:user-jisoo", "member", "department:개발")
+        await client.grant_tuple("user:user-joohwan", "member", "department:개발")
     mock_write.assert_awaited_once_with([
-        {"user": "user:user-jisoo", "relation": "member", "object": "department:개발"}
+        {"user": "user:user-joohwan", "relation": "member", "object": "department:개발"}
     ])
     mock_inv.assert_awaited_once()
 
@@ -187,7 +187,7 @@ async def test_revoke_tuple_deletes_and_invalidates():
     fake = _FakeClient()
     with patch("openfga_sdk.OpenFgaClient", return_value=fake), \
          patch.object(client._cache, "invalidate", new=AsyncMock()) as mock_inv:
-        await client.revoke_tuple("user:user-jisoo", "member", "department:개발")
+        await client.revoke_tuple("user:user-joohwan", "member", "department:개발")
     assert fake.deleted is not None          # deletes 요청이 전달됨
     mock_inv.assert_awaited_once()
 
@@ -214,7 +214,7 @@ async def test_grant_revoke_roundtrip_invalidates_cache():
     실제 InMemoryCacheBackend로 부여·회수가 모두 폴더 캐시를 즉시 비우는지 종단 확인.
     """
     cache = InMemoryCacheBackend()
-    await cache.set("user-jisoo", ["/company"], ttl_seconds=60)
+    await cache.set("user-joohwan", ["/company"], ttl_seconds=60)
     client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
 
     class _FakeClient:
@@ -224,12 +224,12 @@ async def test_grant_revoke_roundtrip_invalidates_cache():
 
     with patch("openfga_sdk.OpenFgaClient", return_value=_FakeClient()), \
          patch.object(client, "_write_fga_tuples", new=AsyncMock()):
-        await client.grant_tuple("user:user-jisoo", "member", "department:개발")
-        assert await cache.get("user-jisoo") is None       # grant가 캐시를 비움
+        await client.grant_tuple("user:user-joohwan", "member", "department:개발")
+        assert await cache.get("user-joohwan") is None       # grant가 캐시를 비움
 
-        await cache.set("user-jisoo", ["/company"], ttl_seconds=60)
-        await client.revoke_tuple("user:user-jisoo", "member", "department:개발")
-        assert await cache.get("user-jisoo") is None       # revoke도 캐시를 비움
+        await cache.set("user-joohwan", ["/company"], ttl_seconds=60)
+        await client.revoke_tuple("user:user-joohwan", "member", "department:개발")
+        assert await cache.get("user-joohwan") is None       # revoke도 캐시를 비움
 
 
 @pytest.mark.asyncio
@@ -302,7 +302,7 @@ async def test_user_accessible_tables_returns_permitted_only():
         return object_ == "table:employees" and relation == "viewer"
 
     with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert result == ["employees"]
 
@@ -316,7 +316,7 @@ async def test_user_accessible_tables_all_permitted():
         return relation == "viewer"
 
     with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert sorted(result) == ["employees", "equipment", "sales"]
 
@@ -330,6 +330,6 @@ async def test_user_accessible_tables_none_permitted():
         return False
 
     with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert result == []

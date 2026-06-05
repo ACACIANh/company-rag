@@ -9,9 +9,9 @@ from core.sql import catalog
 
 _USERS = [
     {"username": "admin", "user_id": "user-admin", "fga_roles": ["c_level"]},
-    {"username": "jisoo", "user_id": "user-jisoo", "departments": ["개발"]},
+    {"username": "joohwan", "user_id": "user-joohwan", "departments": ["개발"]},
     {"username": "seoyeon", "user_id": "user-seoyeon", "departments": []},
-    {"username": "junseo", "user_id": "user-junseo", "departments": ["개발", "제품"]},
+    {"username": "mido", "user_id": "user-mido", "departments": ["개발", "제품"]},
 ]
 
 
@@ -50,7 +50,7 @@ def test_employee_rows_deterministic():
 
 def test_employee_cross_department_uses_first():
     rows = build_employee_rows(_USERS)
-    ivan = next(r for r in rows if r[0] == "user-junseo")
+    ivan = next(r for r in rows if r[0] == "user-mido")
     assert ivan[2] == "개발"
 
 

@@ -17,7 +17,7 @@ from core.sql.risk import RISK_DENY
 
 def _validator():
     return PermissionValidator(
-        user_ids={"user-jisoo"}, departments={"개발"}, permissions={"기본"}
+        user_ids={"user-joohwan"}, departments={"개발"}, permissions={"기본"}
     )
 
 
@@ -28,7 +28,7 @@ def _llm(reply: str):
 
 
 def test_delegated_membership_dept_grant():
-    assert delegated_membership_dept("grant user:user-jisoo member department:개발") == "개발"
+    assert delegated_membership_dept("grant user:user-joohwan member department:개발") == "개발"
 
 
 def test_delegated_membership_dept_revoke():
@@ -37,8 +37,8 @@ def test_delegated_membership_dept_revoke():
 
 def test_delegated_membership_dept_non_membership_none():
     # permission 배정·capability는 멤버십 위임 대상이 아니다 → None.
-    assert delegated_membership_dept("grant user:user-jisoo holder permission:개발") is None
-    assert delegated_membership_dept("grant user:user-jisoo justify_select capability:sql") is None
+    assert delegated_membership_dept("grant user:user-joohwan holder permission:개발") is None
+    assert delegated_membership_dept("grant user:user-joohwan justify_select capability:sql") is None
 
 
 def test_delegated_membership_dept_malformed_none():
@@ -49,12 +49,12 @@ def test_delegated_membership_dept_malformed_none():
 
 def test_plan_valid_grant_returns_risk_grant():
     handler = PermissionAgent(
-        llm=_llm('{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}'),
+        llm=_llm('{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = handler.plan({"instruction": "김지수를 개발에 추가"})
+    planned, risk = handler.plan({"instruction": "노주환를 개발에 추가"})
     assert risk == RISK_GRANT
-    assert planned == "grant user:user-jisoo member department:개발"
+    assert planned == "grant user:user-joohwan member department:개발"
 
 
 def test_plan_invalid_target_returns_deny():
@@ -78,12 +78,12 @@ def test_plan_unparseable_llm_output_returns_deny():
 def test_plan_accepts_arg1_key():
     """bind_tools가 넘기는 {'__arg1': ...} 형태에서도 instruction을 추출한다 (ADR-0032)."""
     handler = PermissionAgent(
-        llm=_llm('{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}'),
+        llm=_llm('{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = handler.plan({"__arg1": "김지수를 개발에 추가"})
+    planned, risk = handler.plan({"__arg1": "노주환를 개발에 추가"})
     assert risk == RISK_GRANT
-    assert planned == "grant user:user-jisoo member department:개발"
+    assert planned == "grant user:user-joohwan member department:개발"
 
 
 @pytest.mark.asyncio
@@ -91,10 +91,10 @@ async def test_execute_grant_calls_grant_tuple():
     fga = MagicMock()
     fga.grant_tuple = AsyncMock()
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await handler.execute("grant user:user-jisoo member department:개발", "RISK_GRANT")
-    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
-    assert result.text == "완료: grant user:user-jisoo member department:개발"
-    assert result.summary == "완료: grant user:user-jisoo member department:개발"
+    result = await handler.execute("grant user:user-joohwan member department:개발", "RISK_GRANT")
+    fga.grant_tuple.assert_awaited_once_with("user:user-joohwan", "member", "department:개발")
+    assert result.text == "완료: grant user:user-joohwan member department:개발"
+    assert result.summary == "완료: grant user:user-joohwan member department:개발"
 
 
 @pytest.mark.asyncio
@@ -102,11 +102,11 @@ async def test_execute_revoke_calls_revoke_tuple():
     fga = MagicMock()
     fga.revoke_tuple = AsyncMock()
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await handler.execute("revoke user:user-jisoo member department:개발", "RISK_GRANT")
-    fga.revoke_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
+    result = await handler.execute("revoke user:user-joohwan member department:개발", "RISK_GRANT")
+    fga.revoke_tuple.assert_awaited_once_with("user:user-joohwan", "member", "department:개발")
     assert isinstance(result, ToolResult)
-    assert result.text == "완료: revoke user:user-jisoo member department:개발"
-    assert result.summary == "완료: revoke user:user-jisoo member department:개발"
+    assert result.text == "완료: revoke user:user-joohwan member department:개발"
+    assert result.summary == "완료: revoke user:user-joohwan member department:개발"
 
 
 @pytest.mark.asyncio
@@ -119,12 +119,12 @@ async def test_execute_query_self_returns_snapshot():
     fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
     fga.user_accessible_tables = AsyncMock(return_value=["employees"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
-    assert "user-jisoo" in result.text
+    result = await agent.execute("query user-joohwan user-joohwan", "RISK_SELECT")
+    assert "user-joohwan" in result.text
     assert "개발" in result.text
     assert "/engineering/specs" in result.text
     assert "SQL/관리 권한" in result.text
-    assert result.summary == "권한 스냅샷 조회(user-jisoo)"
+    assert result.summary == "권한 스냅샷 조회(user-joohwan)"
 
 
 @pytest.mark.asyncio
@@ -149,7 +149,7 @@ async def test_execute_query_other_as_non_admin_denied():
     fga.check = AsyncMock(return_value=False)
     fga.user_departments = MagicMock()
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-jisoo user-minjun", "RISK_SELECT")
+    result = await agent.execute("query user-joohwan user-minjun", "RISK_SELECT")
     assert "권한 없음" in result.text
     assert result.summary == "권한 없음"
     fga.user_departments.assert_not_called()
@@ -162,9 +162,9 @@ def test_plan_query_self_returns_risk_select():
         llm=_llm('{"action":"query","target_user_id":null}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = agent.plan({"instruction": "내 권한 알려줘", "__caller_id": "user-jisoo"})
+    planned, risk = agent.plan({"instruction": "내 권한 알려줘", "__caller_id": "user-joohwan"})
     assert risk == RISK_SELECT
-    assert planned == "query user-jisoo user-jisoo"
+    assert planned == "query user-joohwan user-joohwan"
 
 
 def test_plan_query_other_returns_risk_select():
@@ -174,9 +174,9 @@ def test_plan_query_other_returns_risk_select():
         llm=_llm('{"action":"query","target_user_id":"user-minjun"}'),
         fga_client=MagicMock(), validator=_validator(),
     )
-    planned, risk = agent.plan({"instruction": "이민준 권한 알려줘", "__caller_id": "user-jisoo"})
+    planned, risk = agent.plan({"instruction": "이민준 권한 알려줘", "__caller_id": "user-joohwan"})
     assert risk == RISK_SELECT
-    assert planned == "query user-jisoo user-minjun"
+    assert planned == "query user-joohwan user-minjun"
 
 
 @pytest.mark.asyncio
@@ -275,8 +275,8 @@ async def test_execute_query_includes_table_access():
     fga.get_readable_folders = AsyncMock(return_value=[])
     fga.user_accessible_tables = AsyncMock(return_value=["employees", "sales"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
-    fga.user_accessible_tables.assert_awaited_once_with("user-jisoo")
+    result = await agent.execute("query user-joohwan user-joohwan", "RISK_SELECT")
+    fga.user_accessible_tables.assert_awaited_once_with("user-joohwan")
     assert "employees" in result.text
 
 
@@ -294,7 +294,7 @@ def test_delegated_permission_to_department_none():
 
 
 def test_delegated_permission_non_holder_none():
-    assert delegated_permission("grant user:user-jisoo member department:개발") is None
+    assert delegated_permission("grant user:user-joohwan member department:개발") is None
     assert delegated_permission("query u1 u2") is None
 
 

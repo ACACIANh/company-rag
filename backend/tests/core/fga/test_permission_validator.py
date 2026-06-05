@@ -3,7 +3,7 @@ from core.fga.permission_validator import PermissionValidator
 # 화이트리스트를 직접 주입(config 파일 비의존 단위 테스트)
 def _validator():
     return PermissionValidator(
-        user_ids={"user-jisoo", "user-minjun"},
+        user_ids={"user-joohwan", "user-minjun"},
         departments={"개발", "영업"},
         permissions={"기본", "인사", "개발", "전사"},
     )
@@ -11,9 +11,9 @@ def _validator():
 
 def test_valid_department_member_grant():
     v = _validator()
-    tup = v.validate({"action": "grant", "subject": "user:user-jisoo",
+    tup = v.validate({"action": "grant", "subject": "user:user-joohwan",
                       "relation": "member", "object": "department:개발"})
-    assert tup == ("user:user-jisoo", "member", "department:개발", "grant")
+    assert tup == ("user:user-joohwan", "member", "department:개발", "grant")
 
 
 def test_valid_holder_grant_to_user():
@@ -83,33 +83,33 @@ def test_reject_unknown_user():
 
 def test_reject_unknown_department():
     v = _validator()
-    assert v.validate({"action": "grant", "subject": "user:user-jisoo",
+    assert v.validate({"action": "grant", "subject": "user:user-joohwan",
                        "relation": "member", "object": "department:marketing"}) is None
 
 
 def test_reject_type_mismatch_member_to_folder():
     # member relation인데 object가 folder → 타입 정합 위반
     v = _validator()
-    assert v.validate({"action": "grant", "subject": "user:user-jisoo",
+    assert v.validate({"action": "grant", "subject": "user:user-joohwan",
                        "relation": "member", "object": "folder:/company"}) is None
 
 
 def test_reject_bad_action():
     v = _validator()
-    assert v.validate({"action": "delete_all", "subject": "user:user-jisoo",
+    assert v.validate({"action": "delete_all", "subject": "user:user-joohwan",
                        "relation": "member", "object": "department:개발"}) is None
 
 
 def test_reject_whitespace_injection():
     v = _validator()
-    assert v.validate({"action": "grant", "subject": "user:user-jisoo x",
+    assert v.validate({"action": "grant", "subject": "user:user-joohwan x",
                        "relation": "member", "object": "department:개발"}) is None
 
 
 def test_catalog_text_contains_known_ids():
     v = _validator()
     text = v.catalog_text()
-    assert "user-jisoo" in text and "개발" in text
+    assert "user-joohwan" in text and "개발" in text
 
 
 def test_reject_null_subject_no_crash():
@@ -121,7 +121,7 @@ def test_reject_null_subject_no_crash():
 
 def test_reject_null_relation_no_crash():
     v = _validator()
-    assert v.validate({"action": "grant", "subject": "user:user-jisoo",
+    assert v.validate({"action": "grant", "subject": "user:user-joohwan",
                        "relation": None, "object": "department:개발"}) is None
 
 
