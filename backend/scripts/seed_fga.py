@@ -52,11 +52,13 @@ _CAPABILITY_GRANTS = [
 _TABLE_GRANTS = [
     {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:employees"},
     {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:equipment"},
     {"user": "department:인사팀#member",  "relation": "dept_viewer", "object": "table:employees"},
     {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:employees"},
     {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:sales"},
     {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:employees"},
     {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:equipment"},
     {"user": "department:영업팀#member",  "relation": "dept_viewer", "object": "table:sales"},
     {"user": "department:제품팀#member",  "relation": "dept_viewer", "object": "table:sales"},
 ]
