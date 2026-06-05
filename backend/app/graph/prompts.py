@@ -84,7 +84,7 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 - "내 연차 며칠 남았어?" → agent:none:0.95 (개인 레코드 값 = DB)
 - "급여 인상 정책 알려줘" → doc_search:none:0.95 (방침 = 문서)
 - "영업이랑 개발 평균 급여 비교해줘" → agent:none:0.90 (테이블 집계 = DB)
-- "김지수를 개발 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "노주환를 개발 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
 - "재무 폴더 접근 권한을 회수해줘" → agent:none:0.95 (권한 변경 = 도구)
 - "뭘 도와줄 수 있어?" → capability:none:1.0
 - "어떤 기능 있어?" → capability:none:1.0
@@ -173,14 +173,14 @@ PERMISSION_PARSE_PROMPT = """\
 - "유저를 <부서>에 추가/소속" 처럼 부서 자체에 넣으라는 지시일 때만 relation="member".
 
 id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
-- 비격식 이름·영문 단명·표시명(예: "지수", "jisoo", "김지수")은 반드시 정식 user id("user-jisoo")로 바꾼다.
+- 비격식 이름·영문 단명·표시명(예: "지수", "joohwan", "노주환")은 반드시 정식 user id("user-joohwan")로 바꾼다.
 - 권한명은 부서 id와 같다(예: 인사·개발·재무·법무·영업·제품). "인사 문서/권한"은 permission:인사.
 - "추가/넣어/줘" → action "grant"; "제거/빼/회수" → action "revoke".
 - 어느 id인지 카탈로그에서 확정할 수 없으면 추측하지 말고 가장 가까운 식별자를 그대로 둔다(검증기가 거른다).
 
 예시:
-- "김지수를 개발 부서에 추가" →
-  {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}}
+- "노주환를 개발 부서에 추가" →
+  {{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}}
 - "이민준에게 인사 문서 열람 권한 줘" →
   {{"action":"grant","subject":"user:user-minjun","relation":"holder","object":"permission:인사"}}
 - "박서연 재무 권한 회수" →

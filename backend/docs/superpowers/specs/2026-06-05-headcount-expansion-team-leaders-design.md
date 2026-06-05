@@ -20,11 +20,11 @@
 
 기존 12개 계정 그대로 유지(admin 포함). 신규 18개 추가, 모두 단일 부서·`roles:[user]`.
 
-아래 "부서 총원"은 `employees.department` 기준 = **primary 부서**(`_primary_department` = `departments[0]`)다. 겸직자는 첫 부서 1곳에만 집계된다(junseo→개발, chaewon→영업, taeyang→인사). 그래서 SQL `GROUP BY department COUNT`가 이 표와 일치한다.
+아래 "부서 총원"은 `employees.department` 기준 = **primary 부서**(`_primary_department` = `departments[0]`)다. 겸직자는 첫 부서 1곳에만 집계된다(mido→개발, chaewon→영업, taeyang→인사). 그래서 SQL `GROUP BY department COUNT`가 이 표와 일치한다.
 
 | 부서(primary) | 기존 | 신규 | 총원 |
 |------|:--:|:--:|:--:|
-| 개발 | 2 (jisoo, junseo) | +4 | 6 |
+| 개발 | 2 (joohwan, mido) | +4 | 6 |
 | 제품 | 1 (dohyeon) | +3 | 4 |
 | 영업 | 2 (minho, chaewon) | +3 | 5 |
 | 인사 | 2 (minjun, taeyang) | +2 | 4 |
@@ -51,7 +51,7 @@
 | 8 | 영업 | 임은우 | eunwoo | eunwoo.lim@techcorp.example |
 | 9 | 영업 | 한유찬 | yuchan | yuchan.han@techcorp.example |
 | 10 | 영업 | 오선우 | sunwoo | sunwoo.oh@techcorp.example |
-| 11 | 인사 | 이수아 | sua | sua.lee@techcorp.example |
+| 11 | 인사 | 오대수 | daesu | daesu.oh@techcorp.example |
 | 12 | 인사 | 박지유 | jiyu | jiyu.park@techcorp.example |
 | 13 | 재무 | 정세린 | serin | serin.jung@techcorp.example |
 | 14 | 재무 | 최예린 | yerin | yerin.choi@techcorp.example |
@@ -68,7 +68,7 @@ username·display_name 모두 기존 12명과 충돌 없음(확인 완료).
 
 | 부서 | 팀장 | 상태 |
 |------|------|------|
-| 개발 | 김지수(jisoo) | 기존 유지 |
+| 개발 | 노주환(joohwan) | 기존 유지 |
 | 제품 | 최도현(dohyeon) | 신규 부여 |
 | 영업 | 강민호(minho) | 신규 부여 |
 | 인사 | 이민준(minjun) | 신규 부여 |
@@ -76,7 +76,7 @@ username·display_name 모두 기존 12명과 충돌 없음(확인 완료).
 | 법무 | 임수빈(subin) | 신규 부여 |
 | 디자인 | 정유진(yujin) | 신규 부여 |
 
-겸직자(junseo/chaewon/taeyang)는 부서 모호성 때문에 팀장 제외. 팀장 권한 의미는 ADR-0046/0051(자기 부서 멤버십 위임 + 자기 부서 보유 permission 배정).
+겸직자(mido/chaewon/taeyang)는 부서 모호성 때문에 팀장 제외. 팀장 권한 의미는 ADR-0046/0051(자기 부서 멤버십 위임 + 자기 부서 보유 permission 배정).
 
 ## 3. 변경 파일
 

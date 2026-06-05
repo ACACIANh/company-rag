@@ -257,7 +257,7 @@ async def test_caller_id_injected_into_plan():
     """tool_gate_node가 handler.plan() 호출 시 __caller_id를 args에 주입한다."""
     handler = _handler("SELECT 1", "select", text="ok", summary="ok")
     state = {
-        "user_id": "jisoo",
+        "user_id": "joohwan",
         "question": "q",
         "agent_messages": [_ai([{"name": "query_business_data", "args": {"question": "x"}, "id": "c1"}])],
     }
@@ -266,4 +266,4 @@ async def test_caller_id_injected_into_plan():
         fga_client=_fga([], ["영업"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
     )
     call_args = handler.plan.call_args[0][0]
-    assert call_args["__caller_id"] == "jisoo"
+    assert call_args["__caller_id"] == "joohwan"

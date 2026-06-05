@@ -79,13 +79,13 @@ def test_plan_preserves_filters():
     action, _ = h.plan({
         "__caller_id": "admin",
         "limit": 5,
-        "user_id": "jisoo",
+        "user_id": "joohwan",
         "decision": "DENY",
         "start_date": "2026-01-01",
         "end_date": "2026-06-04",
     })
     params = json.loads(action)
-    assert params["user_id"] == "jisoo"
+    assert params["user_id"] == "joohwan"
     assert params["decision"] == "DENY"
     assert params["start_date"] == "2026-01-01"
     assert params["end_date"] == "2026-06-04"
@@ -129,7 +129,7 @@ async def test_execute_admin_formats_rows():
     row = MagicMock()
     row.__getitem__ = lambda self, k: {
         "created_at": "2026-06-04 10:00:00+00",
-        "user_id": "jisoo",
+        "user_id": "joohwan",
         "department": "개발",
         "role": "c_level",
         "gate_decision": "DENY",
@@ -143,7 +143,7 @@ async def test_execute_admin_formats_rows():
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert "jisoo" in result.text
+    assert "joohwan" in result.text
     assert "DENY" in result.text
     assert "|" in result.text  # 마크다운 표 형식
     assert "개발" in result.text

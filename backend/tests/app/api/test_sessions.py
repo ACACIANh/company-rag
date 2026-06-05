@@ -7,7 +7,7 @@ from core.session.adapters.memory import InMemorySessionStore
 
 
 def _token(client: TestClient) -> str:
-    res = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"})
+    res = client.post("/auth/token", json={"username": "joohwan", "password": "joohwan123"})
     return res.json()["access_token"]
 
 
@@ -64,7 +64,7 @@ async def test_get_messages_404_for_other_user():
     app.state.session_store = store
 
     client = TestClient(app)
-    token = _token(client)  # 김지수
+    token = _token(client)  # 노주환
     res = client.get(
         "/sessions/other-session/messages",
         headers={"Authorization": f"Bearer {token}"},
@@ -98,7 +98,7 @@ async def test_delete_session_404_for_other_user():
     app.state.session_store = store
 
     client = TestClient(app)
-    token = _token(client)  # 김지수
+    token = _token(client)  # 노주환
     res = client.delete(
         "/sessions/other-session", headers={"Authorization": f"Bearer {token}"}
     )
@@ -109,7 +109,7 @@ async def test_get_messages_returns_stored_sources_as_is():
     """post-filter 제거 — 이력의 source는 그대로 반환된다 (권한 경계는 pre-filter 담당)."""
     from app.api.chat import app
     store = InMemorySessionStore()
-    await store.create_session("sess1", "user-jisoo", "질문")
+    await store.create_session("sess1", "user-joohwan", "질문")
     await store.add_message("sess1", "user", "질문입니다", [])
     await store.add_message(
         "sess1",

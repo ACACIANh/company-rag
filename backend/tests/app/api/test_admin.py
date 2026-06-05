@@ -10,7 +10,7 @@ def _admin_token(client: TestClient) -> str:
 
 def _user_token(client: TestClient) -> str:
     return client.post(
-        "/auth/token", json={"username": "jisoo", "password": "jisoo123"}
+        "/auth/token", json={"username": "joohwan", "password": "joohwan123"}
     ).json()["access_token"]
 
 

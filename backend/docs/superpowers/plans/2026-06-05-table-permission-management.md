@@ -165,7 +165,7 @@ git commit -m "feat(fga): type table dept_viewer 단일 relation으로 단순화
 
 def _table_validator():
     return PermissionValidator(
-        user_ids={"user-jisoo", "user-minjun"},
+        user_ids={"user-joohwan", "user-minjun"},
         departments={"개발팀", "영업팀"},
         folders={"/company"},
     )
@@ -186,11 +186,11 @@ def test_valid_table_dept_viewer_grant_to_user():
     v = _table_validator()
     tup = v.validate({
         "action": "grant",
-        "subject": "user:user-jisoo",
+        "subject": "user:user-joohwan",
         "relation": "dept_viewer",
         "object": "table:sales",
     })
-    assert tup == ("user:user-jisoo", "dept_viewer", "table:sales", "grant")
+    assert tup == ("user:user-joohwan", "dept_viewer", "table:sales", "grant")
 
 
 def test_valid_table_dept_viewer_revoke():
@@ -229,7 +229,7 @@ def test_reject_table_can_access_direct_grant():
     v = _table_validator()
     assert v.validate({
         "action": "grant",
-        "subject": "user:user-jisoo",
+        "subject": "user:user-joohwan",
         "relation": "can_access",
         "object": "table:employees",
     }) is None
@@ -353,7 +353,7 @@ async def test_user_accessible_tables_returns_permitted_only():
         return object_ == "table:employees" and relation == "dept_viewer"
 
     with patch.object(client, "check", side_effect=fake_check):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert result == ["employees"]
 
@@ -375,7 +375,7 @@ async def test_user_accessible_tables_all_permitted():
         return relation == "dept_viewer"
 
     with patch.object(client, "check", side_effect=fake_check):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert sorted(result) == ["employees", "sales"]
 
@@ -397,7 +397,7 @@ async def test_user_accessible_tables_none_permitted():
         return False
 
     with patch.object(client, "check", side_effect=fake_check):
-        result = await client.user_accessible_tables("user-jisoo")
+        result = await client.user_accessible_tables("user-joohwan")
 
     assert result == []
 ```
@@ -490,8 +490,8 @@ async def test_execute_query_includes_table_access():
     fga.get_readable_folders = AsyncMock(return_value=[])
     fga.user_accessible_tables = AsyncMock(return_value=["employees", "sales"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
-    fga.user_accessible_tables.assert_awaited_once_with("user-jisoo")
+    result = await agent.execute("query user-joohwan user-joohwan", "RISK_SELECT")
+    fga.user_accessible_tables.assert_awaited_once_with("user-joohwan")
     assert "employees" in result
 ```
 
@@ -567,8 +567,8 @@ async def test_execute_query_self_returns_snapshot():
     fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
     fga.user_accessible_tables = AsyncMock(return_value=["employees"])  # 추가
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
-    assert "user-jisoo" in result
+    result = await agent.execute("query user-joohwan user-joohwan", "RISK_SELECT")
+    assert "user-joohwan" in result
     assert "개발팀" in result
     assert "/engineering/specs" in result
     assert "SQL/관리 권한" in result

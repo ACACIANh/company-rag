@@ -203,7 +203,7 @@ git commit -m "feat(sql): SqlAgent.execute가 ToolResult 반환 (행수 요약)"
 - Modify: `backend/app/graph/tools/audit_history_tool.py` (execute 163-191, _format_rows 109-127, _clean_result 65-76 삭제)
 - Test: `backend/tests/app/graph/tools/test_audit_history_tool.py`
 
-> **기존 헬퍼/단언 (이미 파일에 존재):** `_fga(has_access=True)`, `_pool(rows=None)→(pool,conn)`, `_make(has_access=True, rows=None)→(agent, conn)`. 9번째 줄에서 `_clean_result`를 import하고, 164-183줄에 `_clean_result` 전용 테스트 4개가 있다 — 함수 삭제와 함께 **이 import와 테스트 4개를 제거**해야 한다. execute 단언들(`"권한 없음" in result`, `result == "(결과 없음)"`, `"jisoo" in result` 등)은 str 가정이라 갱신 대상.
+> **기존 헬퍼/단언 (이미 파일에 존재):** `_fga(has_access=True)`, `_pool(rows=None)→(pool,conn)`, `_make(has_access=True, rows=None)→(agent, conn)`. 9번째 줄에서 `_clean_result`를 import하고, 164-183줄에 `_clean_result` 전용 테스트 4개가 있다 — 함수 삭제와 함께 **이 import와 테스트 4개를 제거**해야 한다. execute 단언들(`"권한 없음" in result`, `result == "(결과 없음)"`, `"joohwan" in result` 등)은 str 가정이라 갱신 대상.
 
 - [ ] **Step 1: 실패 테스트 작성 + 기존 테스트 정리**
 
@@ -247,7 +247,7 @@ async def test_execute_returns_toolresult_with_count_summary():
 - `test_execute_empty_caller_id_denied`: `assert "권한 없음" in result` → `assert result.summary == "권한 없음"`
 - `test_execute_non_admin_denied`: `assert "권한 없음" in result` → `assert result.summary == "권한 없음"`
 - `test_execute_admin_empty_result`: `assert result == "(결과 없음)"` → `assert result.text == "(결과 없음)"` (이어서 `assert result.summary == "감사이력 0건 조회"` 추가)
-- `test_execute_admin_formats_rows`: `"jisoo"/"DENY"/"|"/"개발"/"c_level" in result` → 모두 `in result.text`
+- `test_execute_admin_formats_rows`: `"joohwan"/"DENY"/"|"/"개발"/"c_level" in result` → 모두 `in result.text`
 
 - [ ] **Step 2: 실패 확인**
 
@@ -330,7 +330,7 @@ git commit -m "feat(audit): AuditAgent.execute가 ToolResult 반환, _clean_resu
 - Modify: `backend/app/graph/tools/permission_tool.py:78-114`
 - Test: `backend/tests/app/graph/tools/test_permission_tool.py`
 
-> **기존 헬퍼/단언 (이미 파일에 존재):** `_validator()`, `_llm(reply)`. execute 테스트 3개(`test_execute_grant_calls_grant_tuple` 88줄, `test_execute_revoke_calls_revoke_tuple` 98줄, `test_execute_query_self_returns_snapshot` 107줄)가 `assert "완료" in result`, `assert "user-jisoo" in result` 등 str로 단언 → str→`.text` 갱신 대상.
+> **기존 헬퍼/단언 (이미 파일에 존재):** `_validator()`, `_llm(reply)`. execute 테스트 3개(`test_execute_grant_calls_grant_tuple` 88줄, `test_execute_revoke_calls_revoke_tuple` 98줄, `test_execute_query_self_returns_snapshot` 107줄)가 `assert "완료" in result`, `assert "user-joohwan" in result` 등 str로 단언 → str→`.text` 갱신 대상.
 
 - [ ] **Step 1: 실패 테스트 작성 + 기존 단언 갱신**
 
@@ -339,12 +339,12 @@ git commit -m "feat(audit): AuditAgent.execute가 ToolResult 반환, _clean_resu
 (1-2) 기존 execute 테스트의 str 단언을 `.text`/`.summary`로 갱신:
 - `test_execute_grant_calls_grant_tuple`: `assert "완료" in result` → 다음 2줄로 교체
   ```python
-  assert result.text == "완료: grant user:user-jisoo member department:개발"
-  assert result.summary == "완료: grant user:user-jisoo member department:개발"
+  assert result.text == "완료: grant user:user-joohwan member department:개발"
+  assert result.summary == "완료: grant user:user-joohwan member department:개발"
   ```
-- `test_execute_query_self_returns_snapshot`: `"user-jisoo"/"개발"/"/engineering/specs"/"SQL/관리 권한" in result` → 모두 `in result.text`. 이어서 한 줄 추가:
+- `test_execute_query_self_returns_snapshot`: `"user-joohwan"/"개발"/"/engineering/specs"/"SQL/관리 권한" in result` → 모두 `in result.text`. 이어서 한 줄 추가:
   ```python
-  assert result.summary == "권한 스냅샷 조회(user-jisoo)"
+  assert result.summary == "권한 스냅샷 조회(user-joohwan)"
   ```
 
 (1-3) 신규 테스트 추가(스냅샷 요약·grant 요약은 위에서 커버됨 — ToolResult 타입만 한 줄로 추가 확인):
