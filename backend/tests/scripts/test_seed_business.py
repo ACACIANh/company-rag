@@ -102,6 +102,12 @@ def test_grant_rw_sql_grants_select_update_delete_only():
     assert "statement_timeout" in sql                              # timeout 방어는 유지
 
 
+def test_catalog_positions_includes_team_lead():
+    assert "팀장" in catalog.POSITIONS
+    # position 값 힌트(NL→SQL)에 팀장이 노출되어야 한다
+    assert "팀장" in catalog.CATEGORICAL_VALUES["business.employees.position"]
+
+
 # ── catalog equipment constants ─────────────────────────────────────
 def test_catalog_has_equipment_categories():
     assert "노트북" in catalog.EQUIPMENT_CATEGORIES

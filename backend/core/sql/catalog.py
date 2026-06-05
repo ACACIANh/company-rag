@@ -24,7 +24,7 @@ DEPARTMENTS = [
 ]
 
 # 직급 리터럴
-POSITIONS = ["CTO", "팀원"]
+POSITIONS = ["CTO", "팀원", "팀장"]
 
 # 장비 카테고리 / 상태
 EQUIPMENT_CATEGORIES = ["노트북", "모니터", "서버", "기타"]
