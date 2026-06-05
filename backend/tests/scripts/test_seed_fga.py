@@ -55,16 +55,16 @@ def test_no_dept_admin_of_emits_no_admin_tuple():
 def test_table_grants_present():
     tuples = _build_tuples([], {})
     # c_level은 전 테이블, 인사팀은 employees, 영업팀은 sales.
-    assert _find(tuples, user="role:c_level#member", relation="can_access", object="table:employees")
-    assert _find(tuples, user="role:c_level#member", relation="can_access", object="table:sales")
-    assert _find(tuples, user="department:인사팀#member", relation="can_access", object="table:employees")
-    assert _find(tuples, user="department:영업팀#member", relation="can_access", object="table:sales")
+    assert _find(tuples, user="role:c_level#member", relation="dept_viewer", object="table:employees")
+    assert _find(tuples, user="role:c_level#member", relation="dept_viewer", object="table:sales")
+    assert _find(tuples, user="department:인사팀#member", relation="dept_viewer", object="table:employees")
+    assert _find(tuples, user="department:영업팀#member", relation="dept_viewer", object="table:sales")
 
 
 def test_table_grants_respect_boundary():
     tuples = _build_tuples([], {})
     # 영업팀은 employees(PII) 접근권 없음 — 부서별 경계.
-    assert not _find(tuples, user="department:영업팀#member", relation="can_access", object="table:employees")
+    assert not _find(tuples, user="department:영업팀#member", relation="dept_viewer", object="table:employees")
 
 
 # ── 폴더 권한 튜플 ──────────────────────────────────────────
