@@ -93,9 +93,10 @@ class PermissionAgent:
                 roles = await self._fga.user_roles(target)
                 folders = await self._fga.get_readable_folders(target)
                 capabilities = await _resolve_capabilities(self._fga.check, target)
+                tables = await self._fga.user_accessible_tables(target)
             except Exception as exc:
                 return f"권한 조회 오류: {type(exc).__name__}"
-            return _format_permission_snapshot(target, departments, roles, folders, capabilities)
+            return _format_permission_snapshot(target, departments, roles, folders, capabilities, tables)
 
         parts = planned_action.split(" ")
         if len(parts) != 4:
@@ -168,39 +169,45 @@ async def _resolve_capabilities(check, user_id: str) -> list[tuple[str, str]]:
 
 
 def _format_permission_snapshot(
-    uid: str, departments: list, roles: list, folders: list, capabilities: list
+    uid: str,
+    departments: list,
+    roles: list,
+    folders: list,
+    capabilities: list,
+    tables: list | None = None,
 ) -> str:
-    dept_text = ", ".join(departments) if departments else "없음"
-    role_text = " ".join(f"`{r}`" for r in roles) if roles else "없음"
+    dept_text = ", ".join(departments) if departments else "(없음)"
+    role_text = ", ".join(roles) if roles else "(없음)"
 
-    lines: list[str] = [
-        "## 권한 스냅샷",
-        "",
-        "| 항목 | 값 |",
-        "|------|-----|",
-        f"| 사용자 | `{uid}` |",
-        f"| 역할 | {role_text} |",
-        f"| 소속 부서 | {dept_text} |",
-        "",
-    ]
-
-    lines.append(f"### 접근 가능 폴더 ({len(folders)}개)" if folders else "### 접근 가능 폴더")
-    lines.append("")
     if folders:
-        for f in folders:
-            lines.append(f"- `{f}`")
+        folder_lines = "\n".join(f"- {f}" for f in folders)
     else:
-        lines.append("없음")
-    lines.append("")
+        folder_lines = "(없음)"
 
-    lines.extend([
-        "### SQL/관리 권한",
-        "",
-        "| 작업 | 허용 여부 |",
-        "|------|----------|",
-    ])
-    for label, decision in capabilities:
-        emoji = _LABEL_EMOJI.get(decision, "")
-        lines.append(f"| {label} | {emoji} {decision} |".rstrip())
+    if tables:
+        table_text = ", ".join(tables)
+    else:
+        table_text = "(없음)"
 
-    return "\n".join(lines)
+    decision_icon = {
+        "즉시 허용": "✅",
+        "사유 기재 후 허용": "⚠️",
+        "불가": "❌",
+    }
+    cap_rows = "\n".join(
+        f"| {label} | {decision_icon.get(decision, '')} {decision} |"
+        for label, decision in capabilities
+    )
+
+    return (
+        f"## 권한 스냅샷\n\n"
+        f"**사용자**: {uid}\n"
+        f"**소속 부서**: {dept_text}\n"
+        f"**역할(role)**: {role_text}\n\n"
+        f"### 접근 가능 폴더\n{folder_lines}\n\n"
+        f"### 접근 가능 테이블\n{table_text}\n\n"
+        f"### SQL/관리 권한\n"
+        f"| 작업 | 허용 여부 |\n"
+        f"|------|----------|\n"
+        f"{cap_rows}"
+    )
