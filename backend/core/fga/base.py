@@ -12,3 +12,8 @@ class PermissionCacheBackend(ABC):
 
     @abstractmethod
     async def invalidate(self, user_id: str) -> None: ...
+
+    @abstractmethod
+    async def clear_all(self) -> None:
+        """캐시 전체 비우기 — 집합 권한 변경 시 멤버 무효화가 부분 실패하면 fail-closed 폴백으로 사용."""
+        ...

@@ -55,6 +55,8 @@
 | [0050](ADR-0050-table-dept-viewer-model.md) | type table dept_viewer 단일 relation 모델 | 🟢 적용완료 |
 | [0051](ADR-0051-permission-node-separation.md) | permission 1급 노드 분리 — 권한↔부서 분리 | 🟢 적용완료 |
 | [0052](ADR-0052-tool-result-audit-summary-separation.md) | 도구 결과/감사요약 분리 — ToolResult 값 객체 | 🟢 적용완료 |
+| [0053](ADR-0053-hallucination-retry-grounding-correction.md) | Self-RAG hallucination 재시도 — grounding 교정 주입 | 🟢 적용완료 |
+| [0054](ADR-0054-set-subject-cache-invalidation.md) | 집합 subject 권한 변경 시 폴더 캐시 무효화 (TTU 파급) | 🟢 적용완료 |
 
 ## 상태 범례
 

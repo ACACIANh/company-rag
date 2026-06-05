@@ -38,6 +38,57 @@ class FGAClient:
         prefix = "user:"
         return subject[len(prefix):] if subject.startswith(prefix) else subject
 
+    async def _list_userset_member_ids(self, userset_object: str) -> list[str]:
+        """userset_object(예: department:인사 또는 role:c_level)의 member user id(bare) 목록.
+
+        Read(object=userset_object, relation=member)로 멤버 튜플을 페이지네이션 조회한다 —
+        집합 권한 변경 시 멤버 전원의 폴더 캐시를 무효화하는 데 쓴다."""
+        from openfga_sdk import OpenFgaClient, ReadRequestTupleKey
+        cfg = self._client_config()
+        prefix = "user:"
+        out: list[str] = []
+        async with OpenFgaClient(cfg) as client:
+            token = None
+            while True:
+                options: dict = {"page_size": 100}
+                if token:
+                    options["continuation_token"] = token
+                resp = await client.read(
+                    ReadRequestTupleKey(relation="member", object=userset_object),
+                    options=options,
+                )
+                for t in resp.tuples or []:
+                    u = t.key.user
+                    out.append(u[len(prefix):] if u.startswith(prefix) else u)
+                token = resp.continuation_token
+                if not token:
+                    break
+        return out
+
+    async def _invalidate_subject_cache(self, subject: str) -> None:
+        """권한 변경(grant/revoke) 후 영향받는 폴더 캐시를 무효화한다(ADR-0054).
+
+        개별 user subject(user:X)면 본인 캐시만. 집합 subject(X#member, 예: department:D#member·
+        role:R#member)면 TTU로 멤버 전원의 실효 폴더 권한이 바뀌므로(department holder 경유 또는
+        role super_reader 경유 — model.fga) 멤버 전원의 캐시를 무효화한다. 무효화 누락 시 revoke된
+        폴더가 TTL까지 RAG pre-filter에 노출되므로, 멤버 열거/무효화가 실패하면 보수적으로 캐시
+        전체를 flush한다(fail-closed; grant 측은 under-permission이라 무해)."""
+        if subject.endswith("#member"):
+            userset_object = subject[: -len("#member")]  # department:인사 / role:c_level
+            try:
+                members = await self._list_userset_member_ids(userset_object)
+                for member_id in members:
+                    await self._cache.invalidate(member_id)
+            except Exception:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "집합 subject(%s) 멤버 캐시 무효화 실패 — 캐시 전체 flush(fail-closed)",
+                    subject, exc_info=True,
+                )
+                await self._cache.clear_all()
+            return
+        await self._cache.invalidate(self._cache_key_for(subject))
+
     # ── 순수 함수 ────────────────────────────────────────────
     def build_pg_filter(self, allowed_folders: list[str]) -> tuple[str, list]:
         """allowed_folders(ListObjects가 상속까지 푼 가시 폴더 목록) → path 정확 매칭 WHERE절.
@@ -176,7 +227,7 @@ class FGAClient:
         await self._write_fga_tuples([
             {"user": subject, "relation": relation, "object": object_}
         ])
-        await self._cache.invalidate(self._cache_key_for(subject))
+        await self._invalidate_subject_cache(subject)
 
     async def revoke_tuple(self, subject: str, relation: str, object_: str) -> None:
         """범용 권한 회수(ADR-0029). 멱등(없는 튜플 삭제는 무시)."""
@@ -191,7 +242,7 @@ class FGAClient:
             except Exception as e:
                 if not self._is_idempotent_fga_error(e):
                     raise
-        await self._cache.invalidate(self._cache_key_for(subject))
+        await self._invalidate_subject_cache(subject)
 
     async def add_department_member(self, user_id: str, department_id: str) -> None:
         await self._write_fga_tuples([

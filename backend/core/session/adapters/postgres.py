@@ -1,10 +1,13 @@
 import dataclasses
 import json
+import logging
 
 import asyncpg
 
 from core.models import SourceRef
 from core.session.base import SessionMeta, SessionStore, StoredMessage
+
+logger = logging.getLogger(__name__)
 
 
 def _to_source_ref(item) -> SourceRef:
@@ -102,7 +105,11 @@ class PostgresSessionStore(SessionStore):
                 """, thread_id, role, content,
                     json.dumps([dataclasses.asdict(s) for s in sources]))
             except asyncpg.ForeignKeyViolationError:
-                pass
+                # 세션 삭제 레이스 방어(설계 의도: docs/superpowers/specs/2026-05-26-session-isolation-postgres-design.md).
+                # 동작은 noop 유지하되, 미래 회귀로 인한 silent 유실과 구분되도록 가시성만 남긴다.
+                logger.warning(
+                    "add_message: thread_id=%r 가 없어 메시지를 버립니다(FK 위반, noop)", thread_id
+                )
 
     async def delete_session(self, thread_id: str, user_id: str) -> None:
         async with self._pool.acquire() as conn:

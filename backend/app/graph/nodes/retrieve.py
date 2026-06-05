@@ -3,7 +3,6 @@ import asyncio
 from core.fga.client import FGAClient
 from core.models import SearchResult
 from core.reranker.base import Reranker
-from core.reranker.noop_reranker import NoOpReranker
 from core.retriever.base import Retriever
 
 
@@ -50,6 +49,10 @@ async def retrieve_node(
             primary_query, top_k=retrieve_top_k, where_clause=where_clause, params=params
         )
 
-    _reranker = reranker or NoOpReranker()
-    reranked = _reranker.rerank(primary_query, results, top_k=top_k)
+    # 기본 구현체 선택은 합성 루트(builder)의 책임 — 노드는 core 구현체를 직접 참조하지 않는다.
+    # reranker 미주입이면 reranking 없이 상위 top_k만 순서 보존(NoOpReranker와 동일).
+    if reranker is not None:
+        reranked = reranker.rerank(primary_query, results, top_k=top_k)
+    else:
+        reranked = list(results[:top_k])
     return {"documents": reranked}

@@ -53,3 +53,7 @@ class PostgresCacheBackend(PermissionCacheBackend):
             await conn.execute(
                 "DELETE FROM fga_permission_cache WHERE user_id = $1", user_id
             )
+
+    async def clear_all(self) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute("DELETE FROM fga_permission_cache")
