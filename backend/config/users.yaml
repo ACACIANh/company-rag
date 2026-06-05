@@ -19,6 +19,7 @@ users:
     user_id: user-minjun
     roles: [user]
     departments: [인사]
+    dept_admin_of: [인사]   # 부서 팀장 (ADR-0046/0051)
     display_name: 이민준
     email: minjun.lee@techcorp.example
   - username: seoyeon
@@ -33,6 +34,7 @@ users:
     user_id: user-dohyeon
     roles: [user]
     departments: [제품]
+    dept_admin_of: [제품]   # 부서 팀장 (ADR-0046/0051)
     display_name: 최도현
     email: dohyeon.choi@techcorp.example
   - username: yujin
@@ -40,6 +42,7 @@ users:
     user_id: user-yujin
     roles: [user]
     departments: [디자인]
+    dept_admin_of: [디자인]   # 부서 팀장 (ADR-0046/0051)
     display_name: 정유진
     email: yujin.jung@techcorp.example
   - username: minho
@@ -47,6 +50,7 @@ users:
     user_id: user-minho
     roles: [user]
     departments: [영업]
+    dept_admin_of: [영업]   # 부서 팀장 (ADR-0046/0051)
     display_name: 강민호
     email: minho.kang@techcorp.example
   - username: jiyoung
@@ -54,6 +58,7 @@ users:
     user_id: user-jiyoung
     roles: [user]
     departments: [재무]
+    dept_admin_of: [재무]   # 부서 팀장 (ADR-0046/0051)
     display_name: 윤지영
     email: jiyoung.yoon@techcorp.example
   - username: subin
@@ -61,6 +66,7 @@ users:
     user_id: user-subin
     roles: [user]
     departments: [법무]
+    dept_admin_of: [법무]   # 부서 팀장 (ADR-0046/0051)
     display_name: 임수빈
     email: subin.lim@techcorp.example
   - username: junseo
@@ -84,3 +90,129 @@ users:
     departments: [인사, 법무]
     display_name: 신태양
     email: taeyang.shin@techcorp.example
+  - username: dowoon
+    password: dowoon123
+    user_id: user-dowoon
+    roles: [user]
+    departments: [개발]
+    display_name: 김도윤
+    email: dowoon.kim@techcorp.example
+  - username: seojin
+    password: seojin123
+    user_id: user-seojin
+    roles: [user]
+    departments: [개발]
+    display_name: 이서진
+    email: seojin.lee@techcorp.example
+  - username: hajun
+    password: hajun123
+    user_id: user-hajun
+    roles: [user]
+    departments: [개발]
+    display_name: 박하준
+    email: hajun.park@techcorp.example
+  - username: siwoo
+    password: siwoo123
+    user_id: user-siwoo
+    roles: [user]
+    departments: [개발]
+    display_name: 정시우
+    email: siwoo.jung@techcorp.example
+  - username: yejun
+    password: yejun123
+    user_id: user-yejun
+    roles: [user]
+    departments: [제품]
+    display_name: 최예준
+    email: yejun.choi@techcorp.example
+  - username: juwon
+    password: juwon123
+    user_id: user-juwon
+    roles: [user]
+    departments: [제품]
+    display_name: 강주원
+    email: juwon.kang@techcorp.example
+  - username: jiho
+    password: jiho123
+    user_id: user-jiho
+    roles: [user]
+    departments: [제품]
+    display_name: 윤지호
+    email: jiho.yoon@techcorp.example
+  - username: eunwoo
+    password: eunwoo123
+    user_id: user-eunwoo
+    roles: [user]
+    departments: [영업]
+    display_name: 임은우
+    email: eunwoo.lim@techcorp.example
+  - username: yuchan
+    password: yuchan123
+    user_id: user-yuchan
+    roles: [user]
+    departments: [영업]
+    display_name: 한유찬
+    email: yuchan.han@techcorp.example
+  - username: sunwoo
+    password: sunwoo123
+    user_id: user-sunwoo
+    roles: [user]
+    departments: [영업]
+    display_name: 오선우
+    email: sunwoo.oh@techcorp.example
+  - username: sua
+    password: sua123
+    user_id: user-sua
+    roles: [user]
+    departments: [인사]
+    display_name: 이수아
+    email: sua.lee@techcorp.example
+  - username: jiyu
+    password: jiyu123
+    user_id: user-jiyu
+    roles: [user]
+    departments: [인사]
+    display_name: 박지유
+    email: jiyu.park@techcorp.example
+  - username: serin
+    password: serin123
+    user_id: user-serin
+    roles: [user]
+    departments: [재무]
+    display_name: 정세린
+    email: serin.jung@techcorp.example
+  - username: yerin
+    password: yerin123
+    user_id: user-yerin
+    roles: [user]
+    departments: [재무]
+    display_name: 최예린
+    email: yerin.choi@techcorp.example
+  - username: minseo
+    password: minseo123
+    user_id: user-minseo
+    roles: [user]
+    departments: [법무]
+    display_name: 강민서
+    email: minseo.kang@techcorp.example
+  - username: chaeeun
+    password: chaeeun123
+    user_id: user-chaeeun
+    roles: [user]
+    departments: [법무]
+    display_name: 윤채은
+    email: chaeeun.yoon@techcorp.example
+  - username: jian
+    password: jian123
+    user_id: user-jian
+    roles: [user]
+    departments: [디자인]
+    display_name: 신지안
+    email: jian.shin@techcorp.example
+  - username: harin
+    password: harin123
+    user_id: user-harin
+    roles: [user]
+    departments: [디자인]
+    display_name: 김하린
+    email: harin.kim@techcorp.example
