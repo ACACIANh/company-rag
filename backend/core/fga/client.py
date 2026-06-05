@@ -91,7 +91,7 @@ class FGAClient:
         _KNOWN_TABLES 각각에 대해 check를 호출하므로 N회 FGA round-trip 발생.
         테이블 수가 적어(현재 3개) 성능 문제 없음.
         """
-        from core.fga.permission_validator import _KNOWN_TABLES
+        _KNOWN_TABLES = {"employees", "sales", "equipment"}
         result = []
         for table in sorted(_KNOWN_TABLES):
             if await self.check(f"user:{user_id}", "dept_viewer", f"table:{table}"):

@@ -15,7 +15,7 @@ from core.sql.risk import RISK_DENY
 
 def _validator():
     return PermissionValidator(
-        user_ids={"user-jisoo"}, departments={"개발팀"}, folders={"/company"}
+        user_ids={"user-jisoo"}, departments={"개발팀"}, permissions={"기본"}
     )
 
 
