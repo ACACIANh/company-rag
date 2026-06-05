@@ -73,7 +73,7 @@ users:
     password: mido123
     user_id: user-mido
     roles: [user]
-    departments: [개발, 제품]
+    departments: [제품]   # 데모 ⑬~⑮: 개발팀 미소속 → 노주환이 추가 → before/after 비교
     display_name: 미도
     email: mido@techcorp.example
   - username: chaewon
