@@ -10,15 +10,22 @@ type role
 type department
   relations
     define member: [user]
-    define admin: [user]           # 부서 관리자 — 자기 부서 멤버십 위임 (ADR-0046)
+    define admin: [user]           # 부서 관리자 — 자기 부서 멤버십·permission 배정 위임 (ADR-0051)
+
+# 권한 묶음(ADR-0051). holder = 이 권한을 가진 주체(개인·전직원·부서·역할).
+# folder/table/capability가 gated_by/holder로 이 노드를 경유해 권한 주체를 부서에서 분리한다.
+type permission
+  relations
+    define holder: [user, user:*, department#member, role#member]
 
 type folder
   relations
     define parent: [folder]
 
-    # 부서 명시 권한 (private 폴더에 복수 부여 가능)
-    define dept_viewer: [department#member]
-    define dept_access: dept_viewer or dept_access from parent
+    # 명시 권한 — permission 경유(구 명시 부여 축). holder from gated_by(TTU).
+    define gated_by: [permission]
+    define viewer: holder from gated_by
+    define access: viewer or access from parent
 
     # 전 직원 공개 (루트 user:* → 상속)
     define public_viewer: [user:*]
@@ -30,23 +37,22 @@ type folder
     # 전사 상위 열람권 (private도 뚫음, 루트에 부여하면 서브트리 상속)
     define super_reader: [role#member] or super_reader from parent
 
-    define can_read: super_reader or dept_access or (public_access but not private_flag)
+    define can_read: super_reader or access or (public_access but not private_flag)
 
 type capability
   relations
-    # SQL 권한(매트릭스 정리): 단순 SELECT만 allow_*(즉시 허용) 유지,
-    # 그 외 모든 위험군은 justify_*(사유 기재·이력) 전용. allow_* relation 자체를 두지 않는다.
-    define allow_select:          [user:*, department#member, role#member]
-    define justify_select:        [user:*, department#member, role#member]
-    define justify_bulk_select:   [user:*, department#member, role#member]
-    define justify_update_delete: [user, department#member, role#member]
-    define justify_ddl:           [user, department#member, role#member]
-    # 권한 관리(ADR-0029): capability:admin 인스턴스가 사용 — grant는 항상 사유 기재(justify_grant 전용)
+    # SQL 권한 — 전부 permission 경유(ADR-0051). 단순 SELECT만 allow_*(즉시),
+    # 그 외 위험군은 justify_*(사유 기재). 주체는 permission#holder 단일.
+    define allow_select:          [permission#holder]
+    define justify_select:        [permission#holder]
+    define justify_bulk_select:   [permission#holder]
+    define justify_update_delete: [permission#holder]
+    define justify_ddl:           [permission#holder]
+    # 권한 관리(메타권한, ADR-0029)는 permission 비포함 — 역할·부서 직접.
     define justify_grant:         [user, department#member, role#member]
 
-# 업무 DB 테이블 단위 접근권 (ADR-0047). table:employees / table:sales 인스턴스가 사용.
-# 위험도 게이트(capability:sql)와 직교 — "어느 테이블이냐"만 본다.
-# dept_viewer: 폴더와 동형 — user·부서·역할 모두 grant 가능. can_access 레이어 없음.
+# 업무 DB 테이블 단위 접근권 (ADR-0050→0051). permission 경유로 폴더와 동형.
 type table
   relations
-    define dept_viewer: [user, department#member, role#member]
+    define gated_by: [permission]
+    define viewer: holder from gated_by
