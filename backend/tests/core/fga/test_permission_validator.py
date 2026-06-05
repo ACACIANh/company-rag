@@ -184,3 +184,85 @@ def test_validate_capability_grant_informal_user_subject():
     tup = v.validate({"action": "grant", "subject": "alice",
                       "relation": "justify_update_delete", "object": "capability:sql"})
     assert tup == ("user:user-alice", "justify_update_delete", "capability:sql", "grant")
+
+
+# ── 테이블 dept_viewer 케이스 (ADR-0047, dept_viewer 단일 relation) ──────────────
+
+def _table_validator():
+    return PermissionValidator(
+        user_ids={"user-jisoo", "user-minjun"},
+        departments={"개발팀", "영업팀"},
+        folders={"/company"},
+    )
+
+
+def test_valid_table_dept_viewer_grant_to_department():
+    v = _table_validator()
+    tup = v.validate({
+        "action": "grant",
+        "subject": "department:개발팀#member",
+        "relation": "dept_viewer",
+        "object": "table:employees",
+    })
+    assert tup == ("department:개발팀#member", "dept_viewer", "table:employees", "grant")
+
+
+def test_valid_table_dept_viewer_grant_to_user():
+    v = _table_validator()
+    tup = v.validate({
+        "action": "grant",
+        "subject": "user:user-jisoo",
+        "relation": "dept_viewer",
+        "object": "table:sales",
+    })
+    assert tup == ("user:user-jisoo", "dept_viewer", "table:sales", "grant")
+
+
+def test_valid_table_dept_viewer_revoke():
+    v = _table_validator()
+    tup = v.validate({
+        "action": "revoke",
+        "subject": "department:영업팀#member",
+        "relation": "dept_viewer",
+        "object": "table:sales",
+    })
+    assert tup == ("department:영업팀#member", "dept_viewer", "table:sales", "revoke")
+
+
+def test_reject_table_dept_viewer_unknown_table():
+    v = _table_validator()
+    assert v.validate({
+        "action": "grant",
+        "subject": "department:개발팀#member",
+        "relation": "dept_viewer",
+        "object": "table:secret_data",
+    }) is None
+
+
+def test_reject_table_dept_viewer_unknown_department():
+    v = _table_validator()
+    assert v.validate({
+        "action": "grant",
+        "subject": "department:마케팅팀#member",
+        "relation": "dept_viewer",
+        "object": "table:employees",
+    }) is None
+
+
+def test_reject_table_can_access_direct_grant():
+    # can_access는 더 이상 grant 대상이 아님 — dept_viewer만 허용
+    v = _table_validator()
+    assert v.validate({
+        "action": "grant",
+        "subject": "user:user-jisoo",
+        "relation": "can_access",
+        "object": "table:employees",
+    }) is None
+
+
+def test_catalog_text_contains_table_names():
+    v = _table_validator()
+    text = v.catalog_text()
+    assert "employees" in text
+    assert "sales" in text
+    assert "테이블" in text
