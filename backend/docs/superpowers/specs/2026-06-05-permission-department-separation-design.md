@@ -37,15 +37,15 @@
 기존 `department#member`를 각 리소스 relation에 **직접 주입**하던 구조를, **`permission#holder`를 한 단계 경유**하도록 바꾼다.
 
 ```
-permission:인사  ──holder──  department:인사팀#member   (부서는 기본 탑재)
-                 └─holder──  user:민준                  (개인 직접 — 부서 무관)
+permission:인사팀  ──holder──  department:인사팀#member   (부서는 기본 탑재)
+                   └─holder──  user:민준                  (개인 직접 — 부서 무관)
        │
        ├─ gates ─→ folder:/company/hr      (문서)
        ├─ gates ─→ table:employees         (테이블)
        └─ (holder) ─→ capability:sql        (연관 SQL 등급)
 ```
 
-`holder: [user, department#member]` 한 줄이 **부서 경로(기존)와 개인 경로(신규)를 동시에** 보장한다. 민준은 인사팀 멤버가 아니어도 `permission:인사`만 has로 가지면 인사 묶음 전체에 접근한다.
+`holder: [user, user:*, department#member, role#member]` 한 줄이 **부서·개인·전직원·역할 경로를 동시에** 보장한다. 민준은 인사팀 멤버가 아니어도 `permission:인사팀`만 has로 가지면 인사 묶음 전체에 접근한다. permission 이름은 부서명과 통일하고(`permission:인사팀` = `department:인사팀`), 비-부서 묶음만 `기본`(전 직원)·`전사`(c_level)로 둔다.
 
 ### 3.1 모델 변경 (`fga/model.fga` + `model.json`)
 
@@ -53,7 +53,7 @@ permission:인사  ──holder──  department:인사팀#member   (부서는 
 ```
 type permission
   relations
-    define holder: [user, department#member]
+    define holder: [user, user:*, department#member, role#member]
 ```
 
 folder — `dept_viewer`/`dept_access`를 **개명**(§5)하고 permission 경유 TTU로 전환:
@@ -79,60 +79,68 @@ type table
     define viewer: holder from gated_by                  # (구 dept_viewer)
 ```
 
-capability — relation 주체에 `permission#holder` 추가(부서특화 SQL을 permission 묶음에 포함):
+capability — 모든 SQL 권한을 permission 경유로 통일. 메타권한 `justify_grant`만 예외(권한관리는 역할·부서 직접 유지):
 ```
 type capability
   relations
-    define allow_select:          [user:*, department#member, role#member, permission#holder]
-    define justify_select:        [user:*, department#member, role#member, permission#holder]
-    define justify_bulk_select:   [user:*, department#member, role#member, permission#holder]
-    define justify_update_delete: [user, department#member, role#member, permission#holder]
-    define justify_ddl:           [user, department#member, role#member, permission#holder]
-    define justify_grant:         [user, department#member, role#member]   # 메타권한 — permission 비포함
+    define allow_select:          [permission#holder]
+    define justify_select:        [permission#holder]
+    define justify_bulk_select:   [permission#holder]
+    define justify_update_delete: [permission#holder]
+    define justify_ddl:           [permission#holder]
+    define justify_grant:         [user, department#member, role#member]   # 메타권한 — permission 비포함(권한관리)
 ```
 
 > **`can_read` 합성식·검색 코드 불변**: 주체가 부서든 permission이든 `ListObjects(user:X, can_read, folder)`는 동일하게 동작한다. FGA가 `user → permission#holder → gated_by → folder` 체인을 내부 해소한다. `retrieve.py`/`gate.py`/`client.py` 호출 시그니처는 손대지 않는다.
 
 ### 3.2 시드 / 데이터 (`scripts/seed_fga.py`, `config/`)
 
-권한 정의를 SSOT로 분리한다. **`config/permissions.yaml` 신설**:
+권한 정의를 SSOT로 분리한다. **permission 이름은 부서명과 통일**(`permission:인사팀` = `department:인사팀`). 비-부서 묶음은 `기본`(전 직원)·`전사`(c_level). **`config/permissions.yaml` 신설**:
 ```yaml
 permissions:
-  인사:
+  기본:                               # 전 직원 — holder: user:*
+    sql:     [allow_select, justify_bulk_select]
+  인사팀:
     folders: [/company/hr]
     tables:  [employees]
-    sql:     []                       # 전역 기본(allow_select 등)만 — 부서특화 없음
-  재무:
+  재무팀:
     folders: [/company/finance]
     tables:  [employees, sales]
-  개발:
+  개발팀:
     folders: [/company/engineering/ops]
     tables:  [employees, sales, equipment]
     sql:     [justify_update_delete]  # 개발팀 특화 (기존 _CAPABILITY_GRANTS)
-  영업:
+  영업팀:
     tables:  [sales]
-  제품:
+  제품팀:
     tables:  [sales]
-  법무:
+  법무팀:
     folders: [/company/legal]
+  전사:                               # c_level — holder: role:c_level#member
+    tables:  [employees, sales, equipment]
+    sql:     [justify_update_delete]
   # 묶음 단위 = 부서 1:1 승계(기존 동작 무손실). 세밀 권한은 여기에 새 항목으로 추가.
+  # 폴더 전사열람은 super_reader(role) 유지 — permission:전사는 테이블·SQL만 담당.
 ```
 
-부서→permission holder 배정(부서별 1:1):
+holder 배정:
 ```
-permission:인사 holder department:인사팀#member
-permission:재무 holder department:재무팀#member
+permission:기본    holder user:*                     # 전 직원
+permission:인사팀  holder department:인사팀#member    # 부서 1:1
+permission:전사    holder role:c_level#member         # c_level
 ...
 ```
 
 `_build_tuples`가 생성하는 튜플 형태 변화:
 - (구) `department:인사팀#member  dept_viewer  folder:/company/hr`
-- (신) `permission:인사  holder  department:인사팀#member`
-      `folder:/company/hr  gated_by  permission:인사`
-      `table:employees  gated_by  permission:인사`
-- 개인: `permission:인사  holder  user:민준`  (부서 무관 직접 부여)
+- (신) `permission:인사팀  holder  department:인사팀#member`
+      `folder:/company/hr  gated_by  permission:인사팀`
+      `table:employees  gated_by  permission:인사팀`
+- (구) `user:*  allow_select  capability:sql`
+- (신) `permission:기본  holder  user:*`  +  `permission:기본#holder  allow_select  capability:sql`
+- 개인: `permission:인사팀  holder  user:민준`  (부서 무관 직접 부여)
 
-전역 capability(`user:* allow_select` 등)는 permission에 묶지 않고 그대로 유지한다.
+모든 SQL 권한이 permission 경유로 통일된다 — 전 직원 기본 SELECT는 `permission:기본`(holder `user:*`), 부서특화·전사 쓰기는 해당 permission이 담는다.
 
 ### 3.3 위임 정책 (ADR-0046 대체 — "C레벨 + 각 팀장")
 
@@ -202,6 +210,6 @@ permission:재무 holder department:재무팀#member
 
 ## 9. 미해결 / 리스크
 
-- **capability 묶음 입도**: 전역 capability(allow_select 등 user:*)와 부서특화(justify_update_delete)의 경계를 permissions.yaml에서 어떻게 표현할지 — plan 단계에서 `sql:` 필드 스키마 확정.
+- **`permission:전사` vs `super_reader` 경계**: 폴더 전사열람은 기존 `super_reader`(role 경유) 유지, 테이블·SQL만 `permission:전사`가 담당. 이 이원화가 혼란을 주지 않도록 plan에서 주석·시드 명확화.
 - **위임 승격 FGA 왕복 비용**: permission 배정 위임 판정에 check 2회 추가. 게이트 경로라 캐시 비대상 — 허용 가능 수준이나 plan에서 확인.
 - **개명 누락 위험**: dept_viewer 문자열이 코드·테스트·문서에 분산. big bang 시 일괄 치환 후 grep 잔재 확인 필요.
