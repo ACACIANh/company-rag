@@ -52,6 +52,7 @@
 | [0047](ADR-0047-table-level-sql-access.md) | 테이블별 SQL 접근 권한 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0048](ADR-0048-tool-label-auto-discovery.md) | 도구 라벨 자동 발견(tool label auto-discovery) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 | [0049](ADR-0049-capability-audit-summary.md) | capability 안내 감사 요약(capability audit summary) | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0050](ADR-0050-table-dept-viewer-model.md) | type table dept_viewer 단일 relation 모델 | 🟢 적용완료 |
 
 ## 상태 범례
 
