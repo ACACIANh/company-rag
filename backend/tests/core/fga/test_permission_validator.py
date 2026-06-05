@@ -131,7 +131,7 @@ def _resolver_validator():
     # 비격식 이름·접미 모호성 검증용 작은 카탈로그
     return PermissionValidator(
         user_ids={"user-alice", "user-bob", "user-team-bob"},
-        departments={"개발팀"},
+        departments={"개발"},
         permissions={"기본"},
     )
 
@@ -171,26 +171,26 @@ def test_validate_member_grant_informal_subject():
     # 비격식 이름 subject "alice"가 member grant validate를 통과
     v = _resolver_validator()
     tup = v.validate({"action": "grant", "subject": "alice",
-                      "relation": "member", "object": "department:개발팀"})
-    assert tup == ("user:user-alice", "member", "department:개발팀", "grant")
+                      "relation": "member", "object": "department:개발"})
+    assert tup == ("user:user-alice", "member", "department:개발", "grant")
 
 
 def test_validate_member_grant_canonical_subject_still_passes():
     # 이미 정식 입력은 여전히 통과 (기존 동작 보존)
     v = _resolver_validator()
     tup = v.validate({"action": "grant", "subject": "user:user-bob",
-                      "relation": "member", "object": "department:개발팀"})
-    assert tup == ("user:user-bob", "member", "department:개발팀", "grant")
+                      "relation": "member", "object": "department:개발"})
+    assert tup == ("user:user-bob", "member", "department:개발", "grant")
 
 
 def test_validate_member_grant_ambiguous_subject_denied():
     # 모호한 subject "bob"은 여전히 None (RISK_DENY)
     v = _resolver_validator()
     assert v.validate({"action": "grant", "subject": "bob",
-                       "relation": "member", "object": "department:개발팀"}) is None
+                       "relation": "member", "object": "department:개발"}) is None
 
 
 def test_validate_member_grant_unknown_subject_denied():
     v = _resolver_validator()
     assert v.validate({"action": "grant", "subject": "eve",
-                       "relation": "member", "object": "department:개발팀"}) is None
+                       "relation": "member", "object": "department:개발"}) is None

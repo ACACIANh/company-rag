@@ -20,7 +20,7 @@ def _make_pool():
 def _record(**overrides) -> AuditRecord:
     base = dict(
         user_id="user-jisoo",
-        department="개발팀",
+        department="개발",
         role="member",
         question="전직원 급여 보여줘",
         generated_sql="SELECT salary FROM business.employees",

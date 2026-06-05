@@ -19,8 +19,8 @@ def test_parent_of_top_is_none():
 
 # ── 멤버십 튜플 ─────────────────────────────────────────────
 def test_department_membership_tuple():
-    tuples = _build_tuples([{"user_id": "user-jisoo", "departments": ["개발팀"]}], {}, {})
-    assert _find(tuples, user="user:user-jisoo", relation="member", object="department:개발팀")
+    tuples = _build_tuples([{"user_id": "user-jisoo", "departments": ["개발"]}], {}, {})
+    assert _find(tuples, user="user:user-jisoo", relation="member", object="department:개발")
 
 
 def test_fga_role_membership_tuple():
@@ -42,12 +42,12 @@ def test_non_admin_does_not_get_capability_admin_grant():
 
 # ── 부서 관리자 위임(ADR-0046) ──────────────────────────────
 def test_dept_admin_of_emits_admin_tuple():
-    tuples = _build_tuples([{"user_id": "user-jisoo", "dept_admin_of": ["개발팀"]}], {}, {})
-    assert _find(tuples, user="user:user-jisoo", relation="admin", object="department:개발팀")
+    tuples = _build_tuples([{"user_id": "user-jisoo", "dept_admin_of": ["개발"]}], {}, {})
+    assert _find(tuples, user="user:user-jisoo", relation="admin", object="department:개발")
 
 
 def test_no_dept_admin_of_emits_no_admin_tuple():
-    tuples = _build_tuples([{"user_id": "user-seoyeon", "departments": ["영업팀"]}], {}, {})
+    tuples = _build_tuples([{"user_id": "user-seoyeon", "departments": ["영업"]}], {}, {})
     assert not _find(tuples, user="user:user-seoyeon", relation="admin")
 
 
@@ -125,11 +125,11 @@ def test_no_dept_viewer_relation_emitted():
 @pytest.mark.asyncio
 async def test_prune_deletes_only_stale():
     desired = [
-        {"user": "user:user-jisoo", "relation": "member", "object": "department:개발팀"},
+        {"user": "user:user-jisoo", "relation": "member", "object": "department:개발"},
         {"user": "user:*", "relation": "public_viewer", "object": "folder:/company"},
     ]
     live = [
-        ("user:user-jisoo", "member", "department:개발팀"),          # 유지(desired)
+        ("user:user-jisoo", "member", "department:개발"),          # 유지(desired)
         ("user:*", "public_viewer", "folder:/company"),             # 유지
         ("user:user-minjun", "member", "department:hr"),            # stale(옛 부서)
         ("user:user-seoyeon", "allow_update_delete", "capability:sql"),  # stale(죽은 relation)
@@ -147,7 +147,7 @@ async def test_prune_deletes_only_stale():
     assert client.revoke_tuple.await_count == 2
     client.revoke_tuple.assert_any_await("user:user-minjun", "member", "department:hr")
     # 유지 대상은 절대 삭제하지 않는다
-    for u, r, o in [("user:user-jisoo", "member", "department:개발팀")]:
+    for u, r, o in [("user:user-jisoo", "member", "department:개발")]:
         assert ((u, r, o)) not in set(stale)
 
 

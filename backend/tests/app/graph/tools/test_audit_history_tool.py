@@ -128,7 +128,7 @@ async def test_execute_admin_formats_rows():
     row.__getitem__ = lambda self, k: {
         "created_at": "2026-06-04 10:00:00+00",
         "user_id": "jisoo",
-        "department": "개발팀",
+        "department": "개발",
         "role": "c_level",
         "gate_decision": "DENY",
         "generated_sql": "SELECT * FROM employees",
@@ -144,7 +144,7 @@ async def test_execute_admin_formats_rows():
     assert "jisoo" in result
     assert "DENY" in result
     assert "|" in result  # 마크다운 표 형식
-    assert "개발팀" in result
+    assert "개발" in result
     assert "c_level" in result
 
 
@@ -193,7 +193,7 @@ def _row(user, sql, decision, reason, result=""):
         "reason": reason,
         "result_summary": result,
         "created_at": "2026-06-04 10:00:00",
-        "department": "개발팀",
+        "department": "개발",
         "role": "",
     }
 

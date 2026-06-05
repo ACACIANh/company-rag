@@ -88,7 +88,7 @@ def test_sql_generate_shares_same_schema_constant():
 def test_sql_generate_injects_value_hints():
     """카테고리형 컬럼의 실제 저장값(영문 코드)이 주입되고, format이 깨지지 않아야 한다."""
     assert "business.employees.department" in SQL_GENERATE_PROMPT
-    assert "개발팀" in SQL_GENERATE_PROMPT      # value mismatch 처방
+    assert "개발" in SQL_GENERATE_PROMPT      # value mismatch 처방
     assert "{value_hints}" not in SQL_GENERATE_PROMPT
     # format이 KeyError 없이 동작(값 힌트의 중괄호 오인 회귀 방지).
     rendered = SQL_GENERATE_PROMPT.format(question="엔지니어링 부서 평균 급여")

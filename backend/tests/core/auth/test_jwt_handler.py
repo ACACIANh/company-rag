@@ -6,14 +6,14 @@ def test_create_and_decode_token():
     token = create_token(
         user_id="user-jisoo",
         roles=["user"],
-        departments=["개발팀", "all"],
+        departments=["개발", "all"],
         secret="test-secret",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="test-secret")
     assert payload["sub"] == "user-jisoo"
     assert payload["roles"] == ["user"]
-    assert payload["departments"] == ["개발팀", "all"]
+    assert payload["departments"] == ["개발", "all"]
     assert "allowed_doc_ids" not in payload
 
 
@@ -38,12 +38,12 @@ def test_departments_encoded_and_decoded():
     token = create_token(
         user_id="u1",
         roles=["user"],
-        departments=["개발팀"],
+        departments=["개발"],
         secret="s",
         expire_minutes=60,
     )
     payload = decode_token(token, secret="s")
-    assert payload["departments"] == ["개발팀"]
+    assert payload["departments"] == ["개발"]
 
 
 def test_empty_departments_encoded():

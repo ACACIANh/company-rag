@@ -35,7 +35,7 @@ def test_me_returns_departments_for_김지수():
     assert res.status_code == 200
     data = res.json()
     assert "departments" in data
-    assert data["departments"] == ["개발팀"]
+    assert data["departments"] == ["개발"]
 
 
 def test_me_returns_departments_for_admin():

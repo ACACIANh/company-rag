@@ -24,13 +24,13 @@ from core.sql import catalog
 # 키는 카탈로그의 부서 축과 일치해야 한다(값 힌트 ↔ 시드 drift 방지, ADR-0021).
 _DEPT_BASE_SALARY = {
     "임원": 180_000_000,
-    "개발팀": 95_000_000,
-    "제품팀": 90_000_000,
-    "재무팀": 88_000_000,
-    "영업팀": 82_000_000,
-    "법무팀": 92_000_000,
-    "인사팀": 78_000_000,
-    "디자인팀": 80_000_000,
+    "개발": 95_000_000,
+    "제품": 90_000_000,
+    "재무": 88_000_000,
+    "영업": 82_000_000,
+    "법무": 92_000_000,
+    "인사": 78_000_000,
+    "디자인": 80_000_000,
     "미배정": 70_000_000,
 }
 
@@ -80,12 +80,12 @@ def build_equipment_rows() -> list[tuple]:
         # (asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)
         ("NB-001", "맥북 프로 14인치",    "노트북", "미배정", None,     date(2024, 1, 10), None),
         ("NB-002", "맥북 에어 M3",         "노트북", "미배정", None,     date(2024, 3, 15), None),
-        ("NB-003", "레노버 ThinkPad X1",  "노트북", "수리중", "인사팀", date(2022, 1, 15), None),
-        ("NB-004", "델 XPS 15",            "노트북", "정상",  "개발팀", date(2023, 3,  1), "user-jisoo"),
-        ("NB-005", "맥북 프로 13인치",    "노트북", "정상",  "제품팀", date(2023, 6,  1), "user-dohyeon"),
-        ("MN-001", "삼성 27인치 모니터",  "모니터", "정상",  "영업팀", date(2022, 9,  1), "user-minho"),
+        ("NB-003", "레노버 ThinkPad X1",  "노트북", "수리중", "인사", date(2022, 1, 15), None),
+        ("NB-004", "델 XPS 15",            "노트북", "정상",  "개발", date(2023, 3,  1), "user-jisoo"),
+        ("NB-005", "맥북 프로 13인치",    "노트북", "정상",  "제품", date(2023, 6,  1), "user-dohyeon"),
+        ("MN-001", "삼성 27인치 모니터",  "모니터", "정상",  "영업", date(2022, 9,  1), "user-minho"),
         ("MN-002", "LG 32인치 모니터",    "모니터", "미배정", None,     date(2024, 4,  1), None),
-        ("SV-001", "Dell PowerEdge R750", "서버",   "정상",  "개발팀", date(2021, 6,  1), None),
+        ("SV-001", "Dell PowerEdge R750", "서버",   "정상",  "개발", date(2021, 6,  1), None),
     ]
     valid_cats = set(catalog.EQUIPMENT_CATEGORIES)
     valid_stats = set(catalog.EQUIPMENT_STATUSES)
