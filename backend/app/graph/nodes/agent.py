@@ -19,6 +19,12 @@ async def agent_node(state: dict, *, chat_model) -> dict:
     if not messages:
         # 에이전트는 원본 질문으로 행동 — rewrite(문서검색 편향)가 도구 호출을 흐리지 않게 (ADR-0031)
         question = state.get("question") or state.get("rewritten_question", "")
+        # 호출자 본인 식별자("내 아이디" 등)는 state.user_id로 바로 답하도록 시스템 지시에 주입
+        caller = state.get("user_id") or "anonymous"
+        system = (
+            f"{_SYSTEM}\n\n현재 요청한 사용자의 user_id는 '{caller}'다. "
+            "'내 아이디' 같은 본인 식별자 질문은 이 값으로 바로 답한다."
+        )
         # 멀티턴 맥락: user + assistant 모두 포함해 이전 답변을 참고해 도구 호출 결정
         history = state.get("chat_history", [])
         history_msgs = [
@@ -26,7 +32,7 @@ async def agent_node(state: dict, *, chat_model) -> dict:
             else AIMessage(content=m["content"])
             for m in history
         ]
-        seeded = [SystemMessage(content=_SYSTEM), *history_msgs, HumanMessage(content=question)]
+        seeded = [SystemMessage(content=system), *history_msgs, HumanMessage(content=question)]
         messages = seeded
     ai: AIMessage = await chat_model.ainvoke(messages)
     return {"agent_messages": [*seeded, ai]}
