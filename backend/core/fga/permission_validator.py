@@ -49,7 +49,7 @@ class PermissionValidator:
     def _strip(self, value: str, prefix: str) -> str | None:
         return value[len(prefix):] if value.startswith(prefix) else None
 
-    def _resolve_user(self, token: str) -> str | None:
+    def _resolve_user(self, token: str | None) -> str | None:
         """비격식 user 참조를 정식 "user:<id>"로 결정론적 정규화 (ADR-0031 후속).
 
         진실원천은 _user_ids 뿐 — 화이트리스트 확장 금지. "user:" 접두는 떼고 본문만 매칭한다.

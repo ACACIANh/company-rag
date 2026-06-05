@@ -34,7 +34,7 @@ def test_valid_revoke():
     v = _validator()
     tup = v.validate({"action": "revoke", "subject": "user:user-minjun",
                       "relation": "member", "object": "department:영업팀"})
-    assert tup[3] == "revoke"
+    assert tup == ("user:user-minjun", "member", "department:영업팀", "revoke")
 
 
 def test_reject_unknown_user():
