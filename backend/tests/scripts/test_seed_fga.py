@@ -19,109 +19,106 @@ def test_parent_of_top_is_none():
 
 # ── 멤버십 튜플 ─────────────────────────────────────────────
 def test_department_membership_tuple():
-    tuples = _build_tuples([{"user_id": "user-jisoo", "departments": ["개발팀"]}], {})
+    tuples = _build_tuples([{"user_id": "user-jisoo", "departments": ["개발팀"]}], {}, {})
     assert _find(tuples, user="user:user-jisoo", relation="member", object="department:개발팀")
 
 
 def test_fga_role_membership_tuple():
-    tuples = _build_tuples([{"user_id": "user-admin", "fga_roles": ["c_level"]}], {})
+    tuples = _build_tuples([{"user_id": "user-admin", "fga_roles": ["c_level"]}], {}, {})
     assert _find(tuples, user="user:user-admin", relation="member", object="role:c_level")
 
 
 def test_admin_jwt_role_gets_capability_admin_grant():
-    tuples = _build_tuples([{"user_id": "user-admin", "roles": ["admin", "user"]}], {})
+    tuples = _build_tuples([{"user_id": "user-admin", "roles": ["admin", "user"]}], {}, {})
     assert _find(
         tuples, user="user:user-admin", relation="justify_grant", object="capability:admin"
     )
 
 
 def test_non_admin_does_not_get_capability_admin_grant():
-    tuples = _build_tuples([{"user_id": "user-jisoo", "roles": ["user"]}], {})
+    tuples = _build_tuples([{"user_id": "user-jisoo", "roles": ["user"]}], {}, {})
     assert not _find(tuples, user="user:user-jisoo", relation="justify_grant", object="capability:admin")
 
 
 # ── 부서 관리자 위임(ADR-0046) ──────────────────────────────
 def test_dept_admin_of_emits_admin_tuple():
-    tuples = _build_tuples([{"user_id": "user-jisoo", "dept_admin_of": ["개발팀"]}], {})
+    tuples = _build_tuples([{"user_id": "user-jisoo", "dept_admin_of": ["개발팀"]}], {}, {})
     assert _find(tuples, user="user:user-jisoo", relation="admin", object="department:개발팀")
 
 
 def test_no_dept_admin_of_emits_no_admin_tuple():
-    tuples = _build_tuples([{"user_id": "user-seoyeon", "departments": ["영업팀"]}], {})
+    tuples = _build_tuples([{"user_id": "user-seoyeon", "departments": ["영업팀"]}], {}, {})
     assert not _find(tuples, user="user:user-seoyeon", relation="admin")
-
-
-# ── 테이블 접근권(ADR-0047) ─────────────────────────────────
-def test_table_grants_present():
-    tuples = _build_tuples([], {})
-    # c_level은 전 테이블, 인사팀은 employees, 영업팀은 sales.
-    assert _find(tuples, user="role:c_level#member", relation="dept_viewer", object="table:employees")
-    assert _find(tuples, user="role:c_level#member", relation="dept_viewer", object="table:sales")
-    assert _find(tuples, user="department:인사팀#member", relation="dept_viewer", object="table:employees")
-    assert _find(tuples, user="department:영업팀#member", relation="dept_viewer", object="table:sales")
-
-
-def test_table_grants_respect_boundary():
-    tuples = _build_tuples([], {})
-    # 영업팀은 employees(PII) 접근권 없음 — 부서별 경계.
-    assert not _find(tuples, user="department:영업팀#member", relation="dept_viewer", object="table:employees")
 
 
 # ── 폴더 권한 튜플 ──────────────────────────────────────────
 def test_public_folder_tuple():
-    tuples = _build_tuples([], {"/company": {"public": True}})
+    tuples = _build_tuples([], {"/company": {"public": True}}, {})
     assert _find(tuples, user="user:*", relation="public_viewer", object="folder:/company")
 
 
 def test_private_folder_tuple():
-    tuples = _build_tuples([], {"/company/hr": {"private": True}})
+    tuples = _build_tuples([], {"/company/hr": {"private": True}}, {})
     assert _find(tuples, user="user:*", relation="private_flag", object="folder:/company/hr")
 
 
-def test_dept_viewer_tuple():
-    tuples = _build_tuples([], {"/company/hr": {"dept_viewers": ["hr"]}})
-    assert _find(
-        tuples, user="department:hr#member", relation="dept_viewer", object="folder:/company/hr"
-    )
-
-
 def test_super_reader_tuple():
-    tuples = _build_tuples([], {"/company": {"super_readers": ["c_level"]}})
+    tuples = _build_tuples([], {"/company": {"super_readers": ["c_level"]}}, {})
     assert _find(
         tuples, user="role:c_level#member", relation="super_reader", object="folder:/company"
     )
 
 
 def test_parent_tuple_auto_derived():
-    tuples = _build_tuples([], {"/company": {}, "/company/hr": {}})
+    tuples = _build_tuples([], {"/company": {}, "/company/hr": {}}, {})
     assert _find(tuples, user="folder:/company", relation="parent", object="folder:/company/hr")
 
 
-# ── 회귀: 옛 'viewers' 키는 더 이상 dept_viewer 외 의미를 갖지 않음 ──
-def test_no_legacy_viewer_relation_emitted():
-    tuples = _build_tuples([], {"/company/hr": {"dept_viewers": ["hr"]}})
-    assert not _find(tuples, relation="viewer")
+# ── permission 묶음(ADR-0051) ──────────────────────────────
+_PERMS = {
+    "기본": {"holders": ["user:*"], "sql": ["allow_select", "justify_bulk_select"]},
+    "인사": {"holders": ["department:인사#member"], "folders": ["/company/hr"], "tables": ["employees"]},
+    "개발": {"holders": ["department:개발#member"], "folders": ["/company/engineering/ops"],
+             "tables": ["employees", "sales", "equipment"], "sql": ["justify_update_delete"]},
+    "전사": {"holders": ["role:c_level#member"], "tables": ["employees", "sales", "equipment"],
+             "sql": ["justify_update_delete"]},
+}
 
 
-# ── TechCorp 재구성: 신규 private 부서 폴더 ──────────────────
-def test_finance_private_and_dept_viewer():
-    folders = {"/company/finance": {"private": True, "dept_viewers": ["재무팀"]}}
-    tuples = _build_tuples([], folders)
-    assert _find(tuples, user="user:*", relation="private_flag", object="folder:/company/finance")
-    assert _find(
-        tuples, user="department:재무팀#member", relation="dept_viewer",
-        object="folder:/company/finance",
-    )
+def test_permission_holder_tuple():
+    tuples = _build_tuples([], {}, _PERMS)
+    assert _find(tuples, user="department:인사#member", relation="holder", object="permission:인사")
+    assert _find(tuples, user="user:*", relation="holder", object="permission:기본")
+    assert _find(tuples, user="role:c_level#member", relation="holder", object="permission:전사")
 
 
-def test_legal_private_and_dept_viewer():
-    folders = {"/company/legal": {"private": True, "dept_viewers": ["법무팀"]}}
-    tuples = _build_tuples([], folders)
-    assert _find(tuples, user="user:*", relation="private_flag", object="folder:/company/legal")
-    assert _find(
-        tuples, user="department:법무팀#member", relation="dept_viewer",
-        object="folder:/company/legal",
-    )
+def test_permission_folder_gated_by_tuple():
+    tuples = _build_tuples([], {}, _PERMS)
+    assert _find(tuples, user="permission:인사", relation="gated_by", object="folder:/company/hr")
+
+
+def test_permission_table_gated_by_tuple():
+    tuples = _build_tuples([], {}, _PERMS)
+    assert _find(tuples, user="permission:인사", relation="gated_by", object="table:employees")
+    assert _find(tuples, user="permission:개발", relation="gated_by", object="table:equipment")
+
+
+def test_permission_capability_tuple():
+    tuples = _build_tuples([], {}, _PERMS)
+    assert _find(tuples, user="permission:기본#holder", relation="allow_select", object="capability:sql")
+    assert _find(tuples, user="permission:개발#holder", relation="justify_update_delete", object="capability:sql")
+
+
+def test_table_boundary_via_permission():
+    perms = {"영업": {"holders": ["department:영업#member"], "tables": ["sales"]}}
+    tuples = _build_tuples([], {}, perms)
+    assert _find(tuples, user="permission:영업", relation="gated_by", object="table:sales")
+    assert not _find(tuples, user="permission:영업", relation="gated_by", object="table:employees")
+
+
+def test_no_dept_viewer_relation_emitted():
+    tuples = _build_tuples([{"user_id": "user-x", "departments": ["인사"]}], {"/company/hr": {"private": True}}, _PERMS)
+    assert not _find(tuples, relation="dept_viewer")
 
 
 # ── _prune 재조정: config에 없는 stale 튜플만 삭제 ──────────────
