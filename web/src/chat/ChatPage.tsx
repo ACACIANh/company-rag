@@ -301,7 +301,7 @@ export function ChatPage() {
         />
 
         <div className="flex flex-col flex-1 overflow-hidden">
-          <main ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl w-full mx-auto">
+          <main ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-6 max-w-6xl w-full mx-auto">
             {loadingHistory ? (
               <p className="text-[13px] text-ink-mute text-center mt-8">
                 대화 기록을 불러오는 중…
@@ -337,7 +337,7 @@ export function ChatPage() {
             )}
           </main>
 
-          <div className="max-w-3xl w-full mx-auto px-4 pb-4 flex-shrink-0">
+          <div className="max-w-6xl w-full mx-auto px-4 pb-4 flex-shrink-0">
             <MessageInput
               ref={inputRef}
               onSend={send}
