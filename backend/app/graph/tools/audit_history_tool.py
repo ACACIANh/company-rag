@@ -11,6 +11,7 @@ import asyncpg
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
+from app.graph.tools.base import ToolResult
 from core.fga.client import FGAClient
 from core.sql.risk import RISK_DENY, RISK_SELECT
 
@@ -62,19 +63,6 @@ def _sql_preview(sql: str) -> str:
     return s[:50]
 
 
-def _clean_result(raw: str) -> str:
-    """마크다운 표를 'col: val' 형태의 한 줄 텍스트로 변환한다."""
-    if not raw or "|" not in raw:
-        return raw[:80]
-    parts = [p.strip() for p in raw.split("|") if p.strip() and not re.match(r"^-+$", p.strip())]
-    if not parts:
-        return raw[:80]
-    n = len(parts)
-    mid = n // 2
-    if mid > 0 and mid * 2 == n:
-        return ", ".join(f"{h}: {v}" for h, v in zip(parts[:mid], parts[mid:]))[:80]
-    return " / ".join(parts)[:80]
-
 
 def _merge_system_pairs(rows: list) -> list:
     """JUSTIFY_AND_APPROVE 쌍 중 시스템 사유 행을 제거하고 사용자 사유 행만 남긴다.
@@ -117,8 +105,7 @@ def _format_rows(rows: list) -> str:
         ts = str(r["created_at"])[:16]
         dept_role = f"{r['department'] or ''} / {r['role'] or ''}".strip(" /")
         sql_col = _sql_preview(str(r["generated_sql"]))
-        result_raw = str(r["result_summary"] or "").replace("\n", " ").replace("\r", "")
-        result_col = _clean_result(result_raw)
+        result_col = str(r["result_summary"] or "").replace("\n", " ").replace("\r", "").replace("|", "\\|")[:80]
         reason = str(r["reason"] or "").replace("\n", " ").replace("|", "\\|")
         lines.append(
             f"| {ts} | {r['user_id']} | {dept_role} | {r['gate_decision']} | "
@@ -160,22 +147,27 @@ class AuditAgent:
         }
         return json.dumps(params, ensure_ascii=False), RISK_SELECT
 
-    async def execute(self, planned_action: str, risk: str) -> str:
+    async def execute(self, planned_action: str, risk: str) -> ToolResult:
         try:
             params = json.loads(planned_action)
         except Exception:
-            return "감사 이력 조회 오류: 파라미터 파싱 실패"
+            msg = "감사 이력 조회 오류: 파라미터 파싱 실패"
+            return ToolResult(text=msg, summary=msg)
         caller_id = params.get("caller_id", "")
         if not caller_id:
-            return "권한 없음: 감사 이력은 관리자만 조회할 수 있습니다."
+            return ToolResult(
+                text="권한 없음: 감사 이력은 관리자만 조회할 수 있습니다.", summary="권한 없음"
+            )
         try:
             has_access = await self._fga.check(
                 f"user:{caller_id}", "justify_grant", "capability:admin"
             )
         except Exception:
-            return "권한 없음: 역할 조회 실패"
+            return ToolResult(text="권한 없음: 역할 조회 실패", summary="권한 없음")
         if not has_access:
-            return "권한 없음: 감사 이력은 관리자만 조회할 수 있습니다."
+            return ToolResult(
+                text="권한 없음: 감사 이력은 관리자만 조회할 수 있습니다.", summary="권한 없음"
+            )
         try:
             async with self._pool.acquire() as conn:
                 rows = await conn.fetch(
@@ -186,6 +178,8 @@ class AuditAgent:
                     params.get("end_date"),
                     params.get("limit", _DEFAULT_LIMIT),
                 )
-            return _format_rows(list(rows))
+            rows = list(rows)
+            return ToolResult(text=_format_rows(rows), summary=f"감사이력 {len(rows)}건 조회")
         except Exception as exc:
-            return f"감사 이력 조회 오류: {type(exc).__name__}"
+            msg = f"감사 이력 조회 오류: {type(exc).__name__}"
+            return ToolResult(text=msg, summary=msg)
