@@ -62,7 +62,7 @@ async def test_engineering_user_sees_ops_not_hr():
         {"text": "인사", "source": "hr/perf.md", "path": "/company/hr"},
     ])
     sources = [r.chunk.source for r in (await _run(fga, retriever, "배포 절차"))["documents"]]
-    assert "engineering/ops/deploy.md" in sources  # dept_viewer로 가시 → 정확 매칭 통과
+    assert "engineering/ops/deploy.md" in sources  # viewer(permission 경유)로 가시 → 정확 매칭 통과
     assert "common/benefits.md" in sources
     assert "hr/perf.md" not in sources  # hr 폴더는 가시 목록에 없음
 
