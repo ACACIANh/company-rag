@@ -63,7 +63,6 @@ def _sql_preview(sql: str) -> str:
     return s[:50]
 
 
-
 def _merge_system_pairs(rows: list) -> list:
     """JUSTIFY_AND_APPROVE 쌍 중 시스템 사유 행을 제거하고 사용자 사유 행만 남긴다.
 
@@ -105,7 +104,7 @@ def _format_rows(rows: list) -> str:
         ts = str(r["created_at"])[:16]
         dept_role = f"{r['department'] or ''} / {r['role'] or ''}".strip(" /")
         sql_col = _sql_preview(str(r["generated_sql"]))
-        result_col = str(r["result_summary"] or "").replace("\n", " ").replace("\r", "").replace("|", "\\|")[:80]
+        result_col = str(r["result_summary"] or "")[:80].replace("\n", " ").replace("\r", "").replace("|", "\\|")
         reason = str(r["reason"] or "").replace("\n", " ").replace("|", "\\|")
         lines.append(
             f"| {ts} | {r['user_id']} | {dept_role} | {r['gate_decision']} | "
