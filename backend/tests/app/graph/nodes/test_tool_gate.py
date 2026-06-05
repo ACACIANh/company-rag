@@ -199,16 +199,52 @@ async def test_dept_admin_delegation_denied_for_other_dept():
 
 
 @pytest.mark.asyncio
-async def test_dept_admin_cannot_delegate_dept_viewer():
-    """부서 admin은 멤버십만 위임 — dept_viewer(폴더권) 위임은 승격되지 않는다 (ADR-0046 경계)."""
-    handler = _handler("grant department:개발#member dept_viewer folder:/secret", "grant")
+async def test_dept_admin_permission_delegation_upgrades_to_justify():
+    """팀장이 자기 부서(개발)가 보유한 permission:개발을 개인에게 배정 → JUSTIFY 승격 (ADR-0051)."""
+    handler = _handler("grant user:user-x holder permission:개발", "grant")
     state = {
         "user_id": "팀장", "question": "q",
-        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "d3"}])],
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p1"}])],
     }
     out = await tool_gate_node(
         state, registry=_perm_registry(handler),
-        fga_client=_fga([], [], tuples={("admin", "department:개발")}),
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발"), ("holder", "permission:개발")}),
+        audit_sink=AsyncMock(),
+    )
+    assert out["pending_tool_calls"]
+    assert out["pending_tool_calls"][0]["decision"] == "JUSTIFY_AND_APPROVE"
+    handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dept_admin_cannot_delegate_permission_to_department():
+    """부서 전체 배정(정의급)은 팀장이 못 한다 → DENY (c_level 전용, ADR-0051)."""
+    handler = _handler("grant department:개발#member holder permission:개발", "grant")
+    state = {
+        "user_id": "팀장", "question": "q",
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p2"}])],
+    }
+    out = await tool_gate_node(
+        state, registry=_perm_registry(handler),
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발"), ("holder", "permission:개발")}),
+        audit_sink=AsyncMock(),
+    )
+    assert not out["pending_tool_calls"]
+    handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dept_admin_cannot_delegate_unowned_permission():
+    """개발 admin이지만 개발이 permission:인사를 보유하지 않으면 → DENY (ADR-0051 보안 경계)."""
+    handler = _handler("grant user:user-x holder permission:인사", "grant")
+    state = {
+        "user_id": "팀장", "question": "q",
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p3"}])],
+    }
+    out = await tool_gate_node(
+        state, registry=_perm_registry(handler),
+        # admin@개발은 보유하나, 개발이 permission:인사의 holder는 아님 → AND 절 후반부에서 거부.
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발")}),
         audit_sink=AsyncMock(),
     )
     assert not out["pending_tool_calls"]

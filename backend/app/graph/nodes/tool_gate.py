@@ -11,7 +11,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from core.fga.client import FGAClient
 from core.observability.audit.base import AuditRecord, AuditSink
 from app.graph.tools._utils import normalize_sql
-from app.graph.tools.permission_tool import delegated_membership_dept
+from app.graph.tools.permission_tool import delegated_membership_dept, delegated_permission
 from core.sql.gate import (
     gate_decision,
     gate_table_access,
@@ -67,13 +67,23 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
             if not ok:
                 decision, reason = DECISION_DENY, table_reason
 
-        # 부서 관리자 멤버십 위임(ADR-0046): 전역 관리자 부재로 DENY된 멤버십 grant/revoke를,
-        # 요청자가 대상 부서의 admin이면 JUSTIFY_AND_APPROVE로 승격(사유 기재 후 실행).
+        # 권한 위임 승격: 전역 grant 권한 없는 DENY를, 부서 admin이면 JUSTIFY_AND_APPROVE로.
         if decision == DECISION_DENY and risk == RISK_GRANT:
+            # (1) 부서 멤버십 위임 (ADR-0046)
             dept = delegated_membership_dept(planned_action)
             if dept and await fga_client.check(f"user:{user_id}", "admin", f"department:{dept}"):
                 decision = DECISION_JUSTIFY_AND_APPROVE
-                reason = f"부서 admin 위임(department:{dept}) → JUSTIFY_AND_APPROVE"
+                reason = f"부서 admin 멤버십 위임(department:{dept}) → JUSTIFY_AND_APPROVE"
+            else:
+                # (2) permission 배정 위임 (ADR-0051): 자기 부서가 holder인 permission을 개인에 배정
+                perm = delegated_permission(planned_action)
+                if perm:
+                    for d in departments:
+                        if (await fga_client.check(f"user:{user_id}", "admin", f"department:{d}")
+                                and await fga_client.check(f"department:{d}#member", "holder", f"permission:{perm}")):
+                            decision = DECISION_JUSTIFY_AND_APPROVE
+                            reason = f"부서 admin permission 위임(department:{d}→permission:{perm}) → JUSTIFY_AND_APPROVE"
+                            break
 
         if decision == DECISION_ALLOW:
             result = await handler.execute(planned_action, risk)

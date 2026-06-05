@@ -5,6 +5,7 @@ import pytest
 from app.graph.tools.permission_tool import (
     PermissionAgent,
     delegated_membership_dept,
+    delegated_permission,
     _format_permission_snapshot,
     _resolve_capabilities,
 )
@@ -34,8 +35,8 @@ def test_delegated_membership_dept_revoke():
 
 
 def test_delegated_membership_dept_non_membership_none():
-    # dept_viewer·capability 부여는 멤버십 위임 대상이 아니다 → None.
-    assert delegated_membership_dept("grant department:개발#member dept_viewer folder:/company") is None
+    # permission 배정·capability는 멤버십 위임 대상이 아니다 → None.
+    assert delegated_membership_dept("grant user:user-jisoo holder permission:개발") is None
     assert delegated_membership_dept("grant user:user-jisoo justify_select capability:sql") is None
 
 
@@ -270,3 +271,21 @@ async def test_execute_query_includes_table_access():
     result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
     fga.user_accessible_tables.assert_awaited_once_with("user-jisoo")
     assert "employees" in result
+
+
+def test_delegated_permission_grant_to_user():
+    assert delegated_permission("grant user:user-minjun holder permission:인사") == "인사"
+
+
+def test_delegated_permission_revoke_to_user():
+    assert delegated_permission("revoke user:user-minjun holder permission:인사") == "인사"
+
+
+def test_delegated_permission_to_department_none():
+    # 부서 전체 배정(정의급)은 위임 대상 아님 → None (c_level 전용)
+    assert delegated_permission("grant department:개발#member holder permission:개발") is None
+
+
+def test_delegated_permission_non_holder_none():
+    assert delegated_permission("grant user:user-jisoo member department:개발") is None
+    assert delegated_permission("query u1 u2") is None
