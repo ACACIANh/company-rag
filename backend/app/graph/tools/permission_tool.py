@@ -134,6 +134,12 @@ def delegated_membership_dept(planned_action: str) -> str | None:
 
 # 권한 조회 스냅샷에 노출할 capability 작업 — (라벨, 위험도). 게이트 매트릭스(core.sql.gate)가
 # 위험도→capability 매핑·3-state 판정의 단일 출처이므로 여기선 표시 순서·라벨만 둔다.
+_LABEL_EMOJI = {
+    "즉시 허용": "✅",
+    "사유 기재 후 허용": "⚠️",
+    "불가": "❌",
+}
+
 _CAPABILITY_DISPLAY = [
     ("SELECT", RISK_SELECT),
     ("대량 SELECT", RISK_BULK_SELECT),
@@ -164,18 +170,37 @@ async def _resolve_capabilities(check, user_id: str) -> list[tuple[str, str]]:
 def _format_permission_snapshot(
     uid: str, departments: list, roles: list, folders: list, capabilities: list
 ) -> str:
-    dept_text = ", ".join(departments) if departments else "(없음)"
-    role_text = ", ".join(roles) if roles else "(없음)"
+    dept_text = ", ".join(departments) if departments else "없음"
+    role_text = " ".join(f"`{r}`" for r in roles) if roles else "없음"
+
+    lines: list[str] = [
+        "## 권한 스냅샷",
+        "",
+        "| 항목 | 값 |",
+        "|------|-----|",
+        f"| 사용자 | `{uid}` |",
+        f"| 역할 | {role_text} |",
+        f"| 소속 부서 | {dept_text} |",
+        "",
+    ]
+
+    lines.append(f"### 접근 가능 폴더 ({len(folders)}개)" if folders else "### 접근 가능 폴더")
+    lines.append("")
     if folders:
-        folder_lines = "\n".join(f"  - {f}" for f in folders)
-        folder_text = f"{len(folders)}개:\n{folder_lines}"
+        for f in folders:
+            lines.append(f"- `{f}`")
     else:
-        folder_text = "(없음)"
-    cap_lines = "\n".join(f"  - {label}: {decision}" for label, decision in capabilities)
-    return (
-        f"사용자: {uid}\n"
-        f"소속 부서: {dept_text}\n"
-        f"역할(role): {role_text}\n"
-        f"접근 가능 폴더 {folder_text}\n"
-        f"SQL/관리 권한:\n{cap_lines}"
-    )
+        lines.append("없음")
+    lines.append("")
+
+    lines.extend([
+        "### SQL/관리 권한",
+        "",
+        "| 작업 | 허용 여부 |",
+        "|------|----------|",
+    ])
+    for label, decision in capabilities:
+        emoji = _LABEL_EMOJI.get(decision, "")
+        lines.append(f"| {label} | {emoji} {decision} |".rstrip())
+
+    return "\n".join(lines)
