@@ -696,6 +696,46 @@ git commit -m "feat(validator): holder(permission 배정) 화이트리스트 + d
 
 ---
 
+## Task 4B: business DB·카탈로그·프롬프트·테스트 부서명 전면 정규화
+
+> **추가 배경(2026-06-05 결정)**: 부서 id "팀" 제거가 OpenFGA 권한뿐 아니라 **business DB 데이터 도메인**에도 박혀 있음이 드러남(`employees.department`, `sales` 카테고리, 급여/장비 seed, SQL 프롬프트 안내). 사용자 결정 = **전면 통일**(권한=데이터, 둘 다 "개발"). Task 1이 권한쪽만 바꿔 생긴 11개 테스트 실패를 이 task가 해소한다.
+
+**Files:**
+- Modify: `core/sql/catalog.py`(EMPLOYEE_DEPARTMENTS·SALES_DEPARTMENTS·매핑 dict 키), `scripts/seed_business.py`(부서별 급여 dict·장비 부서), `app/graph/nodes/capability_node.py`(예시 텍스트), `app/graph/prompts.py`(SQL/라우터 예시 — **단 `PERMISSION_PARSE_PROMPT` 블록 L153-195는 Task 5에서 교체하므로 건드리지 말 것**)
+- Modify(tests): 부서명 "XX팀"을 쓰는 모든 테스트 — `test_catalog.py`, `test_seed_business.py`, `test_auth.py`, `test_builder.py`, `test_jwt_handler.py`, `test_postgres_sink.py`, `test_audit_history_tool.py`, `test_justify_execute.py`, `test_prompts.py` 등
+
+- [ ] **Step 1: 코드(비테스트) 부서명 정규화**
+
+`개발팀→개발`, `제품팀→제품`, `재무팀→재무`, `영업팀→영업`, `법무팀→법무`, `인사팀→인사`, `디자인팀→디자인`. `PERMISSION_PARSE_PROMPT`(prompts.py L153-195)는 제외(Task 5):
+```bash
+# prompts.py는 PERMISSION_PARSE_PROMPT 외 라인만 — 수동 확인하며 치환(L86,87,128 등)
+sed -i '' -E 's/(개발|제품|재무|영업|법무|인사|디자인)팀/\1/g' core/sql/catalog.py scripts/seed_business.py app/graph/nodes/capability_node.py
+```
+prompts.py는 L153-195를 건드리지 않도록 L86·L87·L128만 개별 수정.
+
+- [ ] **Step 2: 테스트 부서명 정규화**
+```bash
+grep -rl '개발팀\|제품팀\|재무팀\|영업팀\|법무팀\|인사팀\|디자인팀' tests/ | xargs sed -i '' -E 's/(개발|제품|재무|영업|법무|인사|디자인)팀/\1/g'
+```
+
+- [ ] **Step 3: business DB 재시드 + 전체 테스트**
+```bash
+docker compose up -d postgres
+.venv/bin/python -m scripts.seed_business   # employees/sales/equipment 재시드(정규화된 부서명)
+.venv/bin/python -m pytest -q --tb=short
+```
+Expected: Task 1 도입 11 failed가 0으로. 남는 실패가 있으면 원인 분석(부서명 외 회귀인지 구분). test_builder의 justify 통합 실패가 부서명 mock 불일치였는지 확인.
+
+- [ ] **Step 4: 잔재 확인 + Commit**
+```bash
+grep -rn '개발팀\|제품팀\|재무팀\|영업팀\|법무팀\|인사팀\|디자인팀' core/ scripts/ app/ tests/ config/ | grep -v PERMISSION_PARSE_PROMPT
+# (PERMISSION_PARSE_PROMPT 잔재는 Task 5가 교체)
+git add -A
+git commit -m "feat(business): 부서명 전면 정규화(팀 제거) — 권한=데이터 통일 (ADR-0051)"
+```
+
+---
+
 ## Task 5: `prompts.py` — NL 파싱 규칙(유저→부서 번역 폐기)
 
 **Files:**
