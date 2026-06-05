@@ -89,7 +89,7 @@ class FGAClient:
         """사용자가 dept_viewer 권한을 가진 테이블 목록 (ADR-0047).
 
         _KNOWN_TABLES 각각에 대해 check를 호출하므로 N회 FGA round-trip 발생.
-        테이블 수가 적어(현재 2개) 성능 문제 없음.
+        테이블 수가 적어(현재 3개) 성능 문제 없음.
         """
         from core.fga.permission_validator import _KNOWN_TABLES
         result = []
