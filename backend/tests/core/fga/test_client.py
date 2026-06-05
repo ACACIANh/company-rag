@@ -318,7 +318,7 @@ async def test_user_accessible_tables_all_permitted():
     with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
         result = await client.user_accessible_tables("user-jisoo")
 
-    assert sorted(result) == ["employees", "sales"]
+    assert sorted(result) == ["employees", "equipment", "sales"]
 
 
 @pytest.mark.asyncio
