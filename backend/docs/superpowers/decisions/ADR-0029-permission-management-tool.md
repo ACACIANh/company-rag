@@ -5,6 +5,8 @@
 **Date**: 2026-06-03
 **Context**: SP2a(ADR-0028)로 SQL 게이트가 OpenFGA capability 모델로 통일되어, 게이트 정책이 코드가 아니라 튜플(데이터)로 운영된다. 이제 그 권한 튜플을 **에이전트 도구로 조작**한다(SP2b). tool_call 에이전트 루프(ADR-0023)에 `manage_permission` 도구를 등록해, 권한자가 자연어로 권한을 부여/회수하고, 그 행위 자체가 capability 게이트(메타권한)·HITL·감사를 거치게 한다.
 
+> **후속(ADR-0051)**: 도구 골격(NL→파싱→검증→튜플)은 유지되나, grant 대상 relation이 `dept_viewer`(폴더)·capability 직접 grant에서 **`member`(부서 멤버십)·`holder`(permission 배정)** 두 가지로 재편됨. `PERMISSION_PARSE_PROMPT`·`PermissionValidator`도 permission 모델 기준으로 갱신. 도구·게이트·감사 메커니즘 자체는 불변이라 Status는 🟢 유지.
+
 ## Options
 
 ### 결정 1 — grant/revoke 대상 권한

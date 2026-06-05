@@ -31,3 +31,4 @@ permissions:
     holders: ["role:c_level#member"]
     tables:  [employees, sales, equipment]
     sql:     [justify_update_delete]
+  # 디자인 부서: 공개 폴더(/company/design)만 열람 + permission:기본(전직원 SELECT)으로 충분 → 전용 permission 불필요(의도된 누락).
