@@ -289,3 +289,47 @@ async def test_list_all_tuples_paginates():
         ("user:b", "member", "department:y"),
     ]
     assert state["i"] == 2   # 두 페이지 모두 소비(빈 token에서 종료)
+
+
+# ── user_accessible_tables ────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_user_accessible_tables_returns_permitted_only():
+    """dept_viewer 보유 테이블만 반환, 미보유는 제외."""
+    client = _client()
+
+    async def fake_check(user, relation, object_):
+        return object_ == "table:employees" and relation == "dept_viewer"
+
+    with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
+        result = await client.user_accessible_tables("user-jisoo")
+
+    assert result == ["employees"]
+
+
+@pytest.mark.asyncio
+async def test_user_accessible_tables_all_permitted():
+    """모든 테이블 dept_viewer 보유 시 전체 반환."""
+    client = _client()
+
+    async def fake_check(user, relation, object_):
+        return relation == "dept_viewer"
+
+    with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
+        result = await client.user_accessible_tables("user-jisoo")
+
+    assert sorted(result) == ["employees", "sales"]
+
+
+@pytest.mark.asyncio
+async def test_user_accessible_tables_none_permitted():
+    """dept_viewer 미보유 시 빈 리스트 반환."""
+    client = _client()
+
+    async def fake_check(user, relation, object_):
+        return False
+
+    with patch.object(client, "check", new=AsyncMock(side_effect=fake_check)):
+        result = await client.user_accessible_tables("user-jisoo")
+
+    assert result == []

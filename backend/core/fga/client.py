@@ -85,6 +85,19 @@ class FGAClient:
         prefix = "department:"
         return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
 
+    async def user_accessible_tables(self, user_id: str) -> list[str]:
+        """사용자가 dept_viewer 권한을 가진 테이블 목록 (ADR-0047).
+
+        _KNOWN_TABLES 각각에 대해 check를 호출하므로 N회 FGA round-trip 발생.
+        테이블 수가 적어(현재 2개) 성능 문제 없음.
+        """
+        from core.fga.permission_validator import _KNOWN_TABLES
+        result = []
+        for table in sorted(_KNOWN_TABLES):
+            if await self.check(f"user:{user_id}", "dept_viewer", f"table:{table}"):
+                result.append(table)
+        return result
+
     async def check(self, user: str, relation: str, object_: str) -> bool:
         """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
         from openfga_sdk import OpenFgaClient
