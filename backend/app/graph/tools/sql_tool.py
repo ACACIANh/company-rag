@@ -15,9 +15,9 @@ from app.graph.tools._args import single_text_arg
 _DEFAULT_ROW_LIMIT = 100
 
 _DESCRIPTION = (
-    "사내 업무 DB(business.employees, business.sales)의 레코드를 조회·수정·삭제한다. "
-    "직원의 사번·아이디(emp_id)·부서·직급·이메일·연봉, 매출 수치 등 테이블 값을 묻는 조회(직원 이름으로 검색 포함)뿐 아니라 "
-    "'연봉을 바꿔줘', '행을 삭제해줘' 같은 데이터 변경도 이 도구로 처리한다. "
+    "사내 업무 DB(business.employees, business.sales, business.equipment)의 레코드를 조회·수정·삭제한다. "
+    "직원의 사번·아이디(emp_id)·부서·직급·이메일·연봉, 매출 수치, 장비(자산) 현황 등 테이블 값을 묻는 조회뿐 아니라 "
+    "'연봉을 바꿔줘', '장비를 지급해줘', '행을 삭제해줘' 같은 데이터 변경도 이 도구로 처리한다. "
     "특정 직원의 아이디/사번을 이름으로 찾는 것도 여기서 한다(감사 이력·권한 조회 도구가 아니다). "
     "권한 부여/회수가 아니라 '테이블 데이터' 작업일 때 쓴다. "
     "question 인자에 한국어 자연어 요청을 그대로 넣는다."

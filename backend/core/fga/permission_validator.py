@@ -19,7 +19,7 @@ _CAPABILITY_RELATIONS = {
 
 # 접근 권한 관리 대상 테이블 화이트리스트 (ADR-0047, seed_fga._TABLE_GRANTS와 동기화).
 # DB 스키마가 고정된 환경에서 코드 상수로 관리. 새 테이블 추가 시 여기에 추가 후 seed 재실행.
-_KNOWN_TABLES = {"employees", "sales"}
+_KNOWN_TABLES = {"employees", "sales", "equipment"}
 
 
 class PermissionValidator:
