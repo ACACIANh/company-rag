@@ -7,13 +7,17 @@
     {
       "type": "role",
       "relations": {
-        "member": {"this": {}}
+        "member": {
+          "this": {}
+        }
       },
       "metadata": {
         "relations": {
           "member": {
             "directly_related_user_types": [
-              {"type": "user"}
+              {
+                "type": "user"
+              }
             ]
           }
         }
@@ -22,19 +26,27 @@
     {
       "type": "department",
       "relations": {
-        "member": {"this": {}},
-        "admin": {"this": {}}
+        "member": {
+          "this": {}
+        },
+        "admin": {
+          "this": {}
+        }
       },
       "metadata": {
         "relations": {
           "member": {
             "directly_related_user_types": [
-              {"type": "user"}
+              {
+                "type": "user"
+              }
             ]
           },
           "admin": {
             "directly_related_user_types": [
-              {"type": "user"}
+              {
+                "type": "user"
+              }
             ]
           }
         }
@@ -43,30 +55,52 @@
     {
       "type": "folder",
       "relations": {
-        "parent": {"this": {}},
-        "dept_viewer": {"this": {}},
+        "parent": {
+          "this": {}
+        },
+        "dept_viewer": {
+          "this": {}
+        },
         "dept_access": {
           "union": {
             "child": [
-              {"computedUserset": {"relation": "dept_viewer"}},
+              {
+                "computedUserset": {
+                  "relation": "dept_viewer"
+                }
+              },
               {
                 "tupleToUserset": {
-                  "tupleset": {"relation": "parent"},
-                  "computedUserset": {"relation": "dept_access"}
+                  "tupleset": {
+                    "relation": "parent"
+                  },
+                  "computedUserset": {
+                    "relation": "dept_access"
+                  }
                 }
               }
             ]
           }
         },
-        "public_viewer": {"this": {}},
+        "public_viewer": {
+          "this": {}
+        },
         "public_access": {
           "union": {
             "child": [
-              {"computedUserset": {"relation": "public_viewer"}},
+              {
+                "computedUserset": {
+                  "relation": "public_viewer"
+                }
+              },
               {
                 "tupleToUserset": {
-                  "tupleset": {"relation": "parent"},
-                  "computedUserset": {"relation": "public_access"}
+                  "tupleset": {
+                    "relation": "parent"
+                  },
+                  "computedUserset": {
+                    "relation": "public_access"
+                  }
                 }
               }
             ]
@@ -75,11 +109,17 @@
         "private_flag": {
           "union": {
             "child": [
-              {"this": {}},
+              {
+                "this": {}
+              },
               {
                 "tupleToUserset": {
-                  "tupleset": {"relation": "parent"},
-                  "computedUserset": {"relation": "private_flag"}
+                  "tupleset": {
+                    "relation": "parent"
+                  },
+                  "computedUserset": {
+                    "relation": "private_flag"
+                  }
                 }
               }
             ]
@@ -88,11 +128,17 @@
         "super_reader": {
           "union": {
             "child": [
-              {"this": {}},
+              {
+                "this": {}
+              },
               {
                 "tupleToUserset": {
-                  "tupleset": {"relation": "parent"},
-                  "computedUserset": {"relation": "super_reader"}
+                  "tupleset": {
+                    "relation": "parent"
+                  },
+                  "computedUserset": {
+                    "relation": "super_reader"
+                  }
                 }
               }
             ]
@@ -101,12 +147,28 @@
         "can_read": {
           "union": {
             "child": [
-              {"computedUserset": {"relation": "super_reader"}},
-              {"computedUserset": {"relation": "dept_access"}},
+              {
+                "computedUserset": {
+                  "relation": "super_reader"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "dept_access"
+                }
+              },
               {
                 "difference": {
-                  "base": {"computedUserset": {"relation": "public_access"}},
-                  "subtract": {"computedUserset": {"relation": "private_flag"}}
+                  "base": {
+                    "computedUserset": {
+                      "relation": "public_access"
+                    }
+                  },
+                  "subtract": {
+                    "computedUserset": {
+                      "relation": "private_flag"
+                    }
+                  }
                 }
               }
             ]
@@ -117,12 +179,17 @@
         "relations": {
           "parent": {
             "directly_related_user_types": [
-              {"type": "folder"}
+              {
+                "type": "folder"
+              }
             ]
           },
           "dept_viewer": {
             "directly_related_user_types": [
-              {"type": "department", "relation": "member"}
+              {
+                "type": "department",
+                "relation": "member"
+              }
             ]
           },
           "dept_access": {
@@ -130,7 +197,10 @@
           },
           "public_viewer": {
             "directly_related_user_types": [
-              {"type": "user", "wildcard": {}}
+              {
+                "type": "user",
+                "wildcard": {}
+              }
             ]
           },
           "public_access": {
@@ -138,12 +208,18 @@
           },
           "private_flag": {
             "directly_related_user_types": [
-              {"type": "user", "wildcard": {}}
+              {
+                "type": "user",
+                "wildcard": {}
+              }
             ]
           },
           "super_reader": {
             "directly_related_user_types": [
-              {"type": "role", "relation": "member"}
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "can_read": {
@@ -155,55 +231,118 @@
     {
       "type": "capability",
       "relations": {
-        "allow_select":          {"this": {}},
-        "justify_select":        {"this": {}},
-        "justify_bulk_select":   {"this": {}},
-        "justify_update_delete": {"this": {}},
-        "justify_ddl":           {"this": {}},
-        "justify_grant":         {"this": {}}
+        "allow_select": {
+          "this": {}
+        },
+        "justify_select": {
+          "this": {}
+        },
+        "justify_bulk_select": {
+          "this": {}
+        },
+        "justify_update_delete": {
+          "this": {}
+        },
+        "justify_ddl": {
+          "this": {}
+        },
+        "justify_grant": {
+          "this": {}
+        }
       },
       "metadata": {
         "relations": {
           "allow_select": {
             "directly_related_user_types": [
-              {"type": "user", "wildcard": {}},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user",
+                "wildcard": {}
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "justify_select": {
             "directly_related_user_types": [
-              {"type": "user", "wildcard": {}},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user",
+                "wildcard": {}
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "justify_bulk_select": {
             "directly_related_user_types": [
-              {"type": "user", "wildcard": {}},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user",
+                "wildcard": {}
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "justify_update_delete": {
             "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user"
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "justify_ddl": {
             "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user"
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           },
           "justify_grant": {
             "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user"
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           }
         }
@@ -212,15 +351,25 @@
     {
       "type": "table",
       "relations": {
-        "can_access": {"this": {}}
+        "dept_viewer": {
+          "this": {}
+        }
       },
       "metadata": {
         "relations": {
-          "can_access": {
+          "dept_viewer": {
             "directly_related_user_types": [
-              {"type": "user"},
-              {"type": "department", "relation": "member"},
-              {"type": "role", "relation": "member"}
+              {
+                "type": "user"
+              },
+              {
+                "type": "department",
+                "relation": "member"
+              },
+              {
+                "type": "role",
+                "relation": "member"
+              }
             ]
           }
         }
