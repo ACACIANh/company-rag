@@ -1,6 +1,7 @@
+import dataclasses
 import pytest
 
-from app.graph.tools.base import ToolAgent
+from app.graph.tools.base import ToolAgent, ToolResult
 
 
 class _DummyAgent:
@@ -10,6 +11,18 @@ class _DummyAgent:
         return (args["text"], "select")
     async def execute(self, planned_action, risk=""):
         return f"ran: {planned_action}"
+
+
+def test_tool_result_holds_text_and_summary():
+    r = ToolResult(text="전체 표", summary="12행 조회")
+    assert r.text == "전체 표"
+    assert r.summary == "12행 조회"
+
+
+def test_tool_result_is_frozen():
+    r = ToolResult(text="a", summary="b")
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        r.text = "c"  # type: ignore[misc]
 
 
 @pytest.mark.asyncio
