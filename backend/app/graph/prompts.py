@@ -56,7 +56,8 @@ CHECK_HALLUCINATION = """\
 # 업무 DB 조회 표면 — 라우터(분류)와 SQL 생성이 같은 인식 기반을 공유하도록 단일 출처로 둔다 (ADR-0022).
 _BUSINESS_SCHEMA = """\
 - business.employees(emp_id, name, department, position, hire_date, salary, email)
-- business.sales(sale_id, period, department, product, amount, created_at)"""
+- business.sales(sale_id, period, department, product, amount, created_at)
+- business.equipment(asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)"""
 
 # route 구분 축은 "동작 동사"가 아니라 "무엇으로 답하는가(데이터 원천)" — 동사 충돌(조회/예약 등)로 인한
 # 오분류를 막는다. 경계 few-shot으로 "정책 vs 내 수치"를 직접 대조하고, 불확실하면 doc_search로 기운다 (ADR-0022).

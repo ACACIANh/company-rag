@@ -115,3 +115,40 @@ def test_catalog_has_equipment_statuses():
 def test_catalog_equipment_in_categorical_values():
     assert "business.equipment.category" in catalog.CATEGORICAL_VALUES
     assert "business.equipment.status" in catalog.CATEGORICAL_VALUES
+
+
+# ── build_equipment_rows ────────────────────────────────────────
+def test_equipment_rows_nonempty():
+    from scripts.seed_business import build_equipment_rows
+    rows = build_equipment_rows()
+    assert len(rows) >= 5
+
+
+def test_equipment_rows_has_unassigned_laptop():
+    from scripts.seed_business import build_equipment_rows
+    rows = build_equipment_rows()
+    # 장면 ③에 필요: status=미배정, category=노트북, assigned_to=None
+    unassigned_laptops = [
+        r for r in rows
+        if r[2] == "노트북" and r[3] == "미배정" and r[6] is None
+    ]
+    assert len(unassigned_laptops) >= 2
+
+
+def test_equipment_rows_has_nb001():
+    from scripts.seed_business import build_equipment_rows
+    rows = build_equipment_rows()
+    ids = [r[0] for r in rows]
+    assert "NB-001" in ids
+
+
+def test_equipment_rows_deterministic():
+    from scripts.seed_business import build_equipment_rows
+    assert build_equipment_rows() == build_equipment_rows()
+
+
+def test_equipment_row_shape():
+    from scripts.seed_business import build_equipment_rows
+    # (asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)
+    row = build_equipment_rows()[0]
+    assert len(row) == 7

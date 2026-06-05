@@ -74,6 +74,21 @@ def build_sales_rows() -> list[tuple]:
     return rows
 
 
+def build_equipment_rows() -> list[tuple]:
+    """business.equipment 시드 행. 결정론적 합성. 미배정 노트북 2개 이상 보장."""
+    return [
+        # (asset_id, name, category, status, assigned_dept, purchase_date, assigned_to)
+        ("NB-001", "맥북 프로 14인치",    "노트북", "미배정", None,     date(2024, 1, 10), None),
+        ("NB-002", "맥북 에어 M3",         "노트북", "미배정", None,     date(2024, 3, 15), None),
+        ("NB-003", "레노버 ThinkPad X1",  "노트북", "수리중", "인사팀", date(2022, 1, 15), None),
+        ("NB-004", "델 XPS 15",            "노트북", "정상",  "개발팀", date(2023, 3,  1), "user-jisoo"),
+        ("NB-005", "맥북 프로 13인치",    "노트북", "정상",  "제품팀", date(2023, 6,  1), "user-dohyeon"),
+        ("MN-001", "삼성 27인치 모니터",  "모니터", "정상",  "영업팀", date(2022, 9,  1), "user-minho"),
+        ("MN-002", "LG 32인치 모니터",    "모니터", "미배정", None,     date(2024, 4,  1), None),
+        ("SV-001", "Dell PowerEdge R750", "서버",   "정상",  "개발팀", date(2021, 6,  1), None),
+    ]
+
+
 _DDL = """
 CREATE SCHEMA IF NOT EXISTS business;
 
@@ -94,6 +109,16 @@ CREATE TABLE IF NOT EXISTS business.sales (
     product     text NOT NULL,
     amount      bigint NOT NULL,
     created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS business.equipment (
+    asset_id      text PRIMARY KEY,
+    name          text NOT NULL,
+    category      text NOT NULL,   -- 노트북 / 모니터 / 서버 / 기타
+    status        text NOT NULL,   -- 정상 / 수리중 / 폐기예정 / 미배정
+    assigned_dept text,            -- 담당 부서 (NULL = 미배정)
+    purchase_date date NOT NULL,
+    assigned_to   text             -- emp_id (NULL = 미배정)
 );
 """
 
@@ -164,6 +189,7 @@ async def main() -> None:
     users = yaml.safe_load(Path("config/users.yaml").read_text())["users"]
     employee_rows = build_employee_rows(users)
     sales_rows = build_sales_rows()
+    equipment_rows = build_equipment_rows()
 
     conn = await asyncpg.connect(cfg.postgres_dsn)
     try:
@@ -171,6 +197,7 @@ async def main() -> None:
         # 멱등: 매번 비우고 다시 적재
         await conn.execute("TRUNCATE business.employees")
         await conn.execute("TRUNCATE business.sales RESTART IDENTITY")
+        await conn.execute("TRUNCATE business.equipment")
         await conn.executemany(
             "INSERT INTO business.employees "
             "(emp_id, name, department, position, hire_date, salary, email) "
@@ -182,13 +209,20 @@ async def main() -> None:
             "VALUES ($1, $2, $3, $4)",
             sales_rows,
         )
+        await conn.executemany(
+            "INSERT INTO business.equipment "
+            "(asset_id, name, category, status, assigned_dept, purchase_date, assigned_to) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            equipment_rows,
+        )
         await conn.execute(_grant_sql(password))
         await conn.execute(_grant_rw_sql(rw_password))
     finally:
         await conn.close()
 
     print(
-        f"business 시드 완료: employees {len(employee_rows)}행, sales {len(sales_rows)}행, "
+        f"business 시드 완료: employees {len(employee_rows)}행, "
+        f"sales {len(sales_rows)}행, equipment {len(equipment_rows)}행, "
         f"제한계정 sql_tool_ro(read-only)·sql_tool_rw(SELECT/UPDATE/DELETE)"
     )
 
