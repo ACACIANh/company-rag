@@ -166,6 +166,12 @@ PERMISSION_PARSE_PROMPT = """\
   SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
     relation 은 allow_select/justify_select/justify_bulk_select/justify_update_delete/justify_ddl 중 하나, object="capability:sql"
 
+폴더 열람 권한 규칙(중요):
+- "특정 유저에게 <부서명> 문서/폴더 열람 권한 부여" → 해당 유저를 그 부서의 멤버로 추가하는 것으로 처리한다.
+  폴더 접근은 부서 멤버십을 통해 자동으로 부여되므로, subject는 반드시 "user:<유저id>", relation은 "member", object는 "department:<부서>"여야 한다.
+  예: "이민준에게 법무 문서 열람 권한" → subject="user:user-minjun", relation="member", object="department:법무팀"
+  예: "박서연에게 재무 문서 접근 권한" → subject="user:user-seoyeon", relation="member", object="department:재무팀"
+
 id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
 - 비격식 이름·영문 단명·표시명(예: "지수", "jisoo", "김지수")은 반드시 정식 user id("user-jisoo")로 바꾼다.
   위 카탈로그에서 해당 user id를 찾아 그대로 사용한다(임의 id 생성 금지).
@@ -177,6 +183,8 @@ id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
   {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}}
 - "이민준 인사팀에서 빼줘" →
   {{"action":"revoke","subject":"user:user-minjun","relation":"member","object":"department:인사팀"}}
+- "이민준에게 법무 문서 열람 권한 줘" →
+  {{"action":"grant","subject":"user:user-minjun","relation":"member","object":"department:법무팀"}}
 
 grant/revoke 키: action, subject, relation, object 네 개.
 query 키: action, target_user_id 두 개.
