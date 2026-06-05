@@ -1,7 +1,7 @@
 # 내부 API 명세
 
 ## 기본 규칙
-- Base URL: https://api.acmecorp.com/v1
+- Base URL: https://api.techcorp.example/v1
 - 인증: Bearer 토큰 (Authorization 헤더)
 - 응답 형식: JSON
 - 날짜 형식: ISO 8601 (UTC)

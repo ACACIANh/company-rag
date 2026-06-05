@@ -30,4 +30,4 @@
 - 소스 코드 (승인된 오픈소스 제외)
 
 ## 보안 사고 신고
-security@acmecorp.com 또는 내선 9999로 즉시 신고. 24시간 대응 가능.
+security@techcorp.example 또는 내선 9999로 즉시 신고. 24시간 대응 가능.

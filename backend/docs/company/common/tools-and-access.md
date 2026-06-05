@@ -3,20 +3,20 @@
 ## 필수 도구
 | 도구 | 용도 | 접속 주소 |
 |------|------|----------|
-| Slack | 팀 커뮤니케이션 | acmecorp.slack.com |
-| Jira | 태스크 관리 | jira.acmecorp.com |
-| GitHub | 코드 저장소 | github.com/acmecorp |
-| Confluence | 문서 위키 | confluence.acmecorp.com |
+| Slack | 팀 커뮤니케이션 | techcorp.slack.com |
+| Jira | 태스크 관리 | jira.techcorp.example |
+| GitHub | 코드 저장소 | github.com/techcorp |
+| Confluence | 문서 위키 | confluence.techcorp.example |
 | Figma | 디자인 협업 | figma.com (SSO 로그인) |
-| Grafana | 모니터링 | grafana.acmecorp.com |
+| Grafana | 모니터링 | grafana.techcorp.example |
 
 ## 계정 신청 방법
-IT 서비스 포털(it.acmecorp.com)에서 신청. 승인 후 이메일로 초대 링크 발송.
+IT 서비스 포털(it.techcorp.example)에서 신청. 승인 후 이메일로 초대 링크 발송.
 
 ## VPN 설정
 - 클라이언트: Tailscale
 - 설정 파일: IT팀에서 입사 첫날 제공
-- 접속 주소: vpn.acmecorp.com
+- 접속 주소: vpn.techcorp.example
 - 사내 시스템 접근 시 VPN 필수
 
 ## 개발 환경

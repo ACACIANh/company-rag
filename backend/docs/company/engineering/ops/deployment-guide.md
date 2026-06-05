@@ -22,6 +22,6 @@
 즉각 롤백이 필요한 경우: 인프라팀 슬랙(@oncall) 태그.
 
 ## 모니터링
-- Grafana 대시보드: grafana.acmecorp.com
+- Grafana 대시보드: grafana.techcorp.example
 - 에러 알림: Sentry → Slack #alerts
 - 응답시간 임계값: p99 500ms 초과 시 알림

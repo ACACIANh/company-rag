@@ -14,7 +14,7 @@
 
 ## 의사소통
 - P0/P1: CEO, CTO에게 즉시 보고
-- 외부 공지: 서비스 상태 페이지(status.acmecorp.com) 업데이트
+- 외부 공지: 서비스 상태 페이지(status.techcorp.example) 업데이트
 - 고객 안내: 지원팀에 상황 공유
 
 ## 사후 처리 (48시간 이내)
@@ -24,4 +24,4 @@
 
 ## 온콜 담당자
 온콜 로테이션: 1주 단위, PagerDuty로 알림.
-온콜 연락처: oncall@acmecorp.com / PagerDuty
+온콜 연락처: oncall@techcorp.example / PagerDuty
