@@ -1,5 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.graph.nodes.agent import agent_node
 
@@ -33,6 +33,22 @@ async def test_agent_seeds_original_question_not_rewritten():
     await agent_node(state, chat_model=_Model())
     humans = [m for m in captured["messages"] if isinstance(m, HumanMessage)]
     assert humans and humans[0].content == "alice를 engineering 부서에 추가해줘"
+
+
+async def test_agent_injects_caller_user_id_into_system():
+    """첫 진입 시 호출자 user_id를 시스템 지시에 주입 — '내 아이디' 본인 식별자 직답용."""
+    captured = {}
+
+    class _Model:
+        async def ainvoke(self, messages):
+            captured["messages"] = messages
+            return AIMessage(content="당신의 아이디는 'user-admin'입니다.")
+
+    state = {"question": "내 아이디는?", "rewritten_question": "",
+             "user_id": "user-admin", "agent_messages": []}
+    await agent_node(state, chat_model=_Model())
+    systems = [m for m in captured["messages"] if isinstance(m, SystemMessage)]
+    assert systems and "user-admin" in systems[0].content
 
 
 async def test_agent_appends_ai_message_on_followup_turn():

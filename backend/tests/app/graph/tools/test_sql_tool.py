@@ -1,8 +1,14 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from app.graph.tools.sql_tool import SqlAgent, _format_rows
+from app.graph.tools.sql_tool import SqlAgent, _DESCRIPTION, _format_rows
 from core.sql.risk import RISK_SELECT, RISK_UPDATE_DELETE
+
+
+def test_description_claims_employee_id_lookup():
+    """직원 사번·아이디(emp_id) 이름 조회를 명시 — audit/permission 도구 오선택 회귀 가드."""
+    assert "emp_id" in _DESCRIPTION
+    assert "아이디" in _DESCRIPTION and "이름" in _DESCRIPTION
 
 
 def _pool(fetch_return=None, execute_return="UPDATE 2"):
