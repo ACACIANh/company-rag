@@ -194,11 +194,39 @@ async def test_resolve_capabilities_maps_decisions_to_labels():
 
 
 def test_format_snapshot_renders_capability_section():
-    """스냅샷에 'SQL/관리 권한' 섹션과 각 항목이 'label: 결정' 형식으로 렌더링된다."""
+    """스냅샷에 'SQL/관리 권한' 섹션과 각 항목이 GFM 테이블 행으로 렌더링된다."""
     out = _format_permission_snapshot(
         "user-admin", [], ["c_level"], ["/company"],
         [("SELECT", "즉시 허용"), ("DDL", "불가")],
     )
-    assert "SQL/관리 권한" in out
-    assert "SELECT: 즉시 허용" in out
-    assert "DDL: 불가" in out
+    assert "### SQL/관리 권한" in out
+    assert "| SELECT | ✅ 즉시 허용 |" in out
+    assert "| DDL | ❌ 불가 |" in out
+
+
+def test_format_snapshot_markdown_headers():
+    """마크다운 섹션 헤더(## 권한 스냅샷, ### 접근 가능 폴더, ### SQL/관리 권한)가 포함된다."""
+    out = _format_permission_snapshot(
+        "user-admin", [], ["c_level"], ["/company"],
+        [("SELECT", "즉시 허용"), ("DDL", "불가")],
+    )
+    assert "## 권한 스냅샷" in out
+    assert "### 접근 가능 폴더" in out
+    assert "### SQL/관리 권한" in out
+
+
+def test_format_snapshot_markdown_capability_table():
+    """capability 섹션이 GFM 테이블 형식이고 이모지가 포함된다."""
+    out = _format_permission_snapshot(
+        "user-admin", ["개발팀"], ["c_level"], [],
+        [
+            ("SELECT", "즉시 허용"),
+            ("대량 SELECT", "사유 기재 후 허용"),
+            ("DDL", "불가"),
+        ],
+    )
+    assert "| SELECT | ✅ 즉시 허용 |" in out
+    assert "| 대량 SELECT | ⚠️ 사유 기재 후 허용 |" in out
+    assert "| DDL | ❌ 불가 |" in out
+    # 테이블 헤더 행이 있다
+    assert "| 작업 | 허용 여부 |" in out
