@@ -26,6 +26,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - 명명 원칙: 외부 경계 노출 이름은 역할(role), 내부 구현은 how 허용(캡슐화). 상세: ADR-0033.
 - 응답 도구 라벨: 사용 도구를 레지스트리 SSOT(`tool_label_map`)에서 자동 발견해 응답 상단 헤더로 표시(rag/sql/permission/audit). 새 도구는 `label` self-declare만으로 전파. 상세: ADR-0048.
 - capability 안내 감사 요약: 관리자에게만 게이트 결정 건수 요약(`count_by_decision`)을 안내 본문에 덧붙임. 상세: ADR-0049.
+- 도구 결과: `ToolAgent.execute`는 `ToolResult(text, summary)` 반환. text=사용자 노출, summary=감사로그(`result_summary`)용 짧은 한 줄. 각 핸들러가 데이터 시점에 요약 생성(읽기단계 정규식 추측 제거). 상세: ADR-0052.
 
 ## 작업 규칙
 1. **새 노드/엣지 추가 전**: `docs/langgraph-guide/INDEX.md` 먼저 읽기.
