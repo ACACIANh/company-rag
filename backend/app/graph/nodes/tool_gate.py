@@ -106,4 +106,16 @@ async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_
     if new_messages:
         out["agent_messages"] = new_messages
     out["pending_tool_calls"] = pending
+
+    # 단일 도구 호출 결과가 권한 스냅샷이면 LLM 재해석 없이 직접 answer로 사용.
+    # (복수 도구 호출은 LLM 종합이 필요하므로 제외)
+    if (
+        not pending
+        and len(tool_calls) == 1
+        and len(new_messages) == 1
+        and isinstance(new_messages[0].content, str)
+        and new_messages[0].content.startswith("## 권한 스냅샷")
+    ):
+        out["answer"] = new_messages[0].content
+
     return out

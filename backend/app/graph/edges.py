@@ -65,5 +65,10 @@ def route_after_agent(state: dict) -> str:
 
 
 def route_after_tool_gate(state: dict) -> str:
-    """JUSTIFY 대기 호출이 있으면 confirm(HITL), 없으면 에이전트로 복귀 (ADR-0023)."""
-    return "confirm" if state.get("pending_tool_calls") else "agent"
+    """JUSTIFY 대기 호출이 있으면 confirm(HITL), 직접 답변이 설정됐으면 agent_answer,
+    없으면 에이전트로 복귀 (ADR-0023)."""
+    if state.get("pending_tool_calls"):
+        return "confirm"
+    if state.get("answer"):
+        return "agent_answer"
+    return "agent"

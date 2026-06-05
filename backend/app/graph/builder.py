@@ -141,7 +141,7 @@ def build_graph(
     g.add_conditional_edges(
         "tool_gate",
         route_after_tool_gate,
-        {"confirm": "confirm", "agent": "agent"},
+        {"confirm": "confirm", "agent": "agent", "agent_answer": "agent_answer"},
     )
     g.add_edge("confirm", "justify_execute")
     g.add_edge("justify_execute", "agent")
