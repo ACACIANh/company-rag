@@ -8,7 +8,7 @@ from app.graph.tools.base import ToolResult
 
 def _registry():
     h = MagicMock()
-    h.execute = AsyncMock(return_value=ToolResult(text="급여 결과", summary="급여 결과"))
+    h.execute = AsyncMock(return_value=ToolResult(text="FULL-급여 결과", summary="SUM-급여 결과"))
     reg = MagicMock(); reg.handlers = {"query_business_data": h}
     return reg, h
 
@@ -31,7 +31,7 @@ async def test_executes_pending_when_justified():
     }
     out = await justify_execute_node(state, registry=reg, audit_sink=AsyncMock(), fga_client=_fga())
     tms = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
-    assert tms[0].tool_call_id == "c1" and "급여 결과" in tms[0].content
+    assert tms[0].tool_call_id == "c1" and "FULL-급여 결과" in tms[0].content
     assert out["pending_tool_calls"] == []
     h.execute.assert_awaited_once()
 
@@ -87,4 +87,4 @@ async def test_audit_record_includes_department_role_and_result():
     record = audit.record.call_args[0][0]
     assert record.department == "개발"
     assert record.role == "c_level"
-    assert record.result_summary == "급여 결과"
+    assert record.result_summary == "SUM-급여 결과"

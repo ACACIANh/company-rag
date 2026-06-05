@@ -21,10 +21,10 @@ def _fga(roles, depts, capabilities=(), tuples=()):
     return fga
 
 
-def _handler(planned, risk, result="rows"):
+def _handler(planned, risk, text="rows", summary="rows"):
     h = MagicMock()
     h.plan.return_value = (planned, risk)
-    h.execute = AsyncMock(return_value=ToolResult(text=result, summary=result))
+    h.execute = AsyncMock(return_value=ToolResult(text=text, summary=summary))
     return h
 
 
@@ -40,7 +40,7 @@ def _ai(tool_calls):
 
 @pytest.mark.asyncio
 async def test_allow_executes_and_appends_tool_message():
-    handler = _handler("SELECT 1", "select", result="42")
+    handler = _handler("SELECT 1", "select", text="FULL-42", summary="SUM-42")
     audit = AsyncMock()
     state = {
         "user_id": "u1", "question": "q",
@@ -53,10 +53,10 @@ async def test_allow_executes_and_appends_tool_message():
     msgs = out["agent_messages"]
     tool_msgs = [m for m in msgs if isinstance(m, ToolMessage)]
     assert tool_msgs and tool_msgs[0].tool_call_id == "c1"
-    assert "42" in tool_msgs[0].content
+    assert "FULL-42" in tool_msgs[0].content
     handler.execute.assert_awaited_once()
     record = audit.record.call_args[0][0]
-    assert record.result_summary == "42"
+    assert record.result_summary == "SUM-42"
 
 
 @pytest.mark.asyncio
@@ -144,7 +144,7 @@ async def test_table_gate_denies_select_without_can_access():
 @pytest.mark.asyncio
 async def test_table_gate_allows_select_with_viewer():
     """viewer 보유 시 테이블 게이트 통과 → 실행 (ADR-0047)."""
-    handler = _handler("SELECT name FROM business.employees", "select", result="rows")
+    handler = _handler("SELECT name FROM business.employees", "select", text="rows", summary="rows")
     state = {
         "user_id": "u1", "question": "q",
         "agent_messages": [_ai([{"name": "query_business_data", "args": {"question": "x"}, "id": "t2"}])],
@@ -255,7 +255,7 @@ async def test_dept_admin_cannot_delegate_unowned_permission():
 @pytest.mark.asyncio
 async def test_caller_id_injected_into_plan():
     """tool_gate_node가 handler.plan() 호출 시 __caller_id를 args에 주입한다."""
-    handler = _handler("SELECT 1", "select", result="ok")
+    handler = _handler("SELECT 1", "select", text="ok", summary="ok")
     state = {
         "user_id": "jisoo",
         "question": "q",
