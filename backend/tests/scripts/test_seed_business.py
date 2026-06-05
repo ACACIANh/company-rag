@@ -4,6 +4,7 @@ from scripts.seed_business import (
     _grant_sql,
     _primary_department,
 )
+from core.sql import catalog
 
 _USERS = [
     {"username": "admin", "user_id": "user-admin", "fga_roles": ["c_level"]},
@@ -98,3 +99,19 @@ def test_grant_rw_sql_grants_select_update_delete_only():
     assert "REVOKE ALL ON SCHEMA public FROM sql_tool_rw" in sql   # 운영 스키마 차단
     assert "default_transaction_read_only = on" not in sql         # 쓰기 계정은 RO 트랜잭션 아님
     assert "statement_timeout" in sql                              # timeout 방어는 유지
+
+
+# ── catalog equipment constants ─────────────────────────────────────
+def test_catalog_has_equipment_categories():
+    assert "노트북" in catalog.EQUIPMENT_CATEGORIES
+    assert "모니터" in catalog.EQUIPMENT_CATEGORIES
+
+
+def test_catalog_has_equipment_statuses():
+    assert "미배정" in catalog.EQUIPMENT_STATUSES
+    assert "수리중" in catalog.EQUIPMENT_STATUSES
+
+
+def test_catalog_equipment_in_categorical_values():
+    assert "business.equipment.category" in catalog.CATEGORICAL_VALUES
+    assert "business.equipment.status" in catalog.CATEGORICAL_VALUES

@@ -26,6 +26,10 @@ DEPARTMENTS = [
 # 직급 리터럴
 POSITIONS = ["CTO", "팀원"]
 
+# 장비 카테고리 / 상태
+EQUIPMENT_CATEGORIES = ["노트북", "모니터", "서버", "기타"]
+EQUIPMENT_STATUSES   = ["정상", "수리중", "폐기예정", "미배정"]
+
 # 매출 분기
 SALES_PERIODS = ["2025-Q1", "2025-Q2", "2025-Q3", "2025-Q4", "2026-Q1"]
 
@@ -48,6 +52,10 @@ CATEGORICAL_VALUES = {
     "business.sales.period": SALES_PERIODS,
     "business.sales.department": SALES_DEPARTMENTS,
     "business.sales.product": sorted(set(DEPT_PRODUCT.values())),
+    # equipment
+    "business.equipment.category":      EQUIPMENT_CATEGORIES,
+    "business.equipment.status":        EQUIPMENT_STATUSES,
+    "business.equipment.assigned_dept": DEPARTMENTS,
 }
 
 # PII 컬럼 — 스키마엔 있으나 값 힌트 절대 금지(ADR-0016 게이트 경계 보강).
