@@ -121,6 +121,44 @@ async def test_retrieve_node_multi_query_merges_results_via_rrf():
 
 
 @pytest.mark.asyncio
+async def test_retrieve_node_without_reranker_truncates_to_top_k():
+    """reranker 미주입(None)이면 reranking 없이 상위 top_k만 순서 보존해 반환(identity)."""
+    def _sr(cid: str) -> SearchResult:
+        return SearchResult(chunk=Chunk(text="t", source=cid, chunk_id=cid), score=0.9)
+
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve = AsyncMock(return_value=[_sr("a"), _sr("b"), _sr("c")])
+    mock_fga = _mock_fga()
+    state = {"question": "q", "user_id": "u1", "user_teams": [], "personal_doc_ids": []}
+
+    result = await retrieve_node(state, retriever=mock_retriever, fga_client=mock_fga, top_k=2)
+
+    assert [r.chunk.chunk_id for r in result["documents"]] == ["a", "b"]
+
+
+@pytest.mark.asyncio
+async def test_retrieve_node_uses_injected_reranker():
+    """reranker 주입 시 그 rerank 결과를 그대로 사용한다."""
+    def _sr(cid: str) -> SearchResult:
+        return SearchResult(chunk=Chunk(text="t", source=cid, chunk_id=cid), score=0.9)
+
+    mock_retriever = MagicMock()
+    mock_retriever.retrieve = AsyncMock(return_value=[_sr("a"), _sr("b")])
+    reranked = [_sr("b"), _sr("a")]
+    mock_reranker = MagicMock()
+    mock_reranker.rerank = MagicMock(return_value=reranked)
+    mock_fga = _mock_fga()
+    state = {"question": "q", "user_id": "u1", "user_teams": [], "personal_doc_ids": []}
+
+    result = await retrieve_node(
+        state, retriever=mock_retriever, fga_client=mock_fga, reranker=mock_reranker,
+    )
+
+    mock_reranker.rerank.assert_called_once()
+    assert result["documents"] == reranked
+
+
+@pytest.mark.asyncio
 async def test_retrieve_node_single_query_when_multi_queries_empty():
     mock_retriever = MagicMock()
     mock_retriever.retrieve = AsyncMock(return_value=[_make_result()])

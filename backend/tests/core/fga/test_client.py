@@ -232,6 +232,122 @@ async def test_grant_revoke_roundtrip_invalidates_cache():
         assert await cache.get("user-joohwan") is None       # revoke도 캐시를 비움
 
 
+def _member_read_fake(member_users: list[str], dept_object: str):
+    """OpenFGA Read를 흉내내 (object=dept, relation=member) 멤버 튜플을 1페이지로 반환하는 fake.
+    write(deletes)는 no-op. grant/revoke 양쪽 무효화 테스트에 공용."""
+    from types import SimpleNamespace
+
+    class _FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def write(self, req): pass
+        async def read(self, body, options=None):
+            tuples = [
+                SimpleNamespace(key=SimpleNamespace(user=u, relation="member", object=dept_object))
+                for u in member_users
+            ]
+            return SimpleNamespace(tuples=tuples, continuation_token="")
+    return _FakeClient()
+
+
+@pytest.mark.asyncio
+async def test_grant_tuple_set_subject_invalidates_all_department_members():
+    """department:D#member 를 holder로 권한 부여 시, 그 부서 멤버 전원의 폴더 캐시가
+    무효화돼야 한다(TTU 파급 — ADR-0051 보강). bare user id로 키잉됨."""
+    cache = InMemoryCacheBackend()
+    await cache.set("daesu", ["/company/hr"], ttl_seconds=60)
+    await cache.set("mido", ["/company/hr"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    fake = _member_read_fake(["user:daesu", "user:mido"], "department:인사")
+    with patch("openfga_sdk.OpenFgaClient", return_value=fake), \
+         patch.object(client, "_write_fga_tuples", new=AsyncMock()):
+        await client.grant_tuple("department:인사#member", "holder", "permission:인사")
+
+    assert await cache.get("daesu") is None
+    assert await cache.get("mido") is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_set_subject_invalidates_all_department_members():
+    """보안 핵심: department:D#member 권한 회수 시, 부서원 전원 캐시를 즉시 비워야
+    회수된 폴더가 TTL까지 RAG pre-filter에 계속 노출되는 누수를 막는다."""
+    cache = InMemoryCacheBackend()
+    await cache.set("daesu", ["/company/hr"], ttl_seconds=60)
+    await cache.set("mido", ["/company/hr"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    fake = _member_read_fake(["user:daesu", "user:mido"], "department:인사")
+    with patch("openfga_sdk.OpenFgaClient", return_value=fake):
+        await client.revoke_tuple("department:인사#member", "holder", "permission:인사")
+
+    assert await cache.get("daesu") is None
+    assert await cache.get("mido") is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_role_member_invalidates_role_members():
+    """role:R#member 도 super_reader(model.fga)로 폴더 can_read 경로가 있으므로, no-op이면
+    seed_fga --prune의 super_reader revoke가 누수된다. #member userset은 종류 불문 멤버 무효화."""
+    cache = InMemoryCacheBackend()
+    await cache.set("ceo", ["/company"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    fake = _member_read_fake(["user:ceo"], "role:c_level")
+    with patch("openfga_sdk.OpenFgaClient", return_value=fake):
+        await client.revoke_tuple("role:c_level#member", "super_reader", "folder:/company")
+
+    assert await cache.get("ceo") is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_fails_closed_when_member_read_raises():
+    """보안 fail-closed: 집합 revoke 시 멤버 열거(Read)가 실패하면 FGA 삭제는 이미 커밋됐으므로
+    캐시를 보수적으로 전체 flush해 회수 폴더가 TTL까지 노출되는 fail-open을 막는다."""
+    cache = InMemoryCacheBackend()
+    await cache.set("daesu", ["/company/hr"], ttl_seconds=60)
+    await cache.set("other", ["/company/x"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    class _RaisingReadClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def write(self, req): pass
+        async def read(self, body, options=None):
+            raise RuntimeError("FGA read transient failure")
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_RaisingReadClient()):
+        await client.revoke_tuple("department:인사#member", "holder", "permission:인사")
+
+    # 멤버를 못 셌으므로 보수적 전체 flush — 무관 사용자 캐시까지 비워짐(fail-closed)
+    assert await cache.get("daesu") is None
+    assert await cache.get("other") is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_tuple_fails_closed_on_partial_invalidation_failure():
+    """무효화 루프가 중간에 실패해도(부분 무효화) 보수적 전체 flush로 fail-closed."""
+    cache = InMemoryCacheBackend()
+    await cache.set("daesu", ["/company/hr"], ttl_seconds=60)
+    await cache.set("other", ["/company/x"], ttl_seconds=60)
+    client = FGAClient(config=FGAConfig(api_url="http://localhost", store_id="s"), cache=cache)
+
+    real_invalidate = InMemoryCacheBackend.invalidate
+
+    async def flaky_invalidate(uid):
+        if uid == "daesu":
+            raise RuntimeError("cache backend hiccup")
+        await real_invalidate(cache, uid)
+
+    fake = _member_read_fake(["user:daesu", "user:mido"], "department:인사")
+    with patch("openfga_sdk.OpenFgaClient", return_value=fake), \
+         patch.object(cache, "invalidate", new=AsyncMock(side_effect=flaky_invalidate)):
+        await client.revoke_tuple("department:인사#member", "holder", "permission:인사")
+
+    # 부분 실패 감지 → 전체 flush
+    assert await cache.get("other") is None
+
+
 @pytest.mark.asyncio
 async def test_grant_tuple_invalidates_non_user_subject_unchanged():
     # 비-user subject는 "user:"가 없으므로 그대로 전달(무해한 no-op).

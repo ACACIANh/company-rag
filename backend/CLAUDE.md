@@ -18,7 +18,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - 라우터: `router_node` — `route` 필드로 doc_search/agent 분기 (`app/graph/nodes/router.py`)
 - HITL: `interrupt()` — (1) agent 도구 호출 경로(`confirm.py`), (2) 라우터 모호 분기(`clarify.py`). `MemorySaver` checkpointer 필수. (ADR-0042)
 - FGA: 폴더 트리 pre-filter. `ListObjects(can_read, folder)`로 읽을 수 있는 폴더 목록을 받아, 그 폴더에 정확 매칭(`path = ANY`)되는 청크만 검색(prefix 확장 안 함 — private 하위 누수 방지). 권한 주체는 `permission` 노드 경유(부서·개인·역할이 holder) — permission 노드로 부서·개인 배정 모두 지원(ADR-0051). 상세: ADR-0015.
-- FGA 캐시: PostgreSQL TTL 캐시 (Redis 미사용).
+- FGA 캐시: PostgreSQL TTL 캐시 (Redis 미사용). 권한 grant/revoke 후 무효화 — 개별 user subject는 본인만, 집합 subject(`X#member`: department holder·role super_reader 등)는 TTU 파급으로 멤버 전원 무효화. 멤버 열거/무효화 실패 시 캐시 전체 flush(fail-closed). 상세: ADR-0054.
 - 부서 멤버십 source of truth: **OpenFGA** (`user:X member department:Y` 튜플). `config/users.yaml`은 부트스트랩 시드 입력일 뿐(`scripts/seed_fga.py`, 멱등·일방향), 운영 중 멤버 추가/제거는 OpenFGA 직접 조작(관리자 API `add/remove_department_member` 또는 `manage_permission` 도구)으로만. PostgreSQL은 멤버십 미저장(캐시·감사 로그만).
 - SQL 도구 쓰기: 읽기=sql_tool_ro, 게이트 통과한 쓰기(UPDATE/DELETE)=sql_tool_rw 이중 계정. WHERE 필수. 상세: ADR-0034.
 - 권한 위임: 정의(`permission gated_by resource`)는 c_level 전용. 배정(`user holder permission:X`)은 c_level + 부서 팀장(자기 부서 보유 permission 한정). 부서 멤버십 위임은 팀장 유지. 게이트는 `tool_gate_node`가 `gate_decision` 위에 합성. 상세: ADR-0051.
@@ -27,6 +27,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - 응답 도구 라벨: 사용 도구를 레지스트리 SSOT(`tool_label_map`)에서 자동 발견해 응답 상단 헤더로 표시(rag/sql/permission/audit). 새 도구는 `label` self-declare만으로 전파. 상세: ADR-0048.
 - capability 안내 감사 요약: 관리자에게만 게이트 결정 건수 요약(`count_by_decision`)을 안내 본문에 덧붙임. 상세: ADR-0049.
 - 도구 결과: `ToolAgent.execute`는 `ToolResult(text, summary)` 반환. text=사용자 노출, summary=감사로그(`result_summary`)용 짧은 한 줄. 각 핸들러가 데이터 시점에 요약 생성(읽기단계 정규식 추측 제거). 상세: ADR-0052.
+- Self-RAG hallucination 재시도: `generate` 재진입(`state["answer"]` 존재) 시 동일 입력 재호출 대신 grounding 교정 절(`REGENERATE_GROUNDING_NOTICE`)을 프롬프트에 덧붙여 입력을 바꾼다(문서 근거 강제+없으면 모름). 상세: ADR-0053.
 
 ## 작업 규칙
 1. **새 노드/엣지 추가 전**: `docs/langgraph-guide/INDEX.md` 먼저 읽기.

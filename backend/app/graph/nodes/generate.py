@@ -5,7 +5,7 @@ from langchain_core.runnables import RunnableConfig
 from core.llm.base import LLMClient
 from core.models import SourceRef
 from core.observability.cost_tracker import get_tracker
-from app.graph.prompts import RAG_GENERATE
+from app.graph.prompts import RAG_GENERATE, REGENERATE_GROUNDING_NOTICE
 
 _NO_DOC_NOTICE = "⚠️ 관련 사내 문서를 찾지 못했습니다."
 _RELEVANCE_THRESHOLD = 0.5
@@ -55,6 +55,10 @@ async def generate_node(state: dict, config: RunnableConfig | None = None, *, ll
         question=question,
         chat_history=history_text,
     )
+    # ADR-0053: 직전 답변이 있으면 hallucination 재시도(generate 재진입)다. 동일 입력 재호출을
+    # 피하려 grounding 교정 지시를 덧붙여 입력을 바꾼다. (첫 생성에는 answer가 비어 미적용)
+    if state.get("answer"):
+        prompt += REGENERATE_GROUNDING_NOTICE
 
     text = llm.complete(prompt)
 

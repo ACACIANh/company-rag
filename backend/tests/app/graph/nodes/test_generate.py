@@ -204,6 +204,31 @@ async def test_generate_node_no_notice_for_agent_route():
 
 
 @pytest.mark.asyncio
+async def test_generate_node_appends_grounding_correction_on_retry():
+    """직전 답변(state['answer'])이 있으면 = hallucination 재시도. 동일 입력 재호출이 아니라
+    기존 프롬프트에 grounding 교정 지시를 덧붙여 입력을 실제로 바꾼다(ADR-0053)."""
+    docs = [_make_result("내용", "doc.md")]
+    base_state = {
+        "question": "질문", "rewritten_question": "질문", "documents": docs,
+        "relevance_score": 0.9, "route": "doc_search", "chat_history": [],
+    }
+
+    first_llm = MagicMock()
+    first_llm.complete.return_value = "첫 답변"
+    await generate_node(dict(base_state), llm=first_llm)
+    first_prompt = first_llm.complete.call_args[0][0]
+
+    retry_llm = MagicMock()
+    retry_llm.complete.return_value = "교정 답변"
+    await generate_node({**base_state, "answer": "직전 환각 답변"}, llm=retry_llm)
+    retry_prompt = retry_llm.complete.call_args[0][0]
+
+    # 첫 생성 프롬프트는 그대로 포함하되(컨텍스트 동일), 재시도는 교정 지시가 덧붙어 더 길어야 한다.
+    assert first_prompt in retry_prompt
+    assert retry_prompt != first_prompt
+
+
+@pytest.mark.asyncio
 async def test_generate_node_no_queue_uses_complete():
     """token_queue 존재 여부와 무관하게 llm.complete()를 사용한다."""
     mock_llm = MagicMock()

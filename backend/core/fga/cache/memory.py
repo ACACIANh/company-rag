@@ -21,3 +21,6 @@ class InMemoryCacheBackend(PermissionCacheBackend):
 
     async def invalidate(self, user_id: str) -> None:
         self._store.pop(user_id, None)
+
+    async def clear_all(self) -> None:
+        self._store.clear()
