@@ -111,6 +111,7 @@ async def test_execute_query_self_returns_snapshot():
     fga.user_departments = AsyncMock(return_value=["개발팀"])
     fga.user_roles = AsyncMock(return_value=["admin"])
     fga.get_readable_folders = AsyncMock(return_value=["/engineering/specs"])
+    fga.user_accessible_tables = AsyncMock(return_value=["employees"])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
     assert "user-jisoo" in result
@@ -127,6 +128,7 @@ async def test_execute_query_other_as_admin_succeeds():
     fga.user_departments = AsyncMock(return_value=["제품팀"])
     fga.user_roles = AsyncMock(return_value=[])
     fga.get_readable_folders = AsyncMock(return_value=[])
+    fga.user_accessible_tables = AsyncMock(return_value=[])
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query admin-user user-minjun", "RISK_SELECT")
     fga.check.assert_any_await("user:admin-user", "justify_grant", "capability:admin")
@@ -230,3 +232,41 @@ def test_format_snapshot_markdown_capability_table():
     assert "| DDL | ❌ 불가 |" in out
     # 테이블 헤더 행이 있다
     assert "| 작업 | 허용 여부 |" in out
+
+
+def test_format_snapshot_renders_table_section():
+    """스냅샷에 '### 접근 가능 테이블' 섹션이 포함된다."""
+    out = _format_permission_snapshot(
+        "user-admin", ["개발팀"], ["c_level"], ["/company"],
+        [("SELECT", "즉시 허용")],
+        tables=["employees", "sales"],
+    )
+    assert "### 접근 가능 테이블" in out
+    assert "employees" in out
+    assert "sales" in out
+
+
+def test_format_snapshot_no_tables_shows_none():
+    """테이블 접근권 없으면 '(없음)' 표시."""
+    out = _format_permission_snapshot(
+        "user-alice", [], [], [],
+        [("SELECT", "즉시 허용")],
+        tables=[],
+    )
+    assert "### 접근 가능 테이블" in out
+    assert "(없음)" in out
+
+
+@pytest.mark.asyncio
+async def test_execute_query_includes_table_access():
+    """query execute 결과에 테이블 접근 정보가 포함된다."""
+    fga = MagicMock()
+    fga.check = AsyncMock(return_value=True)
+    fga.user_departments = AsyncMock(return_value=["개발팀"])
+    fga.user_roles = AsyncMock(return_value=[])
+    fga.get_readable_folders = AsyncMock(return_value=[])
+    fga.user_accessible_tables = AsyncMock(return_value=["employees", "sales"])
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("query user-jisoo user-jisoo", "RISK_SELECT")
+    fga.user_accessible_tables.assert_awaited_once_with("user-jisoo")
+    assert "employees" in result

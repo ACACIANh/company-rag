@@ -84,8 +84,8 @@ async def test_justify_records_pending_without_executing():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        # 테이블 게이트(ADR-0047) 통과를 위해 can_access도 부여.
-        fga_client=_fga([], ["영업팀"], capabilities=["justify_bulk_select", "can_access"]),
+        # 테이블 게이트(ADR-0047) 통과를 위해 dept_viewer도 부여.
+        fga_client=_fga([], ["영업팀"], capabilities=["justify_bulk_select", "dept_viewer"]),
         audit_sink=AsyncMock(),
     )
     assert out["pending_tool_calls"]
@@ -141,8 +141,8 @@ async def test_table_gate_denies_select_without_can_access():
 
 
 @pytest.mark.asyncio
-async def test_table_gate_allows_select_with_can_access():
-    """can_access 보유 시 테이블 게이트 통과 → 실행 (ADR-0047)."""
+async def test_table_gate_allows_select_with_dept_viewer():
+    """dept_viewer 보유 시 테이블 게이트 통과 → 실행 (ADR-0047)."""
     handler = _handler("SELECT name FROM business.employees", "select", result="rows")
     state = {
         "user_id": "u1", "question": "q",
@@ -151,7 +151,7 @@ async def test_table_gate_allows_select_with_can_access():
     out = await tool_gate_node(
         state, registry=_registry(handler),
         fga_client=_fga([], ["인사팀"], capabilities=["allow_select"],
-                        tuples={("can_access", "table:employees")}),
+                        tuples={("dept_viewer", "table:employees")}),
         audit_sink=AsyncMock(),
     )
     tool_msgs = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]

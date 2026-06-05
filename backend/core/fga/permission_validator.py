@@ -17,6 +17,10 @@ _CAPABILITY_RELATIONS = {
     "justify_ddl",
 }
 
+# 접근 권한 관리 대상 테이블 화이트리스트 (ADR-0047, seed_fga._TABLE_GRANTS와 동기화).
+# DB 스키마가 고정된 환경에서 코드 상수로 관리. 새 테이블 추가 시 여기에 추가 후 seed 재실행.
+_KNOWN_TABLES = {"employees", "sales"}
+
 
 class PermissionValidator:
     def __init__(self, *, user_ids: set, departments: set, folders: set) -> None:
@@ -45,7 +49,7 @@ class PermissionValidator:
     def _strip(self, value: str, prefix: str) -> str | None:
         return value[len(prefix):] if value.startswith(prefix) else None
 
-    def _resolve_user(self, token: str) -> str | None:
+    def _resolve_user(self, token: str | None) -> str | None:
         """비격식 user 참조를 정식 "user:<id>"로 결정론적 정규화 (ADR-0031 후속).
 
         진실원천은 _user_ids 뿐 — 화이트리스트 확장 금지. "user:" 접두는 떼고 본문만 매칭한다.
@@ -92,6 +96,21 @@ class PermissionValidator:
             if resolved is None or dept not in self._departments:
                 return None
             subject = resolved
+        elif relation == "dept_viewer" and object_.startswith("table:"):
+            table = self._strip(object_, "table:")
+            if table not in _KNOWN_TABLES:
+                return None
+            resolved = self._resolve_user(subject)
+            if resolved is not None:
+                subject = resolved
+            else:
+                dept = self._strip(subject, "department:")
+                if dept is not None and dept.endswith("#member"):
+                    dept = dept[: -len("#member")]
+                else:
+                    return None
+                if dept not in self._departments:
+                    return None
         elif relation == "dept_viewer":
             dept = self._strip(subject, "department:")
             if dept is not None and dept.endswith("#member"):
@@ -125,4 +144,5 @@ class PermissionValidator:
         users = ", ".join(sorted(self._user_ids))
         depts = ", ".join(sorted(self._departments))
         folders = ", ".join(sorted(self._folders))
-        return f"유저: {users}\n부서: {depts}\n폴더: {folders}"
+        tables = ", ".join(sorted(_KNOWN_TABLES))
+        return f"유저: {users}\n부서: {depts}\n폴더: {folders}\n테이블: {tables}"

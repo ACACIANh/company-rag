@@ -46,6 +46,7 @@ type capability
 
 # 업무 DB 테이블 단위 접근권 (ADR-0047). table:employees / table:sales 인스턴스가 사용.
 # 위험도 게이트(capability:sql)와 직교 — "어느 테이블이냐"만 본다.
+# dept_viewer: 폴더와 동형 — user·부서·역할 모두 grant 가능. can_access 레이어 없음.
 type table
   relations
-    define can_access: [user, department#member, role#member]
+    define dept_viewer: [user, department#member, role#member]

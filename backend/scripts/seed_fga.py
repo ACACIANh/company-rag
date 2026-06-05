@@ -50,15 +50,15 @@ _CAPABILITY_GRANTS = [
 # employees(직원·PII)=인사팀·재무팀·개발팀·임원 / sales(매출)=영업팀·제품팀·재무팀·개발팀·임원.
 # 여기 없는 부서는 allow_select가 있어도 해당 테이블을 조회할 수 없다(fail-closed, 의도된 강화).
 _TABLE_GRANTS = [
-    {"user": "role:c_level#member", "relation": "can_access", "object": "table:employees"},
-    {"user": "role:c_level#member", "relation": "can_access", "object": "table:sales"},
-    {"user": "department:인사팀#member", "relation": "can_access", "object": "table:employees"},
-    {"user": "department:재무팀#member", "relation": "can_access", "object": "table:employees"},
-    {"user": "department:재무팀#member", "relation": "can_access", "object": "table:sales"},
-    {"user": "department:개발팀#member", "relation": "can_access", "object": "table:employees"},
-    {"user": "department:개발팀#member", "relation": "can_access", "object": "table:sales"},
-    {"user": "department:영업팀#member", "relation": "can_access", "object": "table:sales"},
-    {"user": "department:제품팀#member", "relation": "can_access", "object": "table:sales"},
+    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:employees"},
+    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "department:인사팀#member",  "relation": "dept_viewer", "object": "table:employees"},
+    {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:employees"},
+    {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:employees"},
+    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "department:영업팀#member",  "relation": "dept_viewer", "object": "table:sales"},
+    {"user": "department:제품팀#member",  "relation": "dept_viewer", "object": "table:sales"},
 ]
 
 

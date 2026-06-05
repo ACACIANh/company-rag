@@ -22,7 +22,7 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - 부서 멤버십 source of truth: **OpenFGA** (`user:X member department:Y` 튜플). `config/users.yaml`은 부트스트랩 시드 입력일 뿐(`scripts/seed_fga.py`, 멱등·일방향), 운영 중 멤버 추가/제거는 OpenFGA 직접 조작(관리자 API `add/remove_department_member` 또는 `manage_permission` 도구)으로만. PostgreSQL은 멤버십 미저장(캐시·감사 로그만).
 - SQL 도구 쓰기: 읽기=sql_tool_ro, 게이트 통과한 쓰기(UPDATE/DELETE)=sql_tool_rw 이중 계정. WHERE 필수. 상세: ADR-0034.
 - 권한 위임: 부서 관리자(`user:X admin department:Y`)는 자기 부서 **멤버십만** 위임(grant/revoke). `dept_viewer`·capability 부여는 전역 c_level 전용(경계 누수 차단). 게이트는 `tool_gate_node`가 `gate_decision` 위에 합성. 상세: ADR-0046.
-- 테이블별 SQL 접근: `type table`의 `can_access`로 `table:employees`/`table:sales` 단위 하드 게이트. 위험도 게이트(capability:sql)와 **AND** — 참조 테이블 접근권 미보유 시 실행 전 DENY. 상세: ADR-0047.
+- 테이블별 SQL 접근: `type table`의 `dept_viewer` relation으로 `table:employees`/`table:sales` 단위 하드 게이트. 위험도 게이트(capability:sql)와 **AND** — 참조 테이블 접근권 미보유 시 실행 전 DENY. 상세: ADR-0050(폴더와 동형)·ADR-0047(위험도 게이트).
 - 명명 원칙: 외부 경계 노출 이름은 역할(role), 내부 구현은 how 허용(캡슐화). 상세: ADR-0033.
 - 응답 도구 라벨: 사용 도구를 레지스트리 SSOT(`tool_label_map`)에서 자동 발견해 응답 상단 헤더로 표시(rag/sql/permission/audit). 새 도구는 `label` self-declare만으로 전파. 상세: ADR-0048.
 - capability 안내 감사 요약: 관리자에게만 게이트 결정 건수 요약(`count_by_decision`)을 안내 본문에 덧붙임. 상세: ADR-0049.
