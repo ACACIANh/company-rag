@@ -102,8 +102,11 @@ async def test_execute_revoke_calls_revoke_tuple():
     fga = MagicMock()
     fga.revoke_tuple = AsyncMock()
     handler = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
-    await handler.execute("revoke user:user-jisoo member department:개발", "RISK_GRANT")
+    result = await handler.execute("revoke user:user-jisoo member department:개발", "RISK_GRANT")
     fga.revoke_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
+    assert isinstance(result, ToolResult)
+    assert result.text == "완료: revoke user:user-jisoo member department:개발"
+    assert result.summary == "완료: revoke user:user-jisoo member department:개발"
 
 
 @pytest.mark.asyncio
@@ -148,6 +151,7 @@ async def test_execute_query_other_as_non_admin_denied():
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("query user-jisoo user-minjun", "RISK_SELECT")
     assert "권한 없음" in result.text
+    assert result.summary == "권한 없음"
     fga.user_departments.assert_not_called()
 
 

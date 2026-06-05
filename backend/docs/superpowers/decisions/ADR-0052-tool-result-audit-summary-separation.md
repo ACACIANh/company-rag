@@ -20,7 +20,7 @@
 
 **`app/graph/tools/base.py`** — `ToolResult` dataclass 신설:
 ```python
-@dataclass
+@dataclass(frozen=True)
 class ToolResult:
     text: str       # 사용자 노출 (마크다운 표 / 메시지)
     summary: str    # 감사로그(result_summary)용 짧은 한 줄
