@@ -69,15 +69,15 @@ async def gate_table_access(
     user_id: str,
     tables: set[str],
 ) -> tuple[bool, str]:
-    """테이블별 접근 게이트 (ADR-0047) — 참조 테이블 전부의 dept_viewer를 AND로 확인.
+    """테이블별 접근 게이트 (ADR-0047) — 참조 테이블 전부의 viewer를 AND로 확인.
 
     위험도 게이트(gate_decision)와 직교한다: "어떤 작업이냐"는 gate_decision이,
     "어느 테이블이냐"는 여기서 본다. 호출자(tool_gate_node)가 둘을 AND로 합성한다.
-    dept_viewer 튜플이 없는 테이블(미부여·미지)은 자연히 실패 → fail-closed.
+    viewer가 없는 테이블(미부여·미지)은 자연히 실패 → fail-closed.
     참조 테이블이 없으면(빈 집합) 통과한다(예: SELECT 1).
     """
     user = f"user:{user_id}"
     for table in sorted(tables):
-        if not await check(user, "dept_viewer", f"table:{table}"):
-            return False, f"table:{table} dept_viewer 미보유 → DENY"
-    return True, "참조 테이블 dept_viewer 전부 보유 → 통과"
+        if not await check(user, "viewer", f"table:{table}"):
+            return False, f"table:{table} viewer 미보유 → DENY"
+    return True, "참조 테이블 viewer 전부 보유 → 통과"

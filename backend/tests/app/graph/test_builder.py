@@ -31,7 +31,7 @@ def _mock_fga_client(roles=None, departments=None, capabilities=()):
     async def check(user, relation, object_):
         # 테이블 접근 게이트(ADR-0047)는 본 통합 테스트의 관심사가 아니므로 기본 허용.
         # (테이블 경계 자체는 test_tool_gate.py·test_gate.py에서 단위 검증)
-        if relation in ("can_access", "dept_viewer") and object_.startswith("table:"):
+        if relation == "viewer" and object_.startswith("table:"):
             return True
         return relation in caps
 
