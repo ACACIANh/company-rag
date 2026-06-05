@@ -6,10 +6,11 @@ import pytest
 
 from app.graph.tools.audit_history_tool import (
     AuditAgent,
-    _clean_result,
+    _format_rows,
     _merge_system_pairs,
     _sql_preview,
 )
+from app.graph.tools.base import ToolResult
 from core.sql.risk import RISK_DENY, RISK_SELECT
 
 
@@ -96,7 +97,7 @@ def test_plan_preserves_filters():
 async def test_execute_empty_caller_id_denied():
     h, _ = _make(has_access=True)
     result = await h.execute(json.dumps({"caller_id": "", "limit": 20}), RISK_SELECT)
-    assert "권한 없음" in result
+    assert result.summary == "권한 없음"
 
 
 @pytest.mark.asyncio
@@ -107,7 +108,7 @@ async def test_execute_non_admin_denied():
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert "권한 없음" in result
+    assert result.summary == "권한 없음"
 
 
 @pytest.mark.asyncio
@@ -118,7 +119,8 @@ async def test_execute_admin_empty_result():
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert result == "(결과 없음)"
+    assert result.text == "(결과 없음)"
+    assert result.summary == "감사이력 0건 조회"
     conn.fetch.assert_called_once()
 
 
@@ -141,11 +143,11 @@ async def test_execute_admin_formats_rows():
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert "jisoo" in result
-    assert "DENY" in result
-    assert "|" in result  # 마크다운 표 형식
-    assert "개발" in result
-    assert "c_level" in result
+    assert "jisoo" in result.text
+    assert "DENY" in result.text
+    assert "|" in result.text  # 마크다운 표 형식
+    assert "개발" in result.text
+    assert "c_level" in result.text
 
 
 # ── _sql_preview 테스트 ────────────────────────────────────────────────────────
@@ -159,28 +161,6 @@ def test_sql_preview_json_shows_label():
 def test_sql_preview_truncates_at_50():
     long_sql = "SELECT col1, col2, col3, col4, col5 FROM very_long_table_name WHERE id = 1"
     assert len(_sql_preview(long_sql)) <= 50
-
-
-# ── _clean_result 테스트 ───────────────────────────────────────────────────────
-
-def test_clean_result_plain_text_unchanged():
-    assert _clean_result("1개 행이 변경되었습니다.") == "1개 행이 변경되었습니다."
-
-def test_clean_result_empty_returns_empty():
-    assert _clean_result("") == ""
-
-def test_clean_result_markdown_table_single_col():
-    # "| salary | | --- | | 80000000 |" → 줄바꿈이 공백으로 치환된 형태
-    raw = "| salary |  | --- |  | 80000000 |"
-    result = _clean_result(raw)
-    assert "salary" in result
-    assert "80000000" in result
-    assert "\n" not in result
-    assert result.count("|") == 0  # pipe 미포함
-
-def test_clean_result_respects_80_char_limit():
-    very_long = "| " + " | ".join([f"col{i}" for i in range(20)]) + " |"
-    assert len(_clean_result(very_long)) <= 80
 
 
 # ── _merge_system_pairs 테스트 ─────────────────────────────────────────────────
@@ -248,4 +228,35 @@ async def test_execute_db_error_returns_error_message():
                     "decision": None, "start_date": None, "end_date": None}),
         RISK_SELECT,
     )
-    assert "오류" in result
+    assert "오류" in result.text
+
+
+# ── _format_rows / ToolResult 신규 테스트 ──────────────────────────────────────
+
+def test_format_rows_escapes_pipe_in_result_summary():
+    rows = [{
+        "created_at": "2026-06-05 10:00:00", "user_id": "user-admin",
+        "department": "c_level", "role": "", "generated_sql": "{}",
+        "gate_decision": "ALLOW", "reason": "x",
+        "result_summary": "a | b | c",  # 레거시 깨진 행 모사
+    }]
+    out = _format_rows(rows)
+    assert "a \\| b \\| c" in out  # 파이프 이스케이프로 표가 깨지지 않음
+
+
+@pytest.mark.asyncio
+async def test_execute_returns_toolresult_with_count_summary():
+    row = MagicMock()
+    row.__getitem__ = lambda self, k: {
+        "created_at": "2026-06-05 10:00:00", "user_id": "user-a", "department": "",
+        "role": "", "gate_decision": "ALLOW", "generated_sql": "{}",
+        "reason": "r", "result_summary": "x",
+    }[k]
+    h, _ = _make(has_access=True, rows=[row])
+    result = await h.execute(
+        json.dumps({"caller_id": "admin1", "limit": 20, "user_id": None,
+                    "decision": None, "start_date": None, "end_date": None}),
+        RISK_SELECT,
+    )
+    assert isinstance(result, ToolResult)
+    assert result.summary == "감사이력 1건 조회"
