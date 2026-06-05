@@ -1,50 +1,41 @@
-"""권한 동작 화이트리스트 검증 (ADR-0029) — LangGraph 불가지.
+"""권한 동작 화이트리스트 검증 (ADR-0029/ADR-0051) — LangGraph 불가지.
 
 LLM이 NL을 파싱한 {action, subject, relation, object}를 받아, id 유효성과
 타입 정합을 화이트리스트로 검증한다. 통과 시 (subject, relation, object, action)
 4-tuple, 실패 시 None. "이미 그 상태인가"는 멱등이라 검증하지 않는다(ADR-0029).
+
+grant 종류:
+  - member   : 부서 멤버십  (subject=user, object=department:<name>)
+  - holder   : permission 배정 (subject=user|department#member|role#member,
+                                 object=permission:<name>)
+permission 정의(gated_by/capability)는 permissions.yaml 재시드로 관리 —
+NL grant 대상이 아니므로 validator 범위 밖.
 """
 from pathlib import Path
 
 import yaml
 
-# capability relation 화이트리스트 — manage_permission으로 grant 가능한 SQL 권한.
-# 매트릭스 정리: 단순 SELECT만 즉시 허용(allow_select), 그 외 위험군은 justify-only(사유·기록 강제).
-_CAPABILITY_RELATIONS = {
-    "allow_select", "justify_select",
-    "justify_bulk_select",
-    "justify_update_delete",
-    "justify_ddl",
-}
-
-# 접근 권한 관리 대상 테이블 화이트리스트 (ADR-0047, seed_fga._TABLE_GRANTS와 동기화).
-# DB 스키마가 고정된 환경에서 코드 상수로 관리. 새 테이블 추가 시 여기에 추가 후 seed 재실행.
-_KNOWN_TABLES = {"employees", "sales", "equipment"}
-
 
 class PermissionValidator:
-    def __init__(self, *, user_ids: set, departments: set, folders: set) -> None:
+    def __init__(self, *, user_ids: set, departments: set, permissions: set) -> None:
         self._user_ids = user_ids
         self._departments = departments
-        self._folders = folders
+        self._permissions = permissions
 
     @classmethod
     def from_config(
         cls,
         users_path: str = "config/users.yaml",
-        folders_path: str = "config/folders.yaml",
+        permissions_path: str = "config/permissions.yaml",
     ) -> "PermissionValidator":
         users = yaml.safe_load(Path(users_path).read_text())["users"]
         user_ids = {u["user_id"] for u in users if u.get("user_id")}
         departments: set = set()
         for u in users:
             departments |= {d for d in u.get("departments", []) if d}
-        folders_raw = yaml.safe_load(Path(folders_path).read_text())["folders"]
-        for spec in folders_raw.values():
-            spec = spec or {}
-            departments |= {d for d in spec.get("dept_viewers", []) if d}
-        folders = {p for p in folders_raw.keys() if p}
-        return cls(user_ids=user_ids, departments=departments, folders=folders)
+        perms_raw = yaml.safe_load(Path(permissions_path).read_text())["permissions"]
+        permissions = {name for name in perms_raw.keys() if name}
+        return cls(user_ids=user_ids, departments=departments, permissions=permissions)
 
     def _strip(self, value: str, prefix: str) -> str | None:
         return value[len(prefix):] if value.startswith(prefix) else None
@@ -96,43 +87,21 @@ class PermissionValidator:
             if resolved is None or dept not in self._departments:
                 return None
             subject = resolved
-        elif relation == "dept_viewer" and object_.startswith("table:"):
-            table = self._strip(object_, "table:")
-            if table not in _KNOWN_TABLES:
+        elif relation == "holder":
+            perm = self._strip(object_, "permission:")
+            if perm not in self._permissions:
                 return None
             resolved = self._resolve_user(subject)
             if resolved is not None:
                 subject = resolved
             else:
-                dept = self._strip(subject, "department:")
-                if dept is not None and dept.endswith("#member"):
-                    dept = dept[: -len("#member")]
+                if subject.startswith("department:") and subject.endswith("#member"):
+                    dept = subject[len("department:"):-len("#member")]
+                    if dept not in self._departments:
+                        return None
+                elif subject.startswith("role:") and subject.endswith("#member"):
+                    pass  # 역할 묶음(c_level 등) — 전역 역할은 소수·고정, id 검증 생략
                 else:
-                    return None
-                if dept not in self._departments:
-                    return None
-        elif relation == "dept_viewer":
-            dept = self._strip(subject, "department:")
-            if dept is not None and dept.endswith("#member"):
-                dept = dept[: -len("#member")]
-            else:
-                return None
-            path = self._strip(object_, "folder:")
-            if dept not in self._departments or path not in self._folders:
-                return None
-        elif relation in _CAPABILITY_RELATIONS:
-            if object_ != "capability:sql":
-                return None
-            resolved = self._resolve_user(subject)
-            if resolved is not None:
-                subject = resolved
-            else:
-                dept = self._strip(subject, "department:")
-                if dept is not None and dept.endswith("#member"):
-                    dept = dept[: -len("#member")]
-                else:
-                    return None
-                if dept not in self._departments:
                     return None
         else:
             return None
@@ -143,6 +112,5 @@ class PermissionValidator:
         """LLM 파싱 프롬프트에 주입할 알려진 id 목록(정확한 id 유도용)."""
         users = ", ".join(sorted(self._user_ids))
         depts = ", ".join(sorted(self._departments))
-        folders = ", ".join(sorted(self._folders))
-        tables = ", ".join(sorted(_KNOWN_TABLES))
-        return f"유저: {users}\n부서: {depts}\n폴더: {folders}\n테이블: {tables}"
+        perms = ", ".join(sorted(self._permissions))
+        return f"유저: {users}\n부서: {depts}\n권한(permission): {perms}"

@@ -83,8 +83,8 @@ route 선택지 — 무엇으로 답하는지(데이터 원천)로 구분합니�
 - "연차는 며칠까지 쌓을 수 있어?" → doc_search:none:0.95 (규정 = 문서)
 - "내 연차 며칠 남았어?" → agent:none:0.95 (개인 레코드 값 = DB)
 - "급여 인상 정책 알려줘" → doc_search:none:0.95 (방침 = 문서)
-- "영업팀이랑 개발팀 평균 급여 비교해줘" → agent:none:0.90 (테이블 집계 = DB)
-- "김지수를 개발팀 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
+- "영업이랑 개발 평균 급여 비교해줘" → agent:none:0.90 (테이블 집계 = DB)
+- "김지수를 개발 부서에 추가해줘" → agent:none:0.95 (권한 변경 = 도구)
 - "재무 폴더 접근 권한을 회수해줘" → agent:none:0.95 (권한 변경 = 도구)
 - "뭘 도와줄 수 있어?" → capability:none:1.0
 - "어떤 기능 있어?" → capability:none:1.0
@@ -125,7 +125,7 @@ SQL_GENERATE_PROMPT = """\
 스키마:
 {schema}
 
-카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: 'engineering'이 아니라 '개발팀'):
+카테고리형 컬럼의 실제 저장값(아래 값 그대로 비교하세요. 예: 'engineering'이 아니라 '개발'):
 {value_hints}
 
 패턴 힌트(equipment 테이블):
@@ -160,31 +160,31 @@ PERMISSION_PARSE_PROMPT = """\
 - action: "grant"(부여), "revoke"(회수), "query"(조회)
 - query 시: {{"action":"query","target_user_id":"<유저id 또는 null>"}}
   target_user_id가 없으면 null (본인 조회)
-- grant/revoke 시:
+- grant/revoke 시 두 가지 relation만 사용:
   부서 멤버십: subject="user:<유저id>", relation="member", object="department:<부서>"
-  폴더 부서 접근권: subject="department:<부서>#member", relation="dept_viewer", object="folder:<경로>"
-  SQL 권한: subject="user:<유저id>" 또는 "department:<부서>#member",
-    relation 은 allow_select/justify_select/justify_bulk_select/justify_update_delete/justify_ddl 중 하나, object="capability:sql"
+  권한 배정:   subject="user:<유저id>" 또는 "department:<부서>#member",
+              relation="holder", object="permission:<권한>"
 
-폴더 열람 권한 규칙(중요):
-- "특정 유저에게 <부서명> 문서/폴더 열람 권한 부여" → 해당 유저를 그 부서의 멤버로 추가하는 것으로 처리한다.
-  폴더 접근은 부서 멤버십을 통해 자동으로 부여되므로, subject는 반드시 "user:<유저id>", relation은 "member", object는 "department:<부서>"여야 한다.
-  예: "이민준에게 법무 문서 열람 권한" → subject="user:user-minjun", relation="member", object="department:법무팀"
-  예: "박서연에게 재무 문서 접근 권한" → subject="user:user-seoyeon", relation="member", object="department:재무팀"
+권한 배정 규칙(중요):
+- "특정 유저에게 <권한/문서/폴더> 열람·접근 권한 부여" → 그 유저에게 해당 permission을 직접 배정한다(부서 가입이 아님).
+  subject="user:<유저id>", relation="holder", object="permission:<권한>".
+  예: "이민준에게 인사 문서 열람 권한" → subject="user:user-minjun", relation="holder", object="permission:인사"
+  예: "박서연에게 재무 권한" → subject="user:user-seoyeon", relation="holder", object="permission:재무"
+- "유저를 <부서>에 추가/소속" 처럼 부서 자체에 넣으라는 지시일 때만 relation="member".
 
 id 매핑(반드시 위 '알려진 식별자'의 정확한 id로 변환):
 - 비격식 이름·영문 단명·표시명(예: "지수", "jisoo", "김지수")은 반드시 정식 user id("user-jisoo")로 바꾼다.
-  위 카탈로그에서 해당 user id를 찾아 그대로 사용한다(임의 id 생성 금지).
-- "추가/넣어/소속" → relation "member"; "제거/빼" → action "revoke".
+- 권한명은 부서 id와 같다(예: 인사·개발·재무·법무·영업·제품). "인사 문서/권한"은 permission:인사.
+- "추가/넣어/줘" → action "grant"; "제거/빼/회수" → action "revoke".
 - 어느 id인지 카탈로그에서 확정할 수 없으면 추측하지 말고 가장 가까운 식별자를 그대로 둔다(검증기가 거른다).
 
 예시:
-- "김지수를 개발팀에 추가" →
-  {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}}
-- "이민준 인사팀에서 빼줘" →
-  {{"action":"revoke","subject":"user:user-minjun","relation":"member","object":"department:인사팀"}}
-- "이민준에게 법무 문서 열람 권한 줘" →
-  {{"action":"grant","subject":"user:user-minjun","relation":"member","object":"department:법무팀"}}
+- "김지수를 개발 부서에 추가" →
+  {{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}}
+- "이민준에게 인사 문서 열람 권한 줘" →
+  {{"action":"grant","subject":"user:user-minjun","relation":"holder","object":"permission:인사"}}
+- "박서연 재무 권한 회수" →
+  {{"action":"revoke","subject":"user:user-seoyeon","relation":"holder","object":"permission:재무"}}
 
 grant/revoke 키: action, subject, relation, object 네 개.
 query 키: action, target_user_id 두 개.

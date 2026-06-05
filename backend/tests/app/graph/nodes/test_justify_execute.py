@@ -81,9 +81,9 @@ async def test_audit_record_includes_department_role_and_result():
     }
     await justify_execute_node(
         state, registry=reg, audit_sink=audit,
-        fga_client=_fga(roles=["c_level"], depts=["개발팀"]),
+        fga_client=_fga(roles=["c_level"], depts=["개발"]),
     )
     record = audit.record.call_args[0][0]
-    assert record.department == "개발팀"
+    assert record.department == "개발"
     assert record.role == "c_level"
     assert record.result_summary == "급여 결과"

@@ -86,15 +86,15 @@ class FGAClient:
         return [o[len(prefix):] if o.startswith(prefix) else o for o in objects]
 
     async def user_accessible_tables(self, user_id: str) -> list[str]:
-        """사용자가 dept_viewer 권한을 가진 테이블 목록 (ADR-0047).
+        """사용자가 viewer 권한을 가진 테이블 목록 (ADR-0047).
 
         _KNOWN_TABLES 각각에 대해 check를 호출하므로 N회 FGA round-trip 발생.
         테이블 수가 적어(현재 3개) 성능 문제 없음.
         """
-        from core.fga.permission_validator import _KNOWN_TABLES
+        _KNOWN_TABLES = {"employees", "sales", "equipment"}
         result = []
         for table in sorted(_KNOWN_TABLES):
-            if await self.check(f"user:{user_id}", "dept_viewer", f"table:{table}"):
+            if await self.check(f"user:{user_id}", "viewer", f"table:{table}"):
                 result.append(table)
         return result
 

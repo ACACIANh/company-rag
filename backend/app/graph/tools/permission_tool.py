@@ -133,6 +133,27 @@ def delegated_membership_dept(planned_action: str) -> str | None:
     return object_[len(prefix):] or None
 
 
+def delegated_permission(planned_action: str) -> str | None:
+    """permission 배정 위임 대상 권한 추출 (ADR-0051).
+
+    `grant|revoke user:<U> holder permission:<X>` 형태(개인 배정)면 권한 id X를 반환한다.
+    부서/역할 배정(subject가 user:가 아님)은 정의급이라 None — c_level 전용.
+    게이트(tool_gate_node)가 요청자가 X를 보유한 부서의 admin인지로 승격을 판단한다.
+    """
+    parts = planned_action.split(" ")
+    if len(parts) != 4:
+        return None
+    action, subject, relation, object_ = parts
+    if action not in ("grant", "revoke") or relation != "holder":
+        return None
+    if not subject.startswith("user:"):
+        return None
+    prefix = "permission:"
+    if not object_.startswith(prefix):
+        return None
+    return object_[len(prefix):] or None
+
+
 # 권한 조회 스냅샷에 노출할 capability 작업 — (라벨, 위험도). 게이트 매트릭스(core.sql.gate)가
 # 위험도→capability 매핑·3-state 판정의 단일 출처이므로 여기선 표시 순서·라벨만 둔다.
 _LABEL_EMOJI = {

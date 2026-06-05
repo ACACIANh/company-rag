@@ -99,9 +99,9 @@ async def test_returns_nonempty_reason():
 
 # ── 테이블별 접근 게이트 (ADR-0047) ──────────────────────────────────
 def _table_checker(granted: set):
-    """granted = dept_viewer 보유 table 객체 집합(예: {"table:employees"})."""
+    """granted = viewer 보유 table 객체 집합(예: {"table:employees"})."""
     async def check(user, relation, object_):
-        return relation == "dept_viewer" and object_ in granted
+        return relation == "viewer" and object_ in granted
     return check
 
 

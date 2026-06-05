@@ -13,13 +13,13 @@ PII 불변식: PII 컬럼(name·salary·email)은 스키마에는 남기되 **�
 # 부서 코드 — employees.department / sales.department 가 공유한다.
 DEPARTMENTS = [
     "임원",
-    "개발팀",
-    "제품팀",
-    "재무팀",
-    "영업팀",
-    "법무팀",
-    "인사팀",
-    "디자인팀",
+    "개발",
+    "제품",
+    "재무",
+    "영업",
+    "법무",
+    "인사",
+    "디자인",
     "미배정",
 ]
 
@@ -34,14 +34,14 @@ EQUIPMENT_STATUSES   = ["정상", "수리중", "폐기예정", "미배정"]
 SALES_PERIODS = ["2025-Q1", "2025-Q2", "2025-Q3", "2025-Q4", "2026-Q1"]
 
 # 매출이 잡히는 부서(부서 코드의 부분집합)
-SALES_DEPARTMENTS = ["영업팀", "제품팀", "개발팀", "재무팀"]
+SALES_DEPARTMENTS = ["영업", "제품", "개발", "재무"]
 
 # 부서 → 제품 (sales.product)
 DEPT_PRODUCT = {
-    "영업팀": "Enterprise License",
-    "제품팀": "SaaS Subscription",
-    "개발팀": "Platform API",
-    "재무팀": "Advisory",
+    "영업": "Enterprise License",
+    "제품": "SaaS Subscription",
+    "개발": "Platform API",
+    "재무": "Advisory",
 }
 
 # ── 컬럼 분류 ────────────────────────────────────────────────────────

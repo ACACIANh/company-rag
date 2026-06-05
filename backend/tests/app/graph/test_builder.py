@@ -31,7 +31,7 @@ def _mock_fga_client(roles=None, departments=None, capabilities=()):
     async def check(user, relation, object_):
         # 테이블 접근 게이트(ADR-0047)는 본 통합 테스트의 관심사가 아니므로 기본 허용.
         # (테이블 경계 자체는 test_tool_gate.py·test_gate.py에서 단위 검증)
-        if relation == "can_access":
+        if relation == "viewer" and object_.startswith("table:"):
             return True
         return relation in caps
 
@@ -152,7 +152,7 @@ async def test_agent_allow_executes_and_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["영업팀"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
+        fga_client=_mock_fga_client(departments=["영업"], capabilities=["allow_select"]),   # general → SELECT는 ALLOW
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -178,7 +178,7 @@ async def test_agent_justify_triggers_interrupt():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -205,7 +205,7 @@ async def test_agent_resume_after_justify_executes_and_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -234,7 +234,7 @@ async def test_agent_resume_empty_reason_cancels_then_answers():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -262,7 +262,7 @@ async def test_agent_deny_blocks_without_interrupt():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["영업팀"]),   # general
+        fga_client=_mock_fga_client(departments=["영업"]),   # general
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -290,7 +290,7 @@ async def test_answer_question_justify_interrupt_then_resume():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -654,7 +654,7 @@ async def test_stream_answer_justify_emits_interrupt_event():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -714,7 +714,7 @@ async def test_stream_answer_justify_new_session_creates_session():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -747,7 +747,7 @@ async def test_stream_answer_justify_new_session_creates_session():
     mock_store.add_message.assert_not_called()
 
 
-def _perm_tool_call_msg(instruction="김지수를 개발팀 부서에 추가", tc_id="p1"):
+def _perm_tool_call_msg(instruction="김지수를 개발 부서에 추가", tc_id="p1"):
     return AIMessage(
         content="",
         tool_calls=[{"name": "manage_permission", "args": {"instruction": instruction}, "id": tc_id}],
@@ -762,7 +762,7 @@ async def test_manage_permission_justify_then_resume_executes():
     llm.complete.side_effect = [
         "김지수 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}',  # permission plan 파싱
+        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}',  # permission plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),                                               # 1차: 도구 호출 → interrupt
@@ -776,12 +776,12 @@ async def test_manage_permission_justify_then_resume_executes():
     )
     config = {"configurable": {"thread_id": "perm-justify-1"}}
 
-    result = await graph.ainvoke(_make_initial_state("김지수를 개발팀에 추가해"), config=config)
+    result = await graph.ainvoke(_make_initial_state("김지수를 개발에 추가해"), config=config)
     assert "__interrupt__" in result
 
     final = await graph.ainvoke(Command(resume="신규 입사자 부서 배정"), config=config)
     assert final["answer"] == "앨리스를 엔지니어링에 추가했습니다."
-    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발팀")
+    fga.grant_tuple.assert_awaited_once_with("user:user-jisoo", "member", "department:개발")
 
 
 @pytest.mark.asyncio
@@ -791,13 +791,13 @@ async def test_manage_permission_deny_for_non_admin():
     llm.complete.side_effect = [
         "김지수 추가",                                                          # rewrite
         "agent",                                                          # router
-        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발팀"}',  # plan 파싱
+        '{"action":"grant","subject":"user:user-jisoo","relation":"member","object":"department:개발"}',  # plan 파싱
     ]
     chat = _mock_chat_model([
         _perm_tool_call_msg(),
         AIMessage(content="권한이 없어 실행할 수 없습니다."),
     ])
-    fga = _mock_fga_client(departments=["영업팀"])   # justify_grant 미보유
+    fga = _mock_fga_client(departments=["영업"])   # justify_grant 미보유
     fga.grant_tuple = AsyncMock()
     graph = build_graph(
         retriever=_make_retriever(), llm=llm, fga_client=fga,
@@ -805,7 +805,7 @@ async def test_manage_permission_deny_for_non_admin():
     )
     config = {"configurable": {"thread_id": "perm-deny-1"}}
 
-    final = await graph.ainvoke(_make_initial_state("김지수를 개발팀에 추가해"), config=config)
+    final = await graph.ainvoke(_make_initial_state("김지수를 개발에 추가해"), config=config)
     assert "__interrupt__" not in final
     assert final["answer"] == "권한이 없어 실행할 수 없습니다."
     fga.grant_tuple.assert_not_called()
@@ -829,7 +829,7 @@ async def test_stream_answer_resume_after_justify():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_bulk_select"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_bulk_select"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), app_pool=AsyncMock(),
         chat_model=chat,
     )
@@ -951,7 +951,7 @@ async def test_engineering_update_justify_then_resume_writes():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_update_delete"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool("UPDATE 1"),
         app_pool=AsyncMock(), chat_model=chat,
     )
@@ -979,7 +979,7 @@ async def test_general_update_denied_without_capability():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["영업팀"]),   # justify_update_delete 미보유
+        fga_client=_mock_fga_client(departments=["영업"]),   # justify_update_delete 미보유
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
         app_pool=AsyncMock(), chat_model=chat,
     )
@@ -1004,7 +1004,7 @@ async def test_update_without_where_denied_even_for_engineering():
     ])
     graph = build_graph(
         retriever=_make_retriever(), llm=llm,
-        fga_client=_mock_fga_client(departments=["개발팀"], capabilities=["justify_update_delete"]),
+        fga_client=_mock_fga_client(departments=["개발"], capabilities=["justify_update_delete"]),
         audit_sink=AsyncMock(), sql_pool=_mock_sql_pool(), sql_rw_pool=_rw_pool(),
         app_pool=AsyncMock(), chat_model=chat,
     )

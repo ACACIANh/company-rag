@@ -47,7 +47,7 @@ async def test_allow_executes_and_appends_tool_message():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["영업팀"], capabilities=["allow_select"]), audit_sink=audit,
+        fga_client=_fga([], ["영업"], capabilities=["allow_select"]), audit_sink=audit,
     )
     msgs = out["agent_messages"]
     tool_msgs = [m for m in msgs if isinstance(m, ToolMessage)]
@@ -67,7 +67,7 @@ async def test_deny_appends_rejection_without_executing():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["영업팀"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["영업"]), audit_sink=AsyncMock(),
     )
     tool_msgs = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
     assert tool_msgs and tool_msgs[0].tool_call_id == "c2"
@@ -84,8 +84,8 @@ async def test_justify_records_pending_without_executing():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        # 테이블 게이트(ADR-0047) 통과를 위해 dept_viewer도 부여.
-        fga_client=_fga([], ["영업팀"], capabilities=["justify_bulk_select", "dept_viewer"]),
+        # 테이블 게이트(ADR-0047) 통과를 위해 viewer도 부여.
+        fga_client=_fga([], ["영업"], capabilities=["justify_bulk_select", "viewer"]),
         audit_sink=AsyncMock(),
     )
     assert out["pending_tool_calls"]
@@ -109,7 +109,7 @@ async def test_already_executed_sql_different_format_skipped():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["영업팀"], capabilities=["justify_update_delete"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["영업"], capabilities=["justify_update_delete"]), audit_sink=AsyncMock(),
     )
     tool_msgs = [m for m in out.get("agent_messages", []) if isinstance(m, ToolMessage)]
     assert tool_msgs and "이미 실행" in tool_msgs[0].content
@@ -133,7 +133,7 @@ async def test_table_gate_denies_select_without_can_access():
     out = await tool_gate_node(
         state, registry=_registry(handler),
         # allow_select은 있지만 table:employees can_access 없음.
-        fga_client=_fga([], ["영업팀"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["영업"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
     )
     tool_msgs = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
     assert tool_msgs and ("거부" in tool_msgs[0].content or "권한" in tool_msgs[0].content)
@@ -141,8 +141,8 @@ async def test_table_gate_denies_select_without_can_access():
 
 
 @pytest.mark.asyncio
-async def test_table_gate_allows_select_with_dept_viewer():
-    """dept_viewer 보유 시 테이블 게이트 통과 → 실행 (ADR-0047)."""
+async def test_table_gate_allows_select_with_viewer():
+    """viewer 보유 시 테이블 게이트 통과 → 실행 (ADR-0047)."""
     handler = _handler("SELECT name FROM business.employees", "select", result="rows")
     state = {
         "user_id": "u1", "question": "q",
@@ -150,8 +150,8 @@ async def test_table_gate_allows_select_with_dept_viewer():
     }
     out = await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["인사팀"], capabilities=["allow_select"],
-                        tuples={("dept_viewer", "table:employees")}),
+        fga_client=_fga([], ["인사"], capabilities=["allow_select"],
+                        tuples={("viewer", "table:employees")}),
         audit_sink=AsyncMock(),
     )
     tool_msgs = [m for m in out["agent_messages"] if isinstance(m, ToolMessage)]
@@ -162,15 +162,15 @@ async def test_table_gate_allows_select_with_dept_viewer():
 @pytest.mark.asyncio
 async def test_dept_admin_membership_delegation_upgrades_to_justify():
     """전역 관리자 아니어도 자기 부서 admin이면 멤버십 grant가 JUSTIFY로 승격 (ADR-0046)."""
-    handler = _handler("grant user:user-x member department:개발팀", "grant")
+    handler = _handler("grant user:user-x member department:개발", "grant")
     state = {
         "user_id": "팀장", "question": "q",
         "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "d1"}])],
     }
     out = await tool_gate_node(
         state, registry=_perm_registry(handler),
-        # justify_grant(전역) 없음. 대신 admin@department:개발팀 보유.
-        fga_client=_fga([], [], tuples={("admin", "department:개발팀")}),
+        # justify_grant(전역) 없음. 대신 admin@department:개발 보유.
+        fga_client=_fga([], [], tuples={("admin", "department:개발")}),
         audit_sink=AsyncMock(),
     )
     assert out["pending_tool_calls"]
@@ -181,15 +181,15 @@ async def test_dept_admin_membership_delegation_upgrades_to_justify():
 @pytest.mark.asyncio
 async def test_dept_admin_delegation_denied_for_other_dept():
     """다른 부서 admin은 그 부서가 아닌 멤버십을 위임할 수 없다 → DENY (ADR-0046)."""
-    handler = _handler("grant user:user-x member department:인사팀", "grant")
+    handler = _handler("grant user:user-x member department:인사", "grant")
     state = {
         "user_id": "팀장", "question": "q",
         "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "d2"}])],
     }
     out = await tool_gate_node(
         state, registry=_perm_registry(handler),
-        # 개발팀 admin이지만 대상은 인사팀.
-        fga_client=_fga([], [], tuples={("admin", "department:개발팀")}),
+        # 개발 admin이지만 대상은 인사.
+        fga_client=_fga([], [], tuples={("admin", "department:개발")}),
         audit_sink=AsyncMock(),
     )
     assert not out["pending_tool_calls"]
@@ -199,16 +199,52 @@ async def test_dept_admin_delegation_denied_for_other_dept():
 
 
 @pytest.mark.asyncio
-async def test_dept_admin_cannot_delegate_dept_viewer():
-    """부서 admin은 멤버십만 위임 — dept_viewer(폴더권) 위임은 승격되지 않는다 (ADR-0046 경계)."""
-    handler = _handler("grant department:개발팀#member dept_viewer folder:/secret", "grant")
+async def test_dept_admin_permission_delegation_upgrades_to_justify():
+    """팀장이 자기 부서(개발)가 보유한 permission:개발을 개인에게 배정 → JUSTIFY 승격 (ADR-0051)."""
+    handler = _handler("grant user:user-x holder permission:개발", "grant")
     state = {
         "user_id": "팀장", "question": "q",
-        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "d3"}])],
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p1"}])],
     }
     out = await tool_gate_node(
         state, registry=_perm_registry(handler),
-        fga_client=_fga([], [], tuples={("admin", "department:개발팀")}),
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발"), ("holder", "permission:개발")}),
+        audit_sink=AsyncMock(),
+    )
+    assert out["pending_tool_calls"]
+    assert out["pending_tool_calls"][0]["decision"] == "JUSTIFY_AND_APPROVE"
+    handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dept_admin_cannot_delegate_permission_to_department():
+    """부서 전체 배정(정의급)은 팀장이 못 한다 → DENY (c_level 전용, ADR-0051)."""
+    handler = _handler("grant department:개발#member holder permission:개발", "grant")
+    state = {
+        "user_id": "팀장", "question": "q",
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p2"}])],
+    }
+    out = await tool_gate_node(
+        state, registry=_perm_registry(handler),
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발"), ("holder", "permission:개발")}),
+        audit_sink=AsyncMock(),
+    )
+    assert not out["pending_tool_calls"]
+    handler.execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_dept_admin_cannot_delegate_unowned_permission():
+    """개발 admin이지만 개발이 permission:인사를 보유하지 않으면 → DENY (ADR-0051 보안 경계)."""
+    handler = _handler("grant user:user-x holder permission:인사", "grant")
+    state = {
+        "user_id": "팀장", "question": "q",
+        "agent_messages": [_ai([{"name": "manage_permission", "args": {"instruction": "x"}, "id": "p3"}])],
+    }
+    out = await tool_gate_node(
+        state, registry=_perm_registry(handler),
+        # admin@개발은 보유하나, 개발이 permission:인사의 holder는 아님 → AND 절 후반부에서 거부.
+        fga_client=_fga([], ["개발"], tuples={("admin", "department:개발")}),
         audit_sink=AsyncMock(),
     )
     assert not out["pending_tool_calls"]
@@ -226,7 +262,7 @@ async def test_caller_id_injected_into_plan():
     }
     await tool_gate_node(
         state, registry=_registry(handler),
-        fga_client=_fga([], ["영업팀"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
+        fga_client=_fga([], ["영업"], capabilities=["allow_select"]), audit_sink=AsyncMock(),
     )
     call_args = handler.plan.call_args[0][0]
     assert call_args["__caller_id"] == "jisoo"

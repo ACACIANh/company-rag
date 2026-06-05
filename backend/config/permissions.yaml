@@ -1,0 +1,34 @@
+# permission 정의 SSOT (ADR-0051). 이름은 부서 id와 통일(permission:인사 = department:인사).
+# holders: 이 권한을 기본 보유하는 주체(부서·역할·전직원). 개인 배정은 런타임(manage_permission).
+# folders/tables: 이 권한이 여는 접근대상. sql: 묶이는 capability:sql relation.
+permissions:
+  기본:                      # 전 직원 — 기본 SELECT/대량SELECT
+    holders: ["user:*"]
+    sql: [allow_select, justify_bulk_select]
+  인사:
+    holders: ["department:인사#member"]
+    folders: [/company/hr]
+    tables:  [employees]
+  재무:
+    holders: ["department:재무#member"]
+    folders: [/company/finance]
+    tables:  [employees, sales]
+  개발:
+    holders: ["department:개발#member"]
+    folders: [/company/engineering/ops]
+    tables:  [employees, sales, equipment]
+    sql:     [justify_update_delete]
+  영업:
+    holders: ["department:영업#member"]
+    tables:  [sales]
+  제품:
+    holders: ["department:제품#member"]
+    tables:  [sales]
+  법무:
+    holders: ["department:법무#member"]
+    folders: [/company/legal]
+  전사:                      # c_level — 테이블·SQL만(폴더 전사열람은 super_reader 유지)
+    holders: ["role:c_level#member"]
+    tables:  [employees, sales, equipment]
+    sql:     [justify_update_delete]
+  # 디자인 부서: 공개 폴더(/company/design)만 열람 + permission:기본(전직원 SELECT)으로 충분 → 전용 permission 불필요(의도된 누락).

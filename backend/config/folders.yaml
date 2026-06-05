@@ -1,6 +1,6 @@
 # 폴더 권한. 튜플 생성의 단일 소스. base_path=/company 가 prefix로 붙은 path 기준.
 # 정책: 전체공개가 기본 — /company 에 public 을 부여하면 하위 폴더는 상속(표식 없는 폴더 = 공개).
-#       private: true 폴더만 공개를 차단하고 dept_viewers 로 명시 부서에만 권한 부여.
+#       private: true 폴더만 공개를 차단. 접근 권한은 permissions.yaml 이 담당(ADR-0051).
 #       c_level 역할은 super_reader 로 전사 열람(private 도 관통, 하위 상속).
 folders:
   /company:
@@ -11,8 +11,7 @@ folders:
   /company/engineering:
     # 상속 — 엔지니어링 공개 문서
   /company/engineering/ops:
-    private: true              # 배포·인시던트 운영 문서 — 공개 차단
-    dept_viewers: [개발팀]
+    private: true              # 배포·인시던트 — 공개 차단, permission:개발이 gate
   /company/product:
     # 상속 — 프로덕트 공개 문서
   /company/design:
@@ -20,11 +19,8 @@ folders:
   /company/sales:
     # 상속 — 세일즈 공개 문서
   /company/hr:
-    private: true              # 인사 문서 — 공개 차단
-    dept_viewers: [인사팀]
+    private: true              # permission:인사가 gate
   /company/finance:
-    private: true              # 재무 문서 — 공개 차단
-    dept_viewers: [재무팀]
+    private: true              # permission:재무가 gate
   /company/legal:
-    private: true              # 법무 문서 — 공개 차단
-    dept_viewers: [법무팀]
+    private: true              # permission:법무가 gate

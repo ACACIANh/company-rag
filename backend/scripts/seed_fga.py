@@ -1,12 +1,15 @@
-"""FGA 시드: users.yaml → 멤버십, folders.yaml → 폴더 권한/parent 튜플.
+"""FGA 시드: users.yaml → 멤버십, folders.yaml → 폴더 권한/parent, permissions.yaml → permission 튜플.
 
-- 부서 멤버십:   user:{uid}            member         department:{d}   (departments)
-- 역할 멤버십:   user:{uid}            member         role:{r}         (fga_roles)
-- 전체공개:      user:*                public_viewer  folder:{path}    (public: true)
-- private 표식:  user:*                private_flag   folder:{path}    (private: true)
-- 부서 명시권한: department:{d}#member dept_viewer    folder:{path}    (dept_viewers)
-- 전사 열람권:   role:{r}#member       super_reader   folder:{path}    (super_readers)
-- 폴더 parent:   folder:{parent}       parent         folder:{path}    (path 계층에서 자동 도출)
+- 부서 멤버십:      user:{uid}            member         department:{d}   (departments)
+- 역할 멤버십:      user:{uid}            member         role:{r}         (fga_roles)
+- 전체공개:         user:*                public_viewer  folder:{path}    (public: true)
+- private 표식:     user:*                private_flag   folder:{path}    (private: true)
+- 전사 열람권:      role:{r}#member       super_reader   folder:{path}    (super_readers)
+- 폴더 parent:      folder:{parent}       parent         folder:{path}    (path 계층에서 자동 도출)
+- permission 보유자: {holder}             holder         permission:{name} (holders)
+- 폴더 게이트:      permission:{name}     gated_by       folder:{path}    (folders)
+- 테이블 게이트:    permission:{name}     gated_by       table:{table}    (tables)
+- SQL capability:   permission:{name}#holder {rel}       capability:sql   (sql)
 
 시드는 추가식(멱등)이라 부서·사용자 개명 시 옛 튜플이 잔존한다. `--prune`를 주면
 config(_build_tuples)에 없는 stale 튜플을 삭제해 라이브 store를 config와 정합화한다.
@@ -35,107 +38,46 @@ def _parent_of(path: str) -> str | None:
     return "/".join(parts[:-1])
 
 
-# capability:sql 기본부여(ADR-0028, 매트릭스 정리) — 현행 게이트 매트릭스를 튜플로 재현.
-# SELECT 전원 ALLOW / BULK_SELECT 전원 JUSTIFY / UPDATE_DELETE 개발팀·c_level JUSTIFY / DDL 전원 DENY(튜플 없음).
-# 단순 SELECT만 allow_*, 그 외 위험군은 justify-only(사유·기록). 권한관리는 c_level만 justify_grant(ADR-0029)
-_CAPABILITY_GRANTS = [
-    {"user": "user:*", "relation": "allow_select", "object": "capability:sql"},
-    {"user": "user:*", "relation": "justify_bulk_select", "object": "capability:sql"},
-    {"user": "department:개발팀#member", "relation": "justify_update_delete", "object": "capability:sql"},
-    {"user": "role:c_level#member", "relation": "justify_update_delete", "object": "capability:sql"},
-    {"user": "role:c_level#member", "relation": "justify_grant", "object": "capability:admin"},
-]
-
-# 테이블별 접근권(ADR-0047) — 위험도 게이트(capability:sql)와 AND. 부서별 업무 관련 테이블만.
-# employees(직원·PII)=인사팀·재무팀·개발팀·임원 / sales(매출)=영업팀·제품팀·재무팀·개발팀·임원.
-# equipment(장비·자산)=개발팀·임원.
-# 여기 없는 부서는 allow_select가 있어도 해당 테이블을 조회할 수 없다(fail-closed, 의도된 강화).
-_TABLE_GRANTS = [
-    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:employees"},
-    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:sales"},
-    {"user": "role:c_level#member",       "relation": "dept_viewer", "object": "table:equipment"},
-    {"user": "department:인사팀#member",  "relation": "dept_viewer", "object": "table:employees"},
-    {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:employees"},
-    {"user": "department:재무팀#member",  "relation": "dept_viewer", "object": "table:sales"},
-    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:employees"},
-    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:sales"},
-    {"user": "department:개발팀#member",  "relation": "dept_viewer", "object": "table:equipment"},
-    {"user": "department:영업팀#member",  "relation": "dept_viewer", "object": "table:sales"},
-    {"user": "department:제품팀#member",  "relation": "dept_viewer", "object": "table:sales"},
-]
-
-
-def _build_tuples(users: list[dict], folders: dict) -> list[dict]:
+def _build_tuples(users: list[dict], folders: dict, permissions: dict) -> list[dict]:
     tuples: list[dict] = []
 
-    # 1) 부서 멤버십 + 역할 멤버십
+    # 1) 멤버십(부서·역할·부서관리자) + admin JWT → capability:admin
     for user in users:
         uid = user["user_id"]
         for dept in user.get("departments", []):
-            tuples.append({
-                "user": f"user:{uid}",
-                "relation": "member",
-                "object": f"department:{dept}",
-            })
+            tuples.append({"user": f"user:{uid}", "relation": "member", "object": f"department:{dept}"})
         for role in user.get("fga_roles", []):
-            tuples.append({
-                "user": f"user:{uid}",
-                "relation": "member",
-                "object": f"role:{role}",
-            })
-        # 부서 관리자(ADR-0046) — user:{uid} admin department:{d}
+            tuples.append({"user": f"user:{uid}", "relation": "member", "object": f"role:{role}"})
         for dept in user.get("dept_admin_of", []):
-            tuples.append({
-                "user": f"user:{uid}",
-                "relation": "admin",
-                "object": f"department:{dept}",
-            })
-        # JWT admin 역할 → capability:admin justify_grant (감사 이력 등 관리자 전용 기능)
+            tuples.append({"user": f"user:{uid}", "relation": "admin", "object": f"department:{dept}"})
         if "admin" in user.get("roles", []):
-            tuples.append({
-                "user": f"user:{uid}",
-                "relation": "justify_grant",
-                "object": "capability:admin",
-            })
+            tuples.append({"user": f"user:{uid}", "relation": "justify_grant", "object": "capability:admin"})
 
-    # 2) 폴더 권한 + parent
+    # 2) 폴더 구조(public/private/super_reader/parent) — 명시 권한은 permission이 담당(아래 3)
     for path, spec in folders.items():
         spec = spec or {}
         if spec.get("public"):
-            tuples.append({
-                "user": "user:*",
-                "relation": "public_viewer",
-                "object": f"folder:{path}",
-            })
+            tuples.append({"user": "user:*", "relation": "public_viewer", "object": f"folder:{path}"})
         if spec.get("private"):
-            tuples.append({
-                "user": "user:*",
-                "relation": "private_flag",
-                "object": f"folder:{path}",
-            })
-        for dept in spec.get("dept_viewers", []):
-            tuples.append({
-                "user": f"department:{dept}#member",
-                "relation": "dept_viewer",
-                "object": f"folder:{path}",
-            })
+            tuples.append({"user": "user:*", "relation": "private_flag", "object": f"folder:{path}"})
         for role in spec.get("super_readers", []):
-            tuples.append({
-                "user": f"role:{role}#member",
-                "relation": "super_reader",
-                "object": f"folder:{path}",
-            })
+            tuples.append({"user": f"role:{role}#member", "relation": "super_reader", "object": f"folder:{path}"})
         parent = _parent_of(path)
         if parent:
-            tuples.append({
-                "user": f"folder:{parent}",
-                "relation": "parent",
-                "object": f"folder:{path}",
-            })
+            tuples.append({"user": f"folder:{parent}", "relation": "parent", "object": f"folder:{path}"})
 
-    # 3) capability 기본부여(ADR-0028) + 테이블 접근권(ADR-0047)
-    tuples.extend(_CAPABILITY_GRANTS)
-    tuples.extend(_TABLE_GRANTS)
+    # 3) permission 묶음(ADR-0051): holder 배정 + folder/table gated_by + capability#holder
+    for name, pspec in permissions.items():
+        pspec = pspec or {}
+        perm = f"permission:{name}"
+        for holder in pspec.get("holders", []):
+            tuples.append({"user": holder, "relation": "holder", "object": perm})
+        for path in pspec.get("folders", []):
+            tuples.append({"user": perm, "relation": "gated_by", "object": f"folder:{path}"})
+        for table in pspec.get("tables", []):
+            tuples.append({"user": perm, "relation": "gated_by", "object": f"table:{table}"})
+        for rel in pspec.get("sql", []):
+            tuples.append({"user": f"{perm}#holder", "relation": rel, "object": "capability:sql"})
 
     return tuples
 
@@ -168,8 +110,9 @@ async def main(prune: bool = False) -> None:
 
     users = yaml.safe_load(Path("config/users.yaml").read_text())["users"]
     folders = yaml.safe_load(Path("config/folders.yaml").read_text())["folders"]
+    permissions = yaml.safe_load(Path("config/permissions.yaml").read_text())["permissions"]
 
-    tuples = _build_tuples(users, folders)
+    tuples = _build_tuples(users, folders, permissions)
     # 튜플마다 개별 write — 재실행 시 일부만 존재해도 멱등 처리되도록.
     for t in tuples:
         await client._write_fga_tuples([t])

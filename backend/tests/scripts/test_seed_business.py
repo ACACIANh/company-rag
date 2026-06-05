@@ -9,15 +9,15 @@ from core.sql import catalog
 
 _USERS = [
     {"username": "admin", "user_id": "user-admin", "fga_roles": ["c_level"]},
-    {"username": "jisoo", "user_id": "user-jisoo", "departments": ["개발팀"]},
+    {"username": "jisoo", "user_id": "user-jisoo", "departments": ["개발"]},
     {"username": "seoyeon", "user_id": "user-seoyeon", "departments": []},
-    {"username": "junseo", "user_id": "user-junseo", "departments": ["개발팀", "제품팀"]},
+    {"username": "junseo", "user_id": "user-junseo", "departments": ["개발", "제품"]},
 ]
 
 
 # ── _primary_department ─────────────────────────────────────
 def test_primary_department_first_of_list():
-    assert _primary_department({"departments": ["개발팀", "제품팀"]}) == "개발팀"
+    assert _primary_department({"departments": ["개발", "제품"]}) == "개발"
 
 
 def test_primary_department_c_level_is_executive():
@@ -51,7 +51,7 @@ def test_employee_rows_deterministic():
 def test_employee_cross_department_uses_first():
     rows = build_employee_rows(_USERS)
     ivan = next(r for r in rows if r[0] == "user-junseo")
-    assert ivan[2] == "개발팀"
+    assert ivan[2] == "개발"
 
 
 # ── build_sales_rows ────────────────────────────────────────

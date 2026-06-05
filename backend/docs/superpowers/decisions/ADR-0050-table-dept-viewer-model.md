@@ -61,3 +61,5 @@ result = check(user_id, "dept_viewer", f"table:{table_name}")
 - [ADR-0047](ADR-0047-table-level-sql-access.md) — `can_access` 원래 정의 (본 ADR이 supersede)
 - [ADR-0015](ADR-0015-fga-public-private-super-reader.md) — 폴더 `dept_viewer` 모델 (동형 대상)
 - [ADR-0028](ADR-0028-capability-permission-model.md) — SQL 위험도 capability 게이트 (테이블 게이트와 AND 결합)
+
+> **후속(ADR-0051)**: table도 `viewer: holder from gated_by`(permission 경유 TTU)로 통일. 기존 본문의 "개인 사용자(`[user]`) 직접 부여는 불가" 진술은 permission 배정(`user holder permission:X`)으로 대체됨. `dept_viewer` 개명 → `viewer`.

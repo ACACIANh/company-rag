@@ -17,12 +17,12 @@ LangGraph 기반 RAG 챗봇. Python 3.11+, `langgraph` + `langchain-anthropic`.
 - State: `AgentState(TypedDict)`. `MessagesState` 및 임의 dict 금지.
 - 라우터: `router_node` — `route` 필드로 doc_search/agent 분기 (`app/graph/nodes/router.py`)
 - HITL: `interrupt()` — (1) agent 도구 호출 경로(`confirm.py`), (2) 라우터 모호 분기(`clarify.py`). `MemorySaver` checkpointer 필수. (ADR-0042)
-- FGA: 폴더 트리 pre-filter. `ListObjects(can_read, folder)`로 읽을 수 있는 폴더 목록을 받아, 그 폴더에 정확 매칭(`path = ANY`)되는 청크만 검색(prefix 확장 안 함 — private 하위 누수 방지). 권한 주체는 부서(department) 단위 — 개인 단위 메타데이터·sensitivity 없음. 상세: ADR-0015.
+- FGA: 폴더 트리 pre-filter. `ListObjects(can_read, folder)`로 읽을 수 있는 폴더 목록을 받아, 그 폴더에 정확 매칭(`path = ANY`)되는 청크만 검색(prefix 확장 안 함 — private 하위 누수 방지). 권한 주체는 `permission` 노드 경유(부서·개인·역할이 holder) — permission 노드로 부서·개인 배정 모두 지원(ADR-0051). 상세: ADR-0015.
 - FGA 캐시: PostgreSQL TTL 캐시 (Redis 미사용).
 - 부서 멤버십 source of truth: **OpenFGA** (`user:X member department:Y` 튜플). `config/users.yaml`은 부트스트랩 시드 입력일 뿐(`scripts/seed_fga.py`, 멱등·일방향), 운영 중 멤버 추가/제거는 OpenFGA 직접 조작(관리자 API `add/remove_department_member` 또는 `manage_permission` 도구)으로만. PostgreSQL은 멤버십 미저장(캐시·감사 로그만).
 - SQL 도구 쓰기: 읽기=sql_tool_ro, 게이트 통과한 쓰기(UPDATE/DELETE)=sql_tool_rw 이중 계정. WHERE 필수. 상세: ADR-0034.
-- 권한 위임: 부서 관리자(`user:X admin department:Y`)는 자기 부서 **멤버십만** 위임(grant/revoke). `dept_viewer`·capability 부여는 전역 c_level 전용(경계 누수 차단). 게이트는 `tool_gate_node`가 `gate_decision` 위에 합성. 상세: ADR-0046.
-- 테이블별 SQL 접근: `type table`의 `dept_viewer` relation으로 `table:employees`/`table:sales` 단위 하드 게이트. 위험도 게이트(capability:sql)와 **AND** — 참조 테이블 접근권 미보유 시 실행 전 DENY. 상세: ADR-0050(폴더와 동형)·ADR-0047(위험도 게이트).
+- 권한 위임: 정의(`permission gated_by resource`)는 c_level 전용. 배정(`user holder permission:X`)은 c_level + 부서 팀장(자기 부서 보유 permission 한정). 부서 멤버십 위임은 팀장 유지. 게이트는 `tool_gate_node`가 `gate_decision` 위에 합성. 상세: ADR-0051.
+- 테이블별 SQL 접근: `type table`의 `viewer`(permission 경유) relation으로 `table:employees`/`table:sales` 단위 하드 게이트. 위험도 게이트(capability:sql)와 **AND** — 참조 테이블 접근권 미보유 시 실행 전 DENY. 상세: ADR-0050·ADR-0051(permission 통일)·ADR-0047(위험도 게이트).
 - 명명 원칙: 외부 경계 노출 이름은 역할(role), 내부 구현은 how 허용(캡슐화). 상세: ADR-0033.
 - 응답 도구 라벨: 사용 도구를 레지스트리 SSOT(`tool_label_map`)에서 자동 발견해 응답 상단 헤더로 표시(rag/sql/permission/audit). 새 도구는 `label` self-declare만으로 전파. 상세: ADR-0048.
 - capability 안내 감사 요약: 관리자에게만 게이트 결정 건수 요약(`count_by_decision`)을 안내 본문에 덧붙임. 상세: ADR-0049.

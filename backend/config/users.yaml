@@ -10,15 +10,15 @@ users:
     password: jisoo123
     user_id: user-jisoo
     roles: [user]
-    departments: [개발팀]
-    dept_admin_of: [개발팀]   # 부서 관리자 — 개발팀 멤버십 위임 (ADR-0046)
+    departments: [개발]
+    dept_admin_of: [개발]   # 부서 관리자 — 개발 멤버십 위임 (ADR-0046)
     display_name: 김지수
     email: jisoo.kim@techcorp.example
   - username: minjun
     password: minjun123
     user_id: user-minjun
     roles: [user]
-    departments: [인사팀]
+    departments: [인사]
     display_name: 이민준
     email: minjun.lee@techcorp.example
   - username: seoyeon
@@ -32,55 +32,55 @@ users:
     password: dohyeon123
     user_id: user-dohyeon
     roles: [user]
-    departments: [제품팀]
+    departments: [제품]
     display_name: 최도현
     email: dohyeon.choi@techcorp.example
   - username: yujin
     password: yujin123
     user_id: user-yujin
     roles: [user]
-    departments: [디자인팀]
+    departments: [디자인]
     display_name: 정유진
     email: yujin.jung@techcorp.example
   - username: minho
     password: minho123
     user_id: user-minho
     roles: [user]
-    departments: [영업팀]
+    departments: [영업]
     display_name: 강민호
     email: minho.kang@techcorp.example
   - username: jiyoung
     password: jiyoung123
     user_id: user-jiyoung
     roles: [user]
-    departments: [재무팀]
+    departments: [재무]
     display_name: 윤지영
     email: jiyoung.yoon@techcorp.example
   - username: subin
     password: subin123
     user_id: user-subin
     roles: [user]
-    departments: [법무팀]
+    departments: [법무]
     display_name: 임수빈
     email: subin.lim@techcorp.example
   - username: junseo
     password: junseo123
     user_id: user-junseo
     roles: [user]
-    departments: [개발팀, 제품팀]
+    departments: [개발, 제품]
     display_name: 한준서
     email: junseo.han@techcorp.example
   - username: chaewon
     password: chaewon123
     user_id: user-chaewon
     roles: [user]
-    departments: [영업팀, 재무팀]
+    departments: [영업, 재무]
     display_name: 오채원
     email: chaewon.oh@techcorp.example
   - username: taeyang
     password: taeyang123
     user_id: user-taeyang
     roles: [user]
-    departments: [인사팀, 법무팀]
+    departments: [인사, 법무]
     display_name: 신태양
     email: taeyang.shin@techcorp.example

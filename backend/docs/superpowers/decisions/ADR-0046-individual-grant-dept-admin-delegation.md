@@ -1,6 +1,8 @@
 # ADR-0046: 개인 권한 부여/회수 + 부서 관리자 위임
 
-> **Status**: 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 -->
+> **Status**: 🟣 대체됨 → [ADR-0051](ADR-0051-permission-node-separation.md)
+
+> ⚠️ 위임 단위가 멤버십→permission 배정으로 재설계됨(ADR-0051). 본 ADR의 "멤버십만 위임" 결정은 "정의(c_level)/배정(c_level+팀장)" 분리 모델로 대체됨.
 
 **Date**: 2026-06-05
 **Context**: `manage_permission`(ADR-0029)은 grant/revoke 도구는 갖췄으나 권한을 부여·회수할 수 있는 주체가 전역 관리자(`role:c_level#member` → `capability:admin#justify_grant`) 하나뿐이라, 팀장이 자기 부서원을 직접 관리하는 위임이 불가능하다. 다른 멤버에게 실제로 부여/회수할 수 있도록 **부서 관리자(dept admin) 위임**을 추가하고, revoke 종단 동작을 검증한다.
