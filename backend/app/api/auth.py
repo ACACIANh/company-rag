@@ -45,6 +45,7 @@ def login(req: TokenRequest) -> TokenResponse:
         departments=user.get("departments", []),
         secret=_config.jwt_secret,
         expire_minutes=_config.jwt_expire_minutes,
+        display_name=user.get("display_name", user["user_id"]),
     )
     return TokenResponse(access_token=token)
 

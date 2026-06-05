@@ -252,11 +252,10 @@ export function ChatPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] text-ink-mute font-normal tracking-[-0.39px]">
-              {user?.user_id ?? ""}
+              {user?.display_name ?? ""}
             </span>
             {user && (
               <>
-                <span className="text-[11px] text-ink-mute">role:</span>
                 {user.roles.map((r) => (
                   <span
                     key={r}
@@ -265,19 +264,14 @@ export function ChatPage() {
                     {r}
                   </span>
                 ))}
-                {user.departments.length > 0 && (
-                  <>
-                    <span className="text-[11px] text-ink-mute">부서:</span>
-                    {user.departments.map((d) => (
-                      <span
-                        key={d}
-                        className="bg-primary-muted text-primary-deep text-[10px] font-[400] tracking-[0.1px] rounded-pill px-2 py-[3px] uppercase"
-                      >
-                        {d}
-                      </span>
-                    ))}
-                  </>
-                )}
+                {user.departments.map((d) => (
+                  <span
+                    key={d}
+                    className="bg-primary-muted text-primary-deep text-[10px] font-[400] tracking-[0.1px] rounded-pill px-2 py-[3px] uppercase"
+                  >
+                    {d}
+                  </span>
+                ))}
               </>
             )}
           </div>

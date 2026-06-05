@@ -10,6 +10,7 @@ export interface TokenResponse {
 
 export interface AuthUser {
   user_id: string;
+  display_name: string;
   roles: string[];
   departments: string[];
 }

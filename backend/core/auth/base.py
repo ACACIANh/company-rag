@@ -5,3 +5,4 @@ class AuthUser(TypedDict):
     user_id: str
     roles: list[str]
     departments: list[str]
+    display_name: str

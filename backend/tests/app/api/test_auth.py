@@ -38,6 +38,14 @@ def test_me_returns_departments_for_김지수():
     assert data["departments"] == ["개발"]
 
 
+def test_me_returns_display_name():
+    client = TestClient(app)
+    token = client.post("/auth/token", json={"username": "jisoo", "password": "jisoo123"}).json()["access_token"]
+    res = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    assert res.json()["display_name"] == "김지수"
+
+
 def test_me_returns_departments_for_admin():
     client = TestClient(app)
     token = client.post("/auth/token", json={"username": "admin", "password": "admin123"}).json()["access_token"]

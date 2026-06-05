@@ -27,6 +27,7 @@ describe("ChatPage 세션 복원", () => {
     mockUseAuth.mockReturnValue({
       user: {
         user_id: "user-alice",
+        display_name: "앨리스",
         roles: ["user"],
         departments: [],
       },
@@ -61,11 +62,17 @@ describe("ChatPage 헤더 배지", () => {
     mockUseAuth.mockReturnValue({
       user: {
         user_id: "user-alice",
+        display_name: "앨리스",
         roles: ["user"],
         departments: ["general"],
       },
       logout: vi.fn(),
     });
+  });
+
+  it("이름(display_name)을 렌더링한다", () => {
+    render(<ChatPage />);
+    expect(screen.getByText("앨리스")).toBeInTheDocument();
   });
 
   it("역할 배지를 렌더링한다", () => {
@@ -78,16 +85,9 @@ describe("ChatPage 헤더 배지", () => {
     expect(screen.getByText("general")).toBeInTheDocument();
   });
 
-  it("departments가 비어 있으면 부서: 레이블을 렌더링하지 않는다", () => {
-    mockUseAuth.mockReturnValue({
-      user: {
-        user_id: "user-admin",
-        roles: ["admin"],
-        departments: [],
-      },
-      logout: vi.fn(),
-    });
+  it("role:·부서: 레이블을 렌더링하지 않는다", () => {
     render(<ChatPage />);
+    expect(screen.queryByText("role:")).not.toBeInTheDocument();
     expect(screen.queryByText(/^부서:$/)).not.toBeInTheDocument();
   });
 });
@@ -95,7 +95,7 @@ describe("ChatPage 헤더 배지", () => {
 describe("ChatPage interrupt(JUSTIFY) 흐름", () => {
   beforeEach(() => {
     mockUseAuth.mockReturnValue({
-      user: { user_id: "user-admin", roles: ["admin"], departments: [] },
+      user: { user_id: "user-admin", display_name: "관리자", roles: ["admin"], departments: [] },
       logout: vi.fn(),
     });
     vi.mocked(streamChat).mockReset();
@@ -232,7 +232,7 @@ describe("ChatPage interrupt(JUSTIFY) 흐름", () => {
 describe("ChatPage clarify 흐름", () => {
   beforeEach(() => {
     mockUseAuth.mockReturnValue({
-      user: { user_id: "user-admin", roles: ["admin"], departments: [] },
+      user: { user_id: "user-admin", display_name: "관리자", roles: ["admin"], departments: [] },
       logout: vi.fn(),
     });
     vi.mocked(streamChat).mockReset();
