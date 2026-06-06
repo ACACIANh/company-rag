@@ -35,6 +35,7 @@ async def main() -> None:
     await seed_business_main()
 
     pool = await asyncpg.create_pool(config.postgres_dsn, min_size=1, max_size=2)
+    fga = None
     try:
         cache = make_cache_backend(config.fga_cache_backend, pool)
         fga = FGAClient(
@@ -62,6 +63,8 @@ async def main() -> None:
         print("[4/4] fga_permission_cache 비우기…")
         await pool.execute("TRUNCATE fga_permission_cache")
     finally:
+        if fga is not None:
+            await fga.aclose()
         await pool.close()
 
     print("✅ 데모 초기화 완료 — 깨끗한 상태에서 시연 가능")

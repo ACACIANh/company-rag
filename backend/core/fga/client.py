@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 
 from core.fga.base import PermissionCacheBackend
 from core.fga.models import FGAConfig
@@ -14,6 +15,7 @@ class FGAClient:
         self._config = config
         self._cache = cache
         self._pg_pool = pg_pool
+        self._client = None  # 공유 OpenFgaClient(lazy 생성) — aclose()로 종료
 
     def _client_config(self):
         """ClientConfiguration 빌더 — api_key가 truthy면 api_token Credentials 부착.
@@ -33,6 +35,22 @@ class FGAClient:
             )
         return cfg
 
+    @asynccontextmanager
+    async def _shared(self):
+        """공유 OpenFgaClient를 yield(닫지 않음). 호출마다 재생성하던 aiohttp 세션을
+        재사용해 check당 RTT를 줄인다(ADR-0055 후속). 첫 호출에 lazy 생성하므로 실행 중인
+        event loop에 바인딩된다 — 종료는 aclose()(앱 lifespan)."""
+        if self._client is None:
+            from openfga_sdk import OpenFgaClient
+            self._client = OpenFgaClient(self._client_config())
+        yield self._client
+
+    async def aclose(self) -> None:
+        """공유 OpenFgaClient의 aiohttp 세션을 닫는다(앱 종료 시 1회)."""
+        if self._client is not None:
+            await self._client.close()
+            self._client = None
+
     @staticmethod
     def _cache_key_for(subject: str) -> str:
         """캐시 무효화 키 정규화 — 폴더 캐시는 bare user id로 키잉되므로
@@ -45,11 +63,10 @@ class FGAClient:
 
         Read(object=userset_object, relation=member)로 멤버 튜플을 페이지네이션 조회한다 —
         집합 권한 변경 시 멤버 전원의 폴더 캐시를 무효화하는 데 쓴다."""
-        from openfga_sdk import OpenFgaClient, ReadRequestTupleKey
-        cfg = self._client_config()
+        from openfga_sdk import ReadRequestTupleKey
         prefix = "user:"
         out: list[str] = []
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             token = None
             while True:
                 options: dict = {"page_size": 100}
@@ -153,10 +170,8 @@ class FGAClient:
 
     async def check(self, user: str, relation: str, object_: str) -> bool:
         """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
-        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientCheckRequest
-        cfg = self._client_config()
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             resp = await client.check(
                 ClientCheckRequest(user=user, relation=relation, object=object_)
             )
@@ -166,10 +181,9 @@ class FGAClient:
         """store의 모든 (user, relation, object) 튜플 전수 읽기 (seed --prune 재조정용).
 
         빈 ReadRequestTupleKey는 필터 없는 전수 조회. continuation_token으로 페이지네이션."""
-        from openfga_sdk import OpenFgaClient, ReadRequestTupleKey
-        cfg = self._client_config()
+        from openfga_sdk import ReadRequestTupleKey
         out: list[tuple[str, str, str]] = []
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             token = None
             while True:
                 options: dict = {"page_size": 100}
@@ -185,12 +199,10 @@ class FGAClient:
         return out
 
     async def _list_fga_objects(self, user: str, relation: str, type_: str) -> list[str]:
-        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientListObjectsRequest
         from openfga_sdk.exceptions import ValidationException
-        cfg = self._client_config()
         try:
-            async with OpenFgaClient(cfg) as client:
+            async with self._shared() as client:
                 resp = await client.list_objects(
                     ClientListObjectsRequest(user=user, relation=relation, type=type_)
                 )
@@ -207,10 +219,8 @@ class FGAClient:
             raise
 
     async def _write_fga_tuples(self, tuples: list[dict]) -> None:
-        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = self._client_config()
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             try:
                 await client.write(ClientWriteRequest(
                     writes=[ClientTuple(**t) for t in tuples]
@@ -233,10 +243,8 @@ class FGAClient:
 
     async def revoke_tuple(self, subject: str, relation: str, object_: str) -> None:
         """범용 권한 회수(ADR-0029). 멱등(없는 튜플 삭제는 무시)."""
-        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = self._client_config()
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             try:
                 await client.write(ClientWriteRequest(
                     deletes=[ClientTuple(user=subject, relation=relation, object=object_)]
@@ -253,10 +261,8 @@ class FGAClient:
         await self._cache.invalidate(user_id)
 
     async def remove_department_member(self, user_id: str, department_id: str) -> None:
-        from openfga_sdk import OpenFgaClient
         from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-        cfg = self._client_config()
-        async with OpenFgaClient(cfg) as client:
+        async with self._shared() as client:
             try:
                 await client.write(ClientWriteRequest(
                     deletes=[ClientTuple(
@@ -274,10 +280,8 @@ class FGAClient:
             {"user": f"user:{user_id}", "relation": "member", "object": d} for d in departments
         ]
         if tuples_to_delete:
-            from openfga_sdk import OpenFgaClient
             from openfga_sdk.client.models import ClientWriteRequest, ClientTuple
-            cfg = self._client_config()
-            async with OpenFgaClient(cfg) as client:
+            async with self._shared() as client:
                 try:
                     await client.write(ClientWriteRequest(
                         deletes=[ClientTuple(**t) for t in tuples_to_delete]

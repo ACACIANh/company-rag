@@ -474,6 +474,55 @@ async def test_user_accessible_tables_none_permitted():
 
 
 @pytest.mark.asyncio
+async def test_check_reuses_single_shared_client_across_calls():
+    """공유 OpenFgaClient 재사용 가드 — 여러 check가 클라이언트를 1회만 생성해야 한다
+    (호출마다 재생성하면 aiohttp 세션 setup이 매번 발생 → 성능 회귀)."""
+    client = _client()
+    constructed = []
+
+    class _Fake:
+        async def check(self, req):
+            class _R:
+                allowed = True
+            return _R()
+        async def close(self):
+            pass
+
+    def _factory(cfg):
+        constructed.append(1)
+        return _Fake()
+
+    with patch("openfga_sdk.OpenFgaClient", side_effect=_factory):
+        await client.check("user:a", "viewer", "table:x")
+        await client.check("user:b", "viewer", "table:y")
+
+    assert len(constructed) == 1   # 1회만 생성(재사용)
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_aclose_closes_and_resets_shared_client():
+    """aclose가 공유 클라이언트 세션을 닫고 캐시를 비운다(앱 종료 경로)."""
+    client = _client()
+    closed = []
+
+    class _Fake:
+        async def check(self, req):
+            class _R:
+                allowed = True
+            return _R()
+        async def close(self):
+            closed.append(1)
+
+    with patch("openfga_sdk.OpenFgaClient", return_value=_Fake()):
+        await client.check("user:a", "viewer", "table:x")
+        await client.aclose()
+
+    assert closed == [1]
+    assert client._client is None   # 재사용 캐시 비워짐
+
+
+@pytest.mark.asyncio
 async def test_user_accessible_tables_checks_run_concurrently():
     """3개 테이블 viewer check가 순차가 아닌 동시 실행돼야 한다(성능 회귀 가드)."""
     client = _client()

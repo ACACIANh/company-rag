@@ -98,12 +98,25 @@ async def lifespan(app: FastAPI):
         app.state.session_store = session_store
         app.state.graph = graph
 
+        # 콜드스타트 완화(ADR-0055 후속): 첫 요청이 부담하던 lazy import·첫 TLS/aiohttp
+        # 세션 비용을 부팅 시점에 미리 지불한다(FGA·임베딩·LLM 각 1콜, 동시). best-effort —
+        # 실패해도 기동을 막지 않는다(동기 호출은 스레드로 이벤트루프 비차단).
+        try:
+            await asyncio.gather(
+                fga_client.check("user:__warmup__", "can_read", "folder:__warmup__"),
+                asyncio.to_thread(embedder.embed, "warmup"),
+                asyncio.to_thread(llm.complete, "warmup"),
+            )
+        except Exception:
+            logging.warning("startup warmup failed (non-fatal)", exc_info=True)
+
         yield
 
         if sql_pool is not None:
             await sql_pool.close()
         if sql_rw_pool is not None:
             await sql_rw_pool.close()
+        await fga_client.aclose()  # 공유 OpenFgaClient(aiohttp 세션) 종료
         await pool.close()
 
 
