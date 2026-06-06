@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
 import type { Components } from "react-markdown";
+import { rehypeCollapsibleFolders } from "./rehypeCollapsibleFolders";
 
 function CopyableCodeBlock({ children }: { children: React.ReactNode }) {
   const handleCopy = useCallback(() => {
@@ -76,6 +77,16 @@ const components: Components = {
       <td className="px-3 py-2 text-ink align-top">{children}</td>
     );
   },
+  details({ children }) {
+    return <details className="my-2">{children}</details>;
+  },
+  summary({ children }) {
+    return (
+      <summary className="cursor-pointer select-none font-semibold text-ink mt-3 mb-1">
+        {children}
+      </summary>
+    );
+  },
 };
 
 export function MarkdownRenderer({ content }: { content: string }) {
@@ -83,7 +94,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
     <div className="prose prose-sm max-w-none leading-[1.6] text-[15px] font-light text-ink">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[rehypeHighlight, rehypeCollapsibleFolders]}
         components={components}
       >
         {content}
