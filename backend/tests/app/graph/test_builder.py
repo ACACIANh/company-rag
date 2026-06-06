@@ -1,4 +1,5 @@
 import asyncio
+import threading
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,6 +9,23 @@ from langgraph.types import Command
 
 from core.models import Answer, Chunk, SearchResult, SourceRef
 from app.graph.builder import answer_question, build_graph
+
+
+def _oc(responses):
+    """route_and_rewrite가 rewrite·router를 동시 호출(순서 비결정)하므로 프롬프트로 분기.
+    단일 턴 기준 responses[0]=rewrite, [1]=router, [2:]=이후 노드(plan/grade/generate…) 순차 소비."""
+    rewrite, route, *rest = responses
+    _it = iter(rest)
+    _lock = threading.Lock()
+
+    def _complete(prompt):
+        if "명료화" in prompt:        # REWRITE_QUERY
+            return rewrite
+        if "처리 방식을 결정" in prompt:  # ROUTER_PROMPT
+            return route
+        with _lock:
+            return next(_it)
+    return _complete
 
 
 def _mock_chat_model(ai_messages):
@@ -140,12 +158,12 @@ async def test_agent_allow_executes_and_answers():
     """SELECT(저위험) → 게이트 ALLOW → tool_gate가 실행 → 에이전트가 최종 답변."""
     # llm.complete: rewrite, router, sql_generate(plan), bulk/PII 판정
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 이름 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT name FROM business.employees",              # sql_tool.plan → SQL (AST: select)
         "no",                                               # bulk/PII 판정 → RISK_SELECT 유지 → ALLOW
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출
         AIMessage(content="직원 이름은 노주환 입니다."),       # 2차: 도구 결과 받고 최종 답변
@@ -167,12 +185,12 @@ async def test_agent_allow_executes_and_answers():
 async def test_agent_justify_triggers_interrupt():
     """대량/PII SELECT → 게이트 JUSTIFY_AND_APPROVE → confirm이 HITL interrupt를 띄운다."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → RISK_BULK_SELECT → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 도구 호출 (이후 interrupt로 멈춤)
     ])
@@ -193,12 +211,12 @@ async def test_agent_justify_triggers_interrupt():
 async def test_agent_resume_after_justify_executes_and_answers():
     """interrupt 후 Command(resume=사유) → justify_execute 실행 → 에이전트 최종 답변."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출
         AIMessage(content="급여 분포 요약 답변"),             # 2차: justify_execute 결과 받고 최종 답변
@@ -222,12 +240,12 @@ async def test_agent_resume_after_justify_executes_and_answers():
 async def test_agent_resume_empty_reason_cancels_then_answers():
     """빈 사유로 resume → justify_execute가 취소 ToolMessage → 에이전트가 취소 사실로 답변."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출
         AIMessage(content="사유 미기재로 조회가 취소되었습니다."),  # 2차: 취소 ToolMessage 받고 답변
@@ -251,11 +269,11 @@ async def test_agent_resume_empty_reason_cancels_then_answers():
 async def test_agent_deny_blocks_without_interrupt():
     """일반 부서원 × UPDATE → 게이트 DENY. interrupt 없이 거부 ToolMessage → 에이전트가 거부 안내."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "급여 0으로 변경",                                   # rewrite
         "agent",                                        # router
         "UPDATE business.employees SET salary = 0",         # plan → SQL (AST: update → DENY, bulk 판정 없음)
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(question="급여 0으로 변경"),           # 1차: 도구 호출
         AIMessage(content="권한이 없어 실행할 수 없습니다."),   # 2차: 거부 ToolMessage 받고 답변
@@ -278,12 +296,12 @@ async def test_answer_question_justify_interrupt_then_resume():
     """answer_question: 1차 호출이 JUSTIFY interrupt를 노출하고, 같은 thread의
     2차 호출(사유)이 resume으로 감지되어 최종 답변을 낸다."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
         AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
@@ -643,12 +661,12 @@ async def test_stream_answer_justify_emits_interrupt_event():
     from app.graph.builder import stream_answer
 
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
     ])
@@ -703,12 +721,12 @@ async def test_stream_answer_justify_new_session_creates_session():
     from app.graph.builder import stream_answer
 
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
     ])
@@ -759,11 +777,11 @@ async def test_manage_permission_justify_then_resume_executes():
     """권한 관리(RISK_GRANT) → capability:admin justify_grant 보유자 → JUSTIFY interrupt →
     사유 resume → grant_tuple 실행 → 최종 답변."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "노주환 추가",                                                          # rewrite
         "agent",                                                          # router
         '{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}',  # permission plan 파싱
-    ]
+    ])
     chat = _mock_chat_model([
         _perm_tool_call_msg(),                                               # 1차: 도구 호출 → interrupt
         AIMessage(content="앨리스를 엔지니어링에 추가했습니다."),               # 2차: resume 후 최종 답변
@@ -788,11 +806,11 @@ async def test_manage_permission_justify_then_resume_executes():
 async def test_manage_permission_deny_for_non_admin():
     """grant 권한(justify_grant) 없는 사용자 → DENY, interrupt 없이 거부 답변."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "노주환 추가",                                                          # rewrite
         "agent",                                                          # router
         '{"action":"grant","subject":"user:user-joohwan","relation":"member","object":"department:개발"}',  # plan 파싱
-    ]
+    ])
     chat = _mock_chat_model([
         _perm_tool_call_msg(),
         AIMessage(content="권한이 없어 실행할 수 없습니다."),
@@ -817,12 +835,12 @@ async def test_stream_answer_resume_after_justify():
     from app.graph.builder import stream_answer
 
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전직원 급여 조회",                                  # rewrite
         "agent",                                        # router
         "SELECT salary FROM business.employees",            # plan → SQL
         "yes",                                              # bulk/PII → JUSTIFY
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(),                                   # 1차: 도구 호출 → interrupt
         AIMessage(content="급여 분포 요약 답변"),             # 2차: resume 후 최종 답변
@@ -940,11 +958,11 @@ def _rw_pool(execute_return="UPDATE 1"):
 async def test_engineering_update_justify_then_resume_writes():
     """engineering × WHERE 있는 UPDATE → JUSTIFY → 사유 resume → 쓰기 풀 실행 → 행수 답변."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "5번 직원 연봉 변경",                                                  # rewrite
         "agent",                                                          # router
         "UPDATE business.employees SET salary = 70000000 WHERE emp_id = 'user-5'",  # plan → SQL
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(question="연봉 변경"),                                  # 1차: 도구 호출 → interrupt
         AIMessage(content="1개 행을 변경했습니다."),                            # 2차: resume 후 최종 답변
@@ -968,11 +986,11 @@ async def test_engineering_update_justify_then_resume_writes():
 async def test_general_update_denied_without_capability():
     """무소속(general) × UPDATE → justify_update_delete 미보유 → DENY, interrupt 없음."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "연봉 변경",                                                          # rewrite
         "agent",                                                          # router
         "UPDATE business.employees SET salary = 0 WHERE emp_id = 'user-5'",  # plan → SQL
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(question="연봉 변경"),
         AIMessage(content="권한이 없어 실행할 수 없습니다."),
@@ -993,11 +1011,11 @@ async def test_general_update_denied_without_capability():
 async def test_update_without_where_denied_even_for_engineering():
     """engineering이라도 WHERE 없는 UPDATE는 risk=deny → DENY, interrupt 없음."""
     llm = MagicMock()
-    llm.complete.side_effect = [
+    llm.complete.side_effect = _oc([
         "전체 연봉 변경",                                                      # rewrite
         "agent",                                                          # router
         "UPDATE business.employees SET salary = 0",                          # plan → WHERE 없음 → deny
-    ]
+    ])
     chat = _mock_chat_model([
         _tool_call_msg(question="전체 연봉 변경"),
         AIMessage(content="무조건 변경은 허용되지 않습니다."),

@@ -1,9 +1,31 @@
+import asyncio
+
 import pytest
 from unittest.mock import AsyncMock, patch
 
 from core.fga.client import FGAClient
 from core.fga.models import FGAConfig
 from core.fga.cache.memory import InMemoryCacheBackend
+
+
+class _ConcurrencyProbe:
+    """병렬 실행 회귀 가드 — 동시 in-flight 최대치(peak)를 기록한다.
+
+    gather로 병렬이면 N개가 동시에 진입해 peak==N, for-await 순차면 peak==1.
+    각 호출이 sleep(0)로 여러 번 양보해 피어가 모두 진입할 틈을 준다.
+    """
+
+    def __init__(self) -> None:
+        self.cur = 0
+        self.peak = 0
+
+    async def run(self, value):
+        self.cur += 1
+        self.peak = max(self.peak, self.cur)
+        for _ in range(4):
+            await asyncio.sleep(0)
+        self.cur -= 1
+        return value
 
 
 def _client() -> FGAClient:
@@ -449,3 +471,19 @@ async def test_user_accessible_tables_none_permitted():
         result = await client.user_accessible_tables("user-joohwan")
 
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_user_accessible_tables_checks_run_concurrently():
+    """3개 테이블 viewer check가 순차가 아닌 동시 실행돼야 한다(성능 회귀 가드)."""
+    client = _client()
+    probe = _ConcurrencyProbe()
+
+    async def fake_check(user, relation, object_):
+        return await probe.run(object_ == "table:employees")
+
+    with patch.object(client, "check", new=fake_check):
+        result = await client.user_accessible_tables("user-joohwan")
+
+    assert result == ["employees"]   # 값·정렬 순서 불변
+    assert probe.peak == 3           # 3건 동시 in-flight (순차면 1)

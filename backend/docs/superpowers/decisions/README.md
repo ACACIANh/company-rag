@@ -57,6 +57,7 @@
 | [0052](ADR-0052-tool-result-audit-summary-separation.md) | 도구 결과/감사요약 분리 — ToolResult 값 객체 | 🟢 적용완료 |
 | [0053](ADR-0053-hallucination-retry-grounding-correction.md) | Self-RAG hallucination 재시도 — grounding 교정 주입 | 🟢 적용완료 |
 | [0054](ADR-0054-set-subject-cache-invalidation.md) | 집합 subject 권한 변경 시 폴더 캐시 무효화 (TTU 파급) | 🟢 적용완료 |
+| [0055](ADR-0055-demo-perf-fga-parallelization.md) | 데모 경로 성능 최적화 — 독립 FGA 조회 병렬화(안전) + LLM 구조 변경 보류 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 
 ## 상태 범례
 

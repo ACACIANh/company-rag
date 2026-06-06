@@ -1,9 +1,26 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 import pytest
 from langchain_core.messages import AIMessage, ToolMessage
 
 from app.graph.nodes.tool_gate import tool_gate_node
 from app.graph.tools.base import ToolResult
+
+
+class _ConcurrencyProbe:
+    """동시 in-flight 최대치(peak)를 기록 — 병렬이면 peak==N, 순차면 1."""
+
+    def __init__(self) -> None:
+        self.cur = 0
+        self.peak = 0
+
+    async def run(self, value):
+        self.cur += 1
+        self.peak = max(self.peak, self.cur)
+        for _ in range(4):
+            await asyncio.sleep(0)
+        self.cur -= 1
+        return value
 
 
 def _fga(roles, depts, capabilities=(), tuples=()):
@@ -36,6 +53,31 @@ def _registry(handler):
 
 def _ai(tool_calls):
     return AIMessage(content="", tool_calls=tool_calls)
+
+
+@pytest.mark.asyncio
+async def test_user_identity_reads_run_concurrently():
+    """tool_gate 진입 시 user_roles·user_departments 조회가 동시 실행돼야 한다(성능 회귀 가드)."""
+    probe = _ConcurrencyProbe()
+    fga = AsyncMock()
+
+    async def _roles(uid):
+        return await probe.run([])
+
+    async def _depts(uid):
+        return await probe.run(["영업"])
+
+    fga.user_roles = _roles
+    fga.user_departments = _depts
+
+    # 도구 호출이 없는 상태 → 상단의 신원 조회만 실행되고 루프 본문은 건너뛴다.
+    state = {"user_id": "u1", "question": "q", "agent_messages": []}
+    out = await tool_gate_node(
+        state, registry=_registry(_handler("SELECT 1", "select")),
+        fga_client=fga, audit_sink=AsyncMock(),
+    )
+    assert out["pending_tool_calls"] == []
+    assert probe.peak == 2   # roles·departments 동시 in-flight (순차면 1)
 
 
 @pytest.mark.asyncio

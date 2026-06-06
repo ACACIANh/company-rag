@@ -1,7 +1,9 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+import app.graph.tools.permission_tool as pt
 from app.graph.tools.base import ToolResult
 from app.graph.tools.permission_tool import (
     PermissionAgent,
@@ -13,6 +15,22 @@ from app.graph.tools.permission_tool import (
 from core.fga.permission_validator import PermissionValidator
 from core.sql.gate import RISK_GRANT
 from core.sql.risk import RISK_DENY
+
+
+class _ConcurrencyProbe:
+    """동시 in-flight 최대치(peak)를 기록 — 병렬이면 peak==N, 순차면 1."""
+
+    def __init__(self) -> None:
+        self.cur = 0
+        self.peak = 0
+
+    async def run(self, value):
+        self.cur += 1
+        self.peak = max(self.peak, self.cur)
+        for _ in range(4):
+            await asyncio.sleep(0)
+        self.cur -= 1
+        return value
 
 
 def _validator():
@@ -304,3 +322,47 @@ async def test_execute_returns_toolresult_type():
     agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
     result = await agent.execute("grant user:u1 member department:개발", "RISK_GRANT")
     assert isinstance(result, ToolResult)
+
+
+@pytest.mark.asyncio
+async def test_resolve_capabilities_runs_concurrently(monkeypatch):
+    """5개 위험도 gate_decision이 순차가 아닌 동시 실행돼야 한다(성능 회귀 가드).
+    표시 순서(_CAPABILITY_DISPLAY)는 보존."""
+    probe = _ConcurrencyProbe()
+
+    async def fake_gate(check, user_id, risk):
+        return await probe.run(("ALLOW", "reason"))
+
+    monkeypatch.setattr(pt, "gate_decision", fake_gate)
+    caps = await _resolve_capabilities(AsyncMock(), "user-admin")
+
+    assert [label for label, _ in caps] == [
+        "SELECT", "대량 SELECT", "UPDATE/DELETE", "DDL", "권한 부여(grant)",
+    ]
+    assert probe.peak == 5
+
+
+@pytest.mark.asyncio
+async def test_execute_query_snapshot_reads_run_concurrently(monkeypatch):
+    """권한 스냅샷의 5개 독립 조회(부서·역할·폴더·capability·테이블)가 동시 실행돼야 한다."""
+    probe = _ConcurrencyProbe()
+    fga = MagicMock()
+    fga.check = AsyncMock(return_value=True)
+
+    async def _dep(t): return await probe.run(["개발"])
+    async def _roles(t): return await probe.run([])
+    async def _folders(t): return await probe.run([])
+    async def _tables(t): return await probe.run(["employees"])
+    fga.user_departments = _dep
+    fga.user_roles = _roles
+    fga.get_readable_folders = _folders
+    fga.user_accessible_tables = _tables
+
+    async def _caps(check, target): return await probe.run([("SELECT", "즉시 허용")])
+    monkeypatch.setattr(pt, "_resolve_capabilities", _caps)
+
+    agent = PermissionAgent(llm=MagicMock(), fga_client=fga, validator=_validator())
+    result = await agent.execute("query user-joohwan user-joohwan", "RISK_SELECT")
+
+    assert "user-joohwan" in result.text
+    assert probe.peak == 5   # 5개 조회 동시 in-flight (순차면 1)
