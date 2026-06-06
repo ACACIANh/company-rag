@@ -6,6 +6,8 @@
 pending_tool_calls에 적재만 한다(HITL은 confirm/justify_execute에서). 모든 결정은
 감사 로그(ADR-0018)에 남긴다.
 """
+import asyncio
+
 from langchain_core.messages import AIMessage, ToolMessage
 
 from core.fga.client import FGAClient
@@ -37,8 +39,11 @@ def _last_tool_calls(messages: list) -> tuple[AIMessage | None, list]:
 
 async def tool_gate_node(state: dict, *, registry, fga_client: FGAClient, audit_sink: AuditSink) -> dict:
     user_id = state["user_id"]
-    roles = await fga_client.user_roles(user_id)
-    departments = await fga_client.user_departments(user_id)
+    # 신원 조회 2건은 독립 → gather로 병렬화(감사 기록·위임 승격에 쓰임). 값 불변.
+    roles, departments = await asyncio.gather(
+        fga_client.user_roles(user_id),
+        fga_client.user_departments(user_id),
+    )
 
     _, tool_calls = _last_tool_calls(state.get("agent_messages") or [])
     executed_sql: set[str] = {normalize_sql(s) for s in (state.get("executed_sql") or [])}

@@ -5,6 +5,7 @@ plan은 LLM이 파싱한 {action,subject,relation,object}를 검증한다. 검�
 RISK_DENY로 닫고, 통과는 RISK_GRANT(capability:admin 게이트 대상)로 낸다.
 execute는 검증을 거친 planned_action만 받으므로 재검증 없이 튜플을 쓴다.
 """
+import asyncio
 import json
 
 from langchain_core.tools import Tool
@@ -91,11 +92,15 @@ class PermissionAgent:
                 if not admin_ok:
                     return ToolResult(text="권한 없음: 타인 조회는 관리자만 가능합니다.", summary="권한 없음")
             try:
-                departments = await self._fga.user_departments(target)
-                roles = await self._fga.user_roles(target)
-                folders = await self._fga.get_readable_folders(target)
-                capabilities = await _resolve_capabilities(self._fga.check, target)
-                tables = await self._fga.user_accessible_tables(target)
+                # 5개 조회는 모두 target 권한 읽기로 서로 독립 → gather로 병렬화
+                # (직렬 ~15 FGA round-trip을 wall-clock 1~2회로 축약). 값·예외 처리 불변.
+                departments, roles, folders, capabilities, tables = await asyncio.gather(
+                    self._fga.user_departments(target),
+                    self._fga.user_roles(target),
+                    self._fga.get_readable_folders(target),
+                    _resolve_capabilities(self._fga.check, target),
+                    self._fga.user_accessible_tables(target),
+                )
             except Exception as exc:
                 msg = f"권한 조회 오류: {type(exc).__name__}"
                 return ToolResult(text=msg, summary=msg)
@@ -191,12 +196,15 @@ async def _resolve_capabilities(check, user_id: str) -> list[tuple[str, str]]:
     """표시 대상 작업별로 gate_decision 판정 → (라벨, 한국어 결정) 목록.
 
     게이트(core.sql.gate)를 재사용한다 — 매트릭스 복제 없이 단일 출처. 위험도당 FGA check 1~2회.
+    위험도별 gate_decision은 서로 독립이므로 gather로 병렬 — _CAPABILITY_DISPLAY 표시 순서 유지.
     """
-    out: list[tuple[str, str]] = []
-    for label, risk in _CAPABILITY_DISPLAY:
-        decision, _ = await gate_decision(check, user_id, risk)
-        out.append((label, _DECISION_LABEL.get(decision, decision)))
-    return out
+    decisions = await asyncio.gather(
+        *(gate_decision(check, user_id, risk) for _label, risk in _CAPABILITY_DISPLAY)
+    )
+    return [
+        (label, _DECISION_LABEL.get(decision, decision))
+        for (label, _risk), (decision, _reason) in zip(_CAPABILITY_DISPLAY, decisions)
+    ]
 
 
 def _format_permission_snapshot(

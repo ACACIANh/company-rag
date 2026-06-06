@@ -1,3 +1,5 @@
+import asyncio
+
 from core.fga.base import PermissionCacheBackend
 from core.fga.models import FGAConfig
 
@@ -139,15 +141,15 @@ class FGAClient:
     async def user_accessible_tables(self, user_id: str) -> list[str]:
         """사용자가 viewer 권한을 가진 테이블 목록 (ADR-0047).
 
-        _KNOWN_TABLES 각각에 대해 check를 호출하므로 N회 FGA round-trip 발생.
-        테이블 수가 적어(현재 3개) 성능 문제 없음.
+        _KNOWN_TABLES 각각의 viewer check를 asyncio.gather로 병렬 실행한다 — 서로
+        독립이므로 N회 FGA round-trip을 1회 wall-clock으로 묶는다. 결과는 sorted 순서 유지.
         """
         _KNOWN_TABLES = {"employees", "sales", "equipment"}
-        result = []
-        for table in sorted(_KNOWN_TABLES):
-            if await self.check(f"user:{user_id}", "viewer", f"table:{table}"):
-                result.append(table)
-        return result
+        tables = sorted(_KNOWN_TABLES)
+        results = await asyncio.gather(
+            *(self.check(f"user:{user_id}", "viewer", f"table:{t}") for t in tables)
+        )
+        return [t for t, ok in zip(tables, results) if ok]
 
     async def check(self, user: str, relation: str, object_: str) -> bool:
         """단일 (user, relation, object) 권한 Check. capability/folder 등 모든 타입 공용."""
