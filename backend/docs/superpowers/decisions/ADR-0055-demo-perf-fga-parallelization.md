@@ -40,7 +40,7 @@
 - C(grade_documents 제거·FGA 클라이언트 재사용)는 품질/보안/생명주기 리스크가 있어 별도 ADR + 사인오프 대상.
 
 ## 후속
-- **B. router∥rewrite 병렬화 — 구현완료(브랜치 `feat/router-rewrite-parallel`, 머지 대기)**. fan-out/fan-in 그래프 재배선 대신 **합성 노드**(`app/graph/nodes/route_and_rewrite.py`)로 `rewrite_query_node`·`router_node`를 `asyncio.to_thread`+`gather` 동시 실행(LLMClient.complete가 동기 블로킹이라 스레드 필요). 출력 키 분리로 단순 병합. retry 루프도 합성 노드로 동일 보존. 마이크로벤치 **606ms/장면(1.83×)** 절감. 단위테스트 643 통과(신규 노드 동시성/병합 테스트 2 + 순서 의존 통합테스트 14개를 프롬프트-기반으로 수정). 3회 end-to-end는 OpenAI 꼬리지연으로 장면 median 합 -4%(짧은 장면 01 -40%·02 -30%에서 선명), 회차총합은 비결정. **중위험(그래프 진입 구조 변경)이라 머지는 사용자 결정.**
-- **(보류) FGA 클라이언트/커넥션 재사용** — `check()`마다 `OpenFgaClient`(aiohttp 세션) 재생성. A의 병렬화가 세션 생성 오버헤드에 막혀 64ms에 머무름 → 재사용 시 추가 단축(A와 곱셈 효과). 단 생명주기 관리 필요.
-- **콜드스타트** — 첫 요청(scene 01)이 lazy import·첫 커넥션으로 ~8s. lifespan 워밍업 1콜로 제거 가능(데모 녹화 전 워밍업 쿼리로도 회피).
-- 측정 하니스: `scripts/demo_bench.py`(15장면 반복·HITL resume·장면별 지연), `scripts/micro_bench_fga.py`(FGA 순차vs병렬).
+- **B. router∥rewrite 병렬화 — 머지완료(PR #95)**. fan-out/fan-in 그래프 재배선 대신 **합성 노드**(`app/graph/nodes/route_and_rewrite.py`)로 `rewrite_query_node`·`router_node`를 `asyncio.to_thread`+`gather` 동시 실행(LLMClient.complete가 동기 블로킹이라 스레드 필요). 출력 키 분리로 단순 병합. retry 루프도 합성 노드로 동일 보존. 마이크로벤치 **606ms/장면(1.83×)** 절감. 3회 end-to-end는 OpenAI 꼬리지연으로 장면 median 합 -4%(짧은 장면서 선명).
+- **C. FGA 클라이언트/커넥션 재사용 — 구현완료(브랜치 `perf/fga-client-reuse-warmup`)**. `check()`마다 `OpenFgaClient`(aiohttp 세션) 재생성하던 것을 공유 컨텍스트매니저 `_shared()`로 단일 클라이언트 재사용(lazy 생성, lifespan에서 `aclose()`). 마이크로벤치 check당 **8.2→2.3ms(3.65×)**, 권한 스냅샷(A 병렬화 포함) **64.4→8.4ms(7.7×)**, 원본 대비 ~10.6×. 재사용·aclose 회귀 가드 테스트 2개.
+- **D. 콜드스타트 lifespan 워밍업 — 구현완료(브랜치 `perf/fga-client-reuse-warmup`)**. 첫 요청(scene 01)의 lazy import·첫 TLS/세션 비용을 부팅 시점에 미리 지불(FGA·임베딩·LLM 각 1콜 동시, best-effort). 실측 부팅+워밍업 6.8s, **첫 /chat 8.0s→1.13s(~7s 단축)**.
+- 측정 하니스: `scripts/demo_bench.py`(15장면 반복·HITL resume·장면별 지연), `scripts/micro_bench_fga.py`(FGA 순차vs병렬, 클라이언트 재사용 반영).
