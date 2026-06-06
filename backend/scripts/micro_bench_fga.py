@@ -69,6 +69,7 @@ async def main() -> None:
 
     config = load_config()
     pool = await asyncpg.create_pool(config.postgres_dsn, min_size=1, max_size=4)
+    fga = None
     try:
         cache = make_cache_backend(config.fga_cache_backend, pool)
         if hasattr(cache, "ensure_table"):
@@ -101,6 +102,8 @@ async def main() -> None:
         if pm > 0:
             print(f"  → {sm/pm:.2f}× 빠름, {sm - pm:.0f} ms 단축 (장면당)")
     finally:
+        if fga is not None:
+            await fga.aclose()
         await pool.close()
 
 

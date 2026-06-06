@@ -104,6 +104,7 @@ async def lifespan(app: FastAPI):
             await sql_pool.close()
         if sql_rw_pool is not None:
             await sql_rw_pool.close()
+        await fga_client.aclose()  # 공유 OpenFgaClient(aiohttp 세션) 종료
         await pool.close()
 
 
