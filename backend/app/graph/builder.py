@@ -34,8 +34,7 @@ from app.graph.nodes.increment_retry import increment_retry_node
 from app.graph.nodes.load_memory import load_memory_node
 from app.graph.nodes.permission import permission_node
 from app.graph.nodes.retrieve import retrieve_node
-from app.graph.nodes.rewrite_query import rewrite_query_node
-from app.graph.nodes.router import router_node
+from app.graph.nodes.route_and_rewrite import route_and_rewrite_node
 from app.graph.nodes.save_memory import save_memory_node
 from app.graph.nodes.multi_query import multi_query_node
 from app.graph.nodes.agent import agent_node
@@ -73,8 +72,8 @@ def build_graph(
     g = StateGraph(AgentState)
 
     g.add_node("load_memory", load_memory_node)
-    g.add_node("rewrite_query", partial(rewrite_query_node, llm=llm))
-    g.add_node("router", partial(router_node, llm=llm))
+    # router+rewrite 동시 실행(ADR-0055 후속) — 직렬 2 LLM 왕복을 1 wall-clock으로.
+    g.add_node("route_and_rewrite", partial(route_and_rewrite_node, llm=llm))
     g.add_node("permission", partial(permission_node, fga_client=fga_client))
     g.add_node("retrieve", partial(
         retrieve_node,
@@ -99,11 +98,10 @@ def build_graph(
     g.add_node("save_memory", save_memory_node)
 
     g.add_edge(START, "load_memory")
-    g.add_edge("load_memory", "rewrite_query")
-    g.add_edge("rewrite_query", "router")
+    g.add_edge("load_memory", "route_and_rewrite")
 
     g.add_conditional_edges(
-        "router",
+        "route_and_rewrite",
         route_after_router,
         {
             "doc_search": "permission",
@@ -125,7 +123,7 @@ def build_graph(
 
     g.add_edge("permission", "retrieve")
     g.add_edge("retrieve", "grade_documents")
-    g.add_edge("increment_retry", "rewrite_query")
+    g.add_edge("increment_retry", "route_and_rewrite")
     g.add_conditional_edges(
         "grade_documents",
         route_after_grade,
