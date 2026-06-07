@@ -4,3 +4,7 @@ dist
 .env.local
 .env.*.local
 *.log
+
+# demo-recorder 생성물
+demo-recorder/scenes.json
+demo-recorder/out/
