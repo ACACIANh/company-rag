@@ -112,10 +112,10 @@ def test_build_graph_returns_compiled_graph():
 async def test_answer_question_doc_search_happy_path():
     retriever = _make_retriever(text="연차는 15일입니다.", source="vacation.md")
     llm = MagicMock()
+    # grade_documents는 더 이상 LLM을 호출하지 않는다(검색 cosine 임계 휴리스틱, ADR-0056).
     llm.complete.side_effect = [
         "연차 신청 방법",
         "doc_search",
-        "0.9",
         "정답",
         "YES",
     ]
@@ -128,22 +128,29 @@ async def test_answer_question_doc_search_happy_path():
 
 
 async def test_answer_question_doc_search_retry_on_low_grade():
-    retriever = _make_retriever(text="내용", source="doc.md")
+    """grade 휴리스틱이 낮은 cosine을 거부하면 rewrite_retry로 재검색한다(ADR-0056).
+
+    grade는 LLM이 아니라 검색 결과 cosine으로 판정하므로, 1차 검색은 임계 미만(0.2)·
+    재검색은 임계 이상(0.9)으로 만들어 grade 기반 재시도 경로를 실제로 태운다.
+    """
+    low = [SearchResult(chunk=Chunk(text="무관", source="x.md", chunk_id="x"), score=0.2)]
+    high = [SearchResult(chunk=Chunk(text="관련", source="doc.md", chunk_id="doc"), score=0.9)]
+    retriever = MagicMock()
+    retriever.retrieve = AsyncMock(side_effect=[low, high])
+
     llm = MagicMock()
-    llm.complete.side_effect = [
-        "첫 재작성",
-        "doc_search",
-        "0.2",
-        "두 번째 재작성",
-        "doc_search",
-        "0.8",
-        "좋은 답변",
-        "YES",
-    ]
+    # rewrite/router는 매 턴 동일 응답(_oc가 프롬프트로 분기), grade는 LLM 미호출.
+    llm.complete.side_effect = _oc([
+        "재작성",       # rewrite (모든 턴)
+        "doc_search",   # router (모든 턴)
+        "좋은 답변",    # generate (재검색 후 grade 통과)
+        "YES",          # check_hallucination
+    ])
     graph = build_graph(retriever=retriever, llm=llm, fga_client=_mock_fga_client())
     result = await answer_question(graph, "원본 질문")
 
     assert result.text == "좋은 답변"
+    assert retriever.retrieve.await_count == 2  # 1차(거부) + 재검색
 
 
 def _tool_call_msg(question="전직원 급여", tc_id="c1"):
@@ -329,15 +336,14 @@ async def test_answer_question_justify_interrupt_then_resume():
 async def test_answer_question_multi_turn_accumulates_chat_history():
     retriever = _make_retriever(text="연차는 15일", source="vacation.md")
     llm = MagicMock()
+    # grade는 LLM 미호출(휴리스틱). 턴당 rewrite·router·generate·hallucination 4콜.
     llm.complete.side_effect = [
         "연차 신청 방법",
         "doc_search",
-        "0.9",
         "연차는 15일입니다.",
         "YES",
         "연차 상세 설명",
         "doc_search",
-        "0.9",
         "더 자세히 설명하면.",
         "YES",
     ]
@@ -350,7 +356,10 @@ async def test_answer_question_multi_turn_accumulates_chat_history():
     result2 = await answer_question(graph, "더 자세히 알려줘", config=config)
     assert result2.text == "더 자세히 설명하면."
 
-    rewrite_prompt_turn2 = llm.complete.call_args_list[5][0][0]
+    # route_and_rewrite가 rewrite·router를 동시 호출(순서 비결정)하므로 인덱스 대신
+    # rewrite 프롬프트("명료화" 포함)를 턴2 콜에서 찾아 단언한다.
+    turn2_prompts = [c[0][0] for c in llm.complete.call_args_list[4:]]
+    rewrite_prompt_turn2 = next(p for p in turn2_prompts if "명료화" in p)
     assert "연차 어떻게 써?" in rewrite_prompt_turn2
 
 
@@ -360,7 +369,6 @@ async def test_answer_question_new_session_starts_with_empty_history():
     llm.complete.side_effect = [
         "연차 신청 방법",
         "doc_search",
-        "0.9",
         "정답",
         "YES",
     ]
@@ -369,7 +377,10 @@ async def test_answer_question_new_session_starts_with_empty_history():
     result = await answer_question(graph, "연차 어떻게 써?", config=config)
     assert result.text == "정답"
 
-    rewrite_prompt = llm.complete.call_args_list[0][0][0]
+    # rewrite/router 동시 호출이라 인덱스 비결정 — rewrite 프롬프트("명료화")를 찾아 단언.
+    rewrite_prompt = next(
+        c[0][0] for c in llm.complete.call_args_list if "명료화" in c[0][0]
+    )
     assert "없음" in rewrite_prompt
 
 
@@ -461,7 +472,6 @@ async def test_answer_question_uses_chat_history_fallback():
     llm.complete.side_effect = [
         "연차 추가 질문",
         "doc_search",
-        "0.9",
         "추가 답변",
         "YES",
     ]
@@ -476,7 +486,10 @@ async def test_answer_question_uses_chat_history_fallback():
         graph, "더 자세히 알려줘", config=config, chat_history_fallback=fallback
     )
     assert result.text == "추가 답변"
-    rewrite_prompt = llm.complete.call_args_list[0][0][0]
+    # rewrite/router 동시 호출이라 인덱스 비결정 — rewrite 프롬프트("명료화")를 찾아 단언.
+    rewrite_prompt = next(
+        c[0][0] for c in llm.complete.call_args_list if "명료화" in c[0][0]
+    )
     assert "연차 어떻게 써?" in rewrite_prompt
 
 
@@ -615,13 +628,12 @@ async def test_stream_answer_no_duplicate_on_hallucination_retry():
 
     retriever = _make_retriever(text="배포는 staging 검증 후 배포한다.", source="deploy.md")
     llm = MagicMock()
-    # 그래프 흐름 순서대로 llm.complete 응답:
-    # rewrite_query → router → grade_documents → generate(1차) → check_hallucination(NO)
+    # 그래프 흐름 순서대로 llm.complete 응답(grade_documents는 LLM 미호출=휴리스틱):
+    # rewrite_query · router → generate(1차) → check_hallucination(NO)
     # → generate(2차) → check_hallucination(YES)
     llm.complete.side_effect = [
         "배포 절차 재작성",       # rewrite_query
         "doc_search",            # router
-        "0.9",                   # grade_documents
         "첫 번째 답변",           # generate 1차
         "NO",                    # check_hallucination 1차 → 재생성
         "최종 답변입니다",        # generate 2차
@@ -1036,10 +1048,10 @@ async def test_answer_question_doc_search_tools_is_rag():
     """doc_search 경로에서 answer_question이 반환하는 Answer.tools == ['rag']."""
     retriever = _make_retriever(text="연차는 15일입니다.", source="vacation.md")
     llm = MagicMock()
+    # grade_documents는 LLM 미호출(휴리스틱, ADR-0056).
     llm.complete.side_effect = [
         "연차 신청 방법",
         "doc_search",
-        "0.9",
         "정답",
         "YES",
     ]
