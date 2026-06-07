@@ -8,7 +8,7 @@ export async function submitJustification(page: Page, reason: string): Promise<v
   const box = page.locator('textarea[placeholder="실행 사유를 입력하세요"]');
   await box.waitFor({ state: "visible", timeout: 10000 });
   await box.click();
-  await box.type(reason, { delay: TYPING_DELAY_MS });
+  await box.pressSequentially(reason, { delay: TYPING_DELAY_MS });
   await page.getByRole("button", { name: "전송" }).click();
 }
 

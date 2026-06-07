@@ -6,7 +6,7 @@ const TYPING_DELAY_MS = 40;
 export async function askQuestion(page: Page, question: string): Promise<void> {
   const box = page.locator("textarea");
   await box.click();
-  await box.type(question, { delay: TYPING_DELAY_MS });
+  await box.pressSequentially(question, { delay: TYPING_DELAY_MS });
   await page.getByRole("button", { name: "전송" }).click();
 }
 

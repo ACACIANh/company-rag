@@ -11,8 +11,8 @@ export async function login(
 ): Promise<void> {
   await page.goto(baseURL);
   await page.locator('input[autocomplete="username"]').fill("");
-  await page.locator('input[autocomplete="username"]').type(username, { delay: TYPING_DELAY_MS });
-  await page.locator('input[type="password"]').type(password, { delay: TYPING_DELAY_MS });
+  await page.locator('input[autocomplete="username"]').pressSequentially(username, { delay: TYPING_DELAY_MS });
+  await page.locator('input[type="password"]').pressSequentially(password, { delay: TYPING_DELAY_MS });
   await page.locator('button[type="submit"]').click();
   // 채팅 화면의 질문 입력창이 나타날 때까지 대기
   await page.locator("textarea").waitFor({ state: "visible", timeout: 15000 });
