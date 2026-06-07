@@ -50,6 +50,47 @@ CREDENTIALS = {
     "joohwan": "joohwan123",
 }
 
+
+def _load_user_map(path: str = "config/users.yaml") -> dict[str, dict]:
+    """users.yaml → {username: {display_name, dept}}. dept는 departments[0] or None."""
+    import yaml
+    users = yaml.safe_load(Path(path).read_text())["users"]
+    out: dict[str, dict] = {}
+    for u in users:
+        depts = u.get("departments") or []
+        out[u["username"]] = {
+            "display_name": u.get("display_name", u["username"]),
+            "dept": depts[0] if depts else None,
+        }
+    return out
+
+
+def _build_scene_export(scenes, credentials, user_map) -> list[dict]:
+    """SCENES 튜플 + 자격증명 + 사용자맵 → scenes.json용 dict 리스트."""
+    rows: list[dict] = []
+    for sid_id, account, question, kind, resume_text in scenes:
+        info = user_map.get(account, {"display_name": account, "dept": None})
+        rows.append({
+            "id": sid_id,
+            "account": account,
+            "password": credentials[account],
+            "display_name": info["display_name"],
+            "dept": info["dept"],
+            "question": question,
+            "kind": kind,
+            "resume_text": resume_text,
+        })
+    return rows
+
+
+def _export_scenes(out_path: Path) -> None:
+    user_map = _load_user_map()
+    rows = _build_scene_export(SCENES, CREDENTIALS, user_map)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
+    print(f"[export-scenes] {len(rows)}장면 → {out_path}")
+
+
 # interrupt(사유/선택 필요) 감지 마커 — builder._interrupt_answer 기준
 _INTERRUPT_MARKERS = ("사유를 회신", "스트리밍 모드에서 선택", "방식을 선택")
 
@@ -153,7 +194,13 @@ async def main() -> None:
     ap.add_argument("--base-url", default="http://127.0.0.1:8000")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-reset", action="store_true")
+    ap.add_argument("--export-scenes", default=None,
+                    help="SCENES를 JSON으로 내보내고 종료(벤치 실행 안 함)")
     args = ap.parse_args()
+
+    if args.export_scenes:
+        _export_scenes(Path(args.export_scenes))
+        return
 
     out_path = Path(args.out) if args.out else Path(f"logs/bench_{args.label}.json")
     base_url = args.base_url.rstrip("/")
