@@ -1,5 +1,3 @@
-import asyncio
-
 from core.fga.client import FGAClient
 from core.models import SearchResult
 from core.reranker.base import Reranker
@@ -37,10 +35,10 @@ async def retrieve_node(
     multi_queries: list[str] = state.get("multi_queries") or []
 
     if multi_queries:
-        all_results = await asyncio.gather(*[
-            retriever.retrieve(q, top_k=retrieve_top_k, where_clause=where_clause, params=params)
-            for q in multi_queries
-        ])
+        # 임베딩을 배치 1회로 묶어 왕복을 줄인다(retrieve_batch) — 결과·RRF 병합은 동일.
+        all_results = await retriever.retrieve_batch(
+            multi_queries, top_k=retrieve_top_k, where_clause=where_clause, params=params
+        )
         results = _rrf_merge(list(all_results))
         primary_query = multi_queries[0]
     else:
