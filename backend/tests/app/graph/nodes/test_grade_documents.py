@@ -1,60 +1,41 @@
-from unittest.mock import MagicMock
-
 from core.models import Chunk, SearchResult
 from app.graph.nodes.grade_documents import grade_documents_node
 
 
-def _make_result(text: str) -> SearchResult:
-    return SearchResult(chunk=Chunk(text=text, source="a.md", chunk_id="c1"), score=0.9)
+def _result(score: float, text: str = "내용") -> SearchResult:
+    return SearchResult(chunk=Chunk(text=text, source="a.md", chunk_id="c1"), score=score)
 
 
-def test_grade_documents_returns_float_score():
-    mock_llm = MagicMock()
-    mock_llm.complete.return_value = "0.8"
-
-    state = {
-        "rewritten_question": "연차 신청 방법",
-        "documents": [_make_result("연차는 15일입니다.")],
-    }
-    result = grade_documents_node(state, llm=mock_llm)
-
-    assert "relevance_score" in result
-    assert abs(result["relevance_score"] - 0.8) < 1e-6
+def test_grade_documents_above_threshold_is_relevant():
+    """최상위 문서 cosine이 임계 이상이면 관련(1.0). LLM 없이 동작(순수 함수)."""
+    state = {"rewritten_question": "연차 신청 방법", "documents": [_result(0.50)]}
+    result = grade_documents_node(state)
+    assert result["relevance_score"] == 1.0
 
 
-def test_grade_documents_falls_back_to_zero_on_invalid_response():
-    mock_llm = MagicMock()
-    mock_llm.complete.return_value = "잘 모르겠어요"
-
-    state = {
-        "rewritten_question": "질문",
-        "documents": [_make_result("내용")],
-    }
-    result = grade_documents_node(state, llm=mock_llm)
-
+def test_grade_documents_below_threshold_is_irrelevant():
+    """최상위 cosine이 임계 미만이면 비관련(0.0) → rewrite_retry/거부 경로."""
+    state = {"rewritten_question": "질문", "documents": [_result(0.30)]}
+    result = grade_documents_node(state)
     assert result["relevance_score"] == 0.0
+
+
+def test_grade_documents_at_threshold_is_relevant():
+    """경계값(임계와 동일)은 관련으로 본다(>= 비교)."""
+    state = {"rewritten_question": "질문", "documents": [_result(0.35)]}
+    result = grade_documents_node(state)
+    assert result["relevance_score"] == 1.0
+
+
+def test_grade_documents_uses_max_score_not_first():
+    """reranker가 순서를 바꿔도 견고하게: 문서 중 최대 cosine으로 판정한다."""
+    # 첫 문서는 임계 미만이지만 더 관련 높은 문서가 뒤에 있음 → 관련
+    state = {"rewritten_question": "질문", "documents": [_result(0.20), _result(0.60)]}
+    result = grade_documents_node(state)
+    assert result["relevance_score"] == 1.0
 
 
 def test_grade_documents_empty_documents_returns_zero():
-    mock_llm = MagicMock()
-
     state = {"rewritten_question": "질문", "documents": []}
-    result = grade_documents_node(state, llm=mock_llm)
-
+    result = grade_documents_node(state)
     assert result["relevance_score"] == 0.0
-    mock_llm.complete.assert_not_called()
-
-
-def test_grade_documents_includes_question_and_context_in_prompt():
-    mock_llm = MagicMock()
-    mock_llm.complete.return_value = "0.9"
-
-    state = {
-        "rewritten_question": "검색 질문",
-        "documents": [_make_result("핵심 문서 내용")],
-    }
-    grade_documents_node(state, llm=mock_llm)
-
-    prompt = mock_llm.complete.call_args[0][0]
-    assert "검색 질문" in prompt
-    assert "핵심 문서 내용" in prompt

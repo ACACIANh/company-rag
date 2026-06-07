@@ -83,7 +83,7 @@ def build_graph(
         retrieve_top_k=retrieve_top_k,
         top_k=top_k,
     ))
-    g.add_node("grade_documents", partial(grade_documents_node, llm=llm))
+    g.add_node("grade_documents", grade_documents_node)
     g.add_node("increment_retry", increment_retry_node)
     g.add_node("multi_query", partial(multi_query_node, llm=llm))
     g.add_node("agent", partial(agent_node, chat_model=bound))

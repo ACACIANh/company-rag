@@ -73,9 +73,10 @@ async def test_retrieve_node_falls_back_to_question():
 
 
 @pytest.mark.asyncio
-async def test_retrieve_node_multi_query_calls_retriever_per_query():
+async def test_retrieve_node_multi_query_uses_retrieve_batch():
+    """multi_query는 임베딩을 묶기 위해 retrieve_batch를 쿼리 전체로 1회 호출한다."""
     mock_retriever = MagicMock()
-    mock_retriever.retrieve = AsyncMock(return_value=[])
+    mock_retriever.retrieve_batch = AsyncMock(return_value=[[], [], []])
     mock_fga = _mock_fga()
 
     state = {
@@ -88,7 +89,8 @@ async def test_retrieve_node_multi_query_calls_retriever_per_query():
     }
     await retrieve_node(state, retriever=mock_retriever, fga_client=mock_fga)
 
-    assert mock_retriever.retrieve.call_count == 3
+    mock_retriever.retrieve_batch.assert_called_once()
+    assert mock_retriever.retrieve_batch.call_args[0][0] == ["쿼리1", "쿼리2", "쿼리3"]
 
 
 @pytest.mark.asyncio
@@ -100,7 +102,7 @@ async def test_retrieve_node_multi_query_merges_results_via_rrf():
 
     mock_retriever = MagicMock()
     # q1 → [a, b], q2 → [b, c]: b는 양쪽에 등장 → RRF 점수 높음
-    mock_retriever.retrieve = AsyncMock(side_effect=[
+    mock_retriever.retrieve_batch = AsyncMock(return_value=[
         [_sr("a"), _sr("b")],
         [_sr("b"), _sr("c")],
     ])

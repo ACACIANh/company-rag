@@ -58,6 +58,7 @@
 | [0053](ADR-0053-hallucination-retry-grounding-correction.md) | Self-RAG hallucination 재시도 — grounding 교정 주입 | 🟢 적용완료 |
 | [0054](ADR-0054-set-subject-cache-invalidation.md) | 집합 subject 권한 변경 시 폴더 캐시 무효화 (TTU 파급) | 🟢 적용완료 |
 | [0055](ADR-0055-demo-perf-fga-parallelization.md) | 데모 경로 성능 최적화 — 독립 FGA 조회 병렬화(안전) + LLM 구조 변경 보류 | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
+| [0056](ADR-0056-grade-heuristic-embed-batch.md) | 데모 잔여 레버 — grade_documents LLM→cosine 휴리스틱 + multi_query embed_batch | 🟢 적용완료   <!-- 🟢 적용완료 · 🔵 승인됨 · ⚪ 제안됨 · 🟡 보류 · 🟣 대체됨 · ⚫ 폐기 --> |
 
 ## 상태 범례
 
