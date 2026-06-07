@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { needsRelogin, interactionFor } from "./flow";
+import { needsRelogin, interactionFor, resolveAction } from "./flow";
 import type { Scene } from "./types";
 
 const scene = (over: Partial<Scene>): Scene => ({
@@ -31,5 +31,45 @@ describe("interactionFor", () => {
   });
   it("plain for sql_write_deny (no resume)", () => {
     expect(interactionFor(scene({ kind: "sql_write_deny", resume_text: null }))).toBe("plain");
+  });
+});
+
+describe("resolveAction", () => {
+  // 기대한 상호작용이 실제 UI 결과와 일치할 때: 정상 동작, 경고 없음
+  it("clarify expected + clarify actual → clarifyOption, no warn", () => {
+    expect(resolveAction("clarify", "clarify")).toEqual({ action: "clarifyOption", warn: null });
+  });
+  it("justify expected + interrupt actual → justify, no warn", () => {
+    expect(resolveAction("justify", "interrupt")).toEqual({ action: "justify", warn: null });
+  });
+  it("plain expected + answer actual → none, no warn", () => {
+    expect(resolveAction("plain", "answer")).toEqual({ action: "none", warn: null });
+  });
+
+  // 불일치: 크래시 대신 경고 + 진행 (감지 후 반응)
+  it("clarify expected but answer actual → none + warn (clarify 미발생)", () => {
+    const r = resolveAction("clarify", "answer");
+    expect(r.action).toBe("none");
+    expect(r.warn).toMatch(/clarify/);
+  });
+  it("justify expected but answer actual → none + warn (승인 카드 미발생)", () => {
+    const r = resolveAction("justify", "answer");
+    expect(r.action).toBe("none");
+    expect(r.warn).not.toBeNull();
+  });
+  it("plain expected but clarify actual → clarifyOption + warn (예상치 못한 clarify, 언블록)", () => {
+    const r = resolveAction("plain", "clarify");
+    expect(r.action).toBe("clarifyOption");
+    expect(r.warn).not.toBeNull();
+  });
+  it("justify expected but clarify actual → clarifyOption + warn", () => {
+    const r = resolveAction("justify", "clarify");
+    expect(r.action).toBe("clarifyOption");
+    expect(r.warn).not.toBeNull();
+  });
+  it("plain expected but interrupt actual → none + warn", () => {
+    const r = resolveAction("plain", "interrupt");
+    expect(r.action).toBe("none");
+    expect(r.warn).not.toBeNull();
   });
 });

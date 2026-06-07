@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import type { Scene } from "./lib/types";
 import { captionFor } from "./captions";
-import { needsRelogin, interactionFor } from "./lib/flow";
+import { needsRelogin, interactionFor, resolveAction } from "./lib/flow";
 import { showCaption, hideCaption } from "./lib/overlay";
 import { login, logout } from "./lib/auth";
-import { askQuestion, waitForAnswer } from "./lib/chat";
+import { askQuestion, settleTurn, waitForAnswer } from "./lib/chat";
 import { submitJustification, selectClarifyOption } from "./lib/hitl";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -55,17 +55,21 @@ async function main(): Promise<void> {
       await showCaption(page, captionFor(scene));
       await askQuestion(page, scene.question);
 
-      const interaction = interactionFor(scene);
-      if (interaction === "clarify") {
-        await selectClarifyOption(page, scene.resume_text!);
+      // 감지 후 반응: 가정하지 않고 이번 턴의 실제 결과를 보고 동작 결정.
+      // LLM 라우터/게이트의 경계 비결정성에도 한 장면 실패가 전체를 깨지 않는다.
+      const expected = interactionFor(scene);
+      const actual = await settleTurn(page);
+      const { action, warn } = resolveAction(expected, actual);
+      if (warn) console.warn(`  ⚠ 장면 ${scene.id}: ${warn} (expected=${expected}, actual=${actual})`);
+
+      if (action === "clarifyOption") {
+        await selectClarifyOption(page, expected === "clarify" ? scene.resume_text! : undefined);
         await waitForAnswer(page);
-      } else if (interaction === "justify") {
-        await waitForAnswer(page); // 승인 카드 등장까지 1차 응답 완료 대기
+      } else if (action === "justify") {
         await submitJustification(page, scene.resume_text!);
         await waitForAnswer(page);
-      } else {
-        await waitForAnswer(page);
       }
+      // action === "none": 이미 응답까지 도달했거나(answer) 안전하게 그대로 진행.
 
       await page.waitForTimeout(READ_PAUSE_MS);
       await hideCaption(page);
