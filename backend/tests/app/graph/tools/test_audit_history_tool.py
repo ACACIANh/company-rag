@@ -11,7 +11,17 @@ from app.graph.tools.audit_history_tool import (
     _sql_preview,
 )
 from app.graph.tools.base import ToolResult
+from core.fga.permission_validator import PermissionValidator
 from core.sql.risk import RISK_DENY, RISK_SELECT
+
+
+def _validator():
+    return PermissionValidator(
+        user_ids={"user-joohwan", "user-daesu"},
+        departments={"개발"},
+        permissions={"기본"},
+        names={"노주환": "user-joohwan", "오대수": "user-daesu"},
+    )
 
 
 def _fga(has_access=True):
@@ -38,7 +48,7 @@ def _pool(rows=None):
 def _make(has_access=True, rows=None):
     fga = _fga(has_access)
     pool, conn = _pool(rows)
-    return AuditAgent(fga_client=fga, app_pool=pool), conn
+    return AuditAgent(fga_client=fga, app_pool=pool, validator=_validator()), conn
 
 
 # ── plan() 테스트 ──────────────────────────────────────────────────────────────
@@ -85,10 +95,24 @@ def test_plan_preserves_filters():
         "end_date": "2026-06-04",
     })
     params = json.loads(action)
-    assert params["user_id"] == "joohwan"
+    assert params["user_id"] == "user-joohwan"  # 서버측 정규화: joohwan → user-joohwan
     assert params["decision"] == "DENY"
     assert params["start_date"] == "2026-01-01"
     assert params["end_date"] == "2026-06-04"
+
+
+def test_plan_resolves_korean_name_to_user_id():
+    # 이슈1: "오대수" → user-daesu (LLM의 user-odaesu 환각을 서버가 교정)
+    h, _ = _make()
+    action, _ = h.plan({"__caller_id": "admin", "user_id": "오대수"})
+    assert json.loads(action)["user_id"] == "user-daesu"
+
+
+def test_plan_unknown_user_id_falls_back_to_none():
+    # 환각 id(user-odaesu)는 해석 불가 → None(전체 조회) → 0건 silent 방지
+    h, _ = _make()
+    action, _ = h.plan({"__caller_id": "admin", "user_id": "user-odaesu"})
+    assert json.loads(action)["user_id"] is None
 
 
 # ── execute() 테스트 ───────────────────────────────────────────────────────────
@@ -222,7 +246,7 @@ async def test_execute_db_error_returns_error_message():
         yield  # noqa: unreachable
 
     pool.acquire = _bad_acquire
-    h = AuditAgent(fga_client=fga, app_pool=pool)
+    h = AuditAgent(fga_client=fga, app_pool=pool, validator=_validator())
     result = await h.execute(
         json.dumps({"caller_id": "admin1", "limit": 20, "user_id": None,
                     "decision": None, "start_date": None, "end_date": None}),

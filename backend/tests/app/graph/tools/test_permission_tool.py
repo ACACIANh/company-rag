@@ -35,7 +35,10 @@ class _ConcurrencyProbe:
 
 def _validator():
     return PermissionValidator(
-        user_ids={"user-joohwan"}, departments={"개발"}, permissions={"기본"}
+        user_ids={"user-joohwan", "user-minjun"},
+        departments={"개발"},
+        permissions={"기본"},
+        names={"노주환": "user-joohwan", "이민준": "user-minjun"},
     )
 
 

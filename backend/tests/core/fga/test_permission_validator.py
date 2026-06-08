@@ -194,3 +194,57 @@ def test_validate_member_grant_unknown_subject_denied():
     v = _resolver_validator()
     assert v.validate({"action": "grant", "subject": "eve",
                        "relation": "member", "object": "department:개발"}) is None
+
+
+# ── resolve_user_id / catalog (이름→id 정규화, 데모 ⑪⑬⑮ 버그 수정) ──
+def _named_validator():
+    return PermissionValidator(
+        user_ids={"user-daesu", "user-mido", "user-joohwan", "user-admin"},
+        departments={"개발", "제품"},
+        permissions={"기본"},
+        names={"오대수": "user-daesu", "미도": "user-mido",
+               "노주환": "user-joohwan", "이우진": "user-admin"},
+    )
+
+
+def test_resolve_user_id_by_korean_name():
+    # 이슈1: "오대수" → user-daesu (LLM의 user-odaesu 환각 방지)
+    assert _named_validator().resolve_user_id("오대수") == "user-daesu"
+
+
+def test_resolve_user_id_strips_user_prefix():
+    # 이슈2: "user:user-mido" → user-mido (self 판별용 정규화)
+    assert _named_validator().resolve_user_id("user:user-mido") == "user-mido"
+
+
+def test_resolve_user_id_bare_and_informal():
+    v = _named_validator()
+    assert v.resolve_user_id("user-daesu") == "user-daesu"
+    assert v.resolve_user_id("mido") == "user-mido"  # username → user-mido
+
+
+def test_resolve_user_id_unknown_and_none():
+    v = _named_validator()
+    assert v.resolve_user_id("user-odaesu") is None  # 환각 id → None(전체조회 폴백)
+    assert v.resolve_user_id("없는사람") is None
+    assert v.resolve_user_id(None) is None
+    assert v.resolve_user_id("") is None
+
+
+def test_is_known_user_id():
+    v = _named_validator()
+    assert v.is_known_user_id("user-daesu") is True
+    assert v.is_known_user_id("user-odaesu") is False
+
+
+def test_user_catalog_text_pairs_id_and_name():
+    text = _named_validator().user_catalog_text()
+    assert "user-daesu(오대수)" in text
+    assert "user-mido(미도)" in text
+
+
+def test_validator_without_names_still_resolves_ids():
+    # names 미지정(기본값) — 기존 호출부 보존, id 형태는 여전히 해석
+    v = PermissionValidator(user_ids={"user-joohwan"}, departments=set(), permissions=set())
+    assert v.resolve_user_id("user:user-joohwan") == "user-joohwan"
+    assert v.resolve_user_id("오대수") is None

@@ -26,9 +26,8 @@ _DESCRIPTION = (
     "limit(건수 기본 20 최대 100), user_id(유저 필터), "
     "decision(ALLOW/DENY/JUSTIFY_AND_APPROVE), "
     "start_date/end_date(YYYY-MM-DD) 인자를 조합해 최신순으로 반환합니다. "
-    "user_id는 반드시 'user-xxx' 형식(예: user-seoyeon)이어야 합니다. "
-    "이름(예: 박서연)만 주어진 경우 user_id를 추측하지 말고 user_id=None으로 전체 조회한 뒤 "
-    "결과에서 해당 유저를 찾아 안내하십시오."
+    "user_id에는 한국어 이름(예: 오대수) 또는 user-id(예: user-daesu)를 그대로 넣으면 "
+    "서버가 정식 id로 정규화합니다 — id를 임의로 만들지 마십시오. 미지정 시 전체 조회."
 )
 
 _QUERY = (
@@ -47,7 +46,7 @@ class _Input(BaseModel):
     limit: int = Field(default=_DEFAULT_LIMIT, description="반환 건수 (최대 100)")
     user_id: str | None = Field(
         default=None,
-        description="유저 ID 필터. 반드시 'user-xxx' 형식(예: user-seoyeon). 한국어 이름·이메일 입력 금지.",
+        description="유저 필터. 한국어 이름(예: 오대수) 또는 user-id(예: user-daesu). 서버가 정규화.",
     )
     decision: str | None = Field(
         default=None, description="ALLOW / DENY / JUSTIFY_AND_APPROVE"
@@ -117,12 +116,15 @@ class AuditAgent:
     name = "query_audit_history"
     label = "audit"
 
-    def __init__(self, *, fga_client: FGAClient, app_pool: asyncpg.Pool) -> None:
+    def __init__(self, *, fga_client: FGAClient, app_pool: asyncpg.Pool, validator) -> None:
         self._fga = fga_client
         self._pool = app_pool
+        self._validator = validator
+        # 알려진 유저 카탈로그(id+이름)를 설명에 주입 → LLM이 id를 환각하지 않게 유도.
+        description = f"{_DESCRIPTION} 유효 유저: {validator.user_catalog_text()}"
         self.tool = StructuredTool.from_function(
             name=self.name,
-            description=_DESCRIPTION,
+            description=description,
             func=lambda **_: "",
             args_schema=_Input,
         )
@@ -136,10 +138,15 @@ class AuditAgent:
         decision = args.get("decision")
         if decision is not None and decision not in _VALID_DECISIONS:
             return f"잘못된 decision 값: {decision!r}", RISK_DENY
+        # LLM이 만든 user_id(이름 로마자 환각 등)를 신뢰하지 않고 서버측 정규화.
+        # 이름("오대수")·정식 id 모두 정식 user_id로. 해석 불가면 None(전체 조회 폴백)
+        # — 환각 id로 필터해 0건이 나오던 버그 수정(데모 ⑪).
+        raw_uid = args.get("user_id")
+        resolved_uid = self._validator.resolve_user_id(raw_uid) if raw_uid else None
         params = {
             "caller_id": caller_id,
             "limit": limit,
-            "user_id": args.get("user_id"),
+            "user_id": resolved_uid,
             "decision": decision,
             "start_date": args.get("start_date"),
             "end_date": args.get("end_date"),
