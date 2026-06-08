@@ -27,11 +27,39 @@ _DEMO_GRANTS = [
     ("user:user-mido", "member", "department:개발"),    # ⑭ 미도 개발팀 합류
 ]
 
+# 데모 사이드바를 깨끗하게 — 시연/녹화로 쌓인 채팅 세션 정리.
+# daesu/mido/joohwan은 전체, admin(이우진)은 오늘(KST) 것만(이전 기록 보존).
+_SESSION_PURGE_ALL = ["user-daesu", "user-mido", "user-joohwan"]
+_SESSION_PURGE_TODAY = ["user-admin"]
+
+
+def session_cleanup_statements() -> list[tuple[str, str, list]]:
+    """chat_sessions 정리용 (설명, SQL, params) 목록.
+
+    chat_messages는 FK ON DELETE CASCADE로 함께 삭제된다.
+    created_at은 UTC(TIMESTAMPTZ)이므로 "오늘"은 Asia/Seoul 기준으로 비교한다.
+    """
+    return [
+        (
+            "전체 삭제(daesu/mido/joohwan)",
+            "DELETE FROM chat_sessions WHERE user_id = ANY($1::text[])",
+            [_SESSION_PURGE_ALL],
+        ),
+        (
+            "오늘(KST) 삭제(admin)",
+            "DELETE FROM chat_sessions "
+            "WHERE user_id = ANY($1::text[]) "
+            "AND (created_at AT TIME ZONE 'Asia/Seoul')::date "
+            "= (now() AT TIME ZONE 'Asia/Seoul')::date",
+            [_SESSION_PURGE_TODAY],
+        ),
+    ]
+
 
 async def main() -> None:
     config = load_config()
 
-    print("[1/4] business 스키마 재시드…")
+    print("[1/5] business 스키마 재시드…")
     await seed_business_main()
 
     pool = await asyncpg.create_pool(config.postgres_dsn, min_size=1, max_size=2)
@@ -49,7 +77,7 @@ async def main() -> None:
             pg_pool=pool,
         )
 
-        print("[2/4] 데모 부여 권한 revoke…")
+        print("[2/5] 데모 부여 권한 revoke…")
         for user, relation, obj in _DEMO_GRANTS:
             try:
                 await fga.revoke_tuple(user, relation, obj)
@@ -57,11 +85,19 @@ async def main() -> None:
             except Exception as exc:
                 print(f"      skip(이미 없음): {user} {relation} {obj} [{type(exc).__name__}]")
 
-        print("[3/4] gate_audit_log 비우기…")
+        print("[3/5] gate_audit_log 비우기…")
         await pool.execute("TRUNCATE gate_audit_log")
 
-        print("[4/4] fga_permission_cache 비우기…")
+        print("[4/5] fga_permission_cache 비우기…")
         await pool.execute("TRUNCATE fga_permission_cache")
+
+        print("[5/5] 데모 계정 채팅 세션 정리…")
+        if await pool.fetchval("SELECT to_regclass('public.chat_sessions')") is None:
+            print("      chat_sessions 없음 — 건너뜀")
+        else:
+            for desc, sql, params in session_cleanup_statements():
+                status = await pool.execute(sql, *params)
+                print(f"      {desc}: {status}")
     finally:
         if fga is not None:
             await fga.aclose()
