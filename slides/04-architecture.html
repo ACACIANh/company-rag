@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>질문이 답으로 바뀌는 과정</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding-bottom: 50px; }
+.container { width: 1280px; padding: 40px 80px; display: flex; flex-direction: column; align-items: center; }
+.title { font-size: 46px; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; margin-bottom: 10px; line-height: 1.3; }
+.subtitle { font-size: 17px; color: #8b949e; text-align: center; margin-bottom: 34px; }
+.diagram { width: 100%; max-width: 980px; background: rgba(22, 27, 40, 0.6); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 20px; padding: 36px 40px; text-align: center; margin-bottom: 26px; }
+.entry { display: inline-block; padding: 12px 28px; border-radius: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56,189,248,0.35); font-size: 18px; font-weight: 700; color: #7dd3fc; }
+.diagram-center { display: inline-block; padding: 16px 36px; border-radius: 12px; background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(56, 189, 248, 0.12)); border: 2px solid #7c3aed; font-size: 23px; font-weight: 900; margin: 4px 0; }
+.center-sub { font-size: 13px; color: #8b949e; margin-top: 6px; font-weight: 400; }
+.diagram-arrows { font-size: 26px; color: #7c3aed; margin: 10px 0; }
+.diagram-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.diagram-node { background: rgba(139, 148, 158, 0.06); border: 1px solid rgba(139, 148, 158, 0.18); border-radius: 14px; padding: 18px 18px; width: 215px; }
+.diagram-node-icon { font-size: 30px; display: block; margin-bottom: 8px; }
+.diagram-node-title { font-size: 16px; font-weight: 700; margin-bottom: 5px; }
+.diagram-node-desc { font-size: 13px; color: #8b949e; line-height: 1.5; }
+.result { display: inline-block; padding: 12px 28px; border-radius: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56,189,248,0.35); font-size: 18px; font-weight: 700; color: #7dd3fc; }
+.note { font-size: 15px; color: #8b949e; text-align: center; line-height: 1.7; max-width: 900px; }
+.note strong { color: #c9d1d9; }
+
+.slide-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif; }
+.slide-nav-inner { width: 1280px; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; }
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">질문이 답으로 바뀌는 과정</h1>
+  <p class="subtitle">사용자는 질문만 던지고, 나머지는 AI가 알아서 — 단 모든 단계에서 권한을 먼저 확인합니다.</p>
+  <div class="diagram">
+    <div class="entry">🙋 직원의 질문 — "우리 팀 지난달 매출 알려줘"</div>
+    <div class="diagram-arrows">&darr;</div>
+    <div class="diagram-center">🧠 AI 에이전트
+      <div class="center-sub">질문 의도 파악 → 본인 권한 확인 → 무엇을 어떻게 찾을지 판단</div>
+    </div>
+    <div class="diagram-arrows">&darr;</div>
+    <div class="diagram-row">
+      <div class="diagram-node"><span class="diagram-node-icon">📄</span><div class="diagram-node-title">문서에서 찾기</div><div class="diagram-node-desc">규정·보고서 등에서 권한 있는 자료만 검색</div></div>
+      <div class="diagram-node"><span class="diagram-node-icon">🗄️</span><div class="diagram-node-title">데이터베이스 조회</div><div class="diagram-node-desc">매출·직원 DB를 질의. 수정은 승인 후에만</div></div>
+      <div class="diagram-node"><span class="diagram-node-icon">🛡️</span><div class="diagram-node-title">권한·기록 확인</div><div class="diagram-node-desc">접근 권한 검사 + 모든 행위를 감사 기록</div></div>
+    </div>
+    <div class="diagram-arrows">&darr;</div>
+    <div class="result">✅ 근거 기반 답변 — 출처와 함께, 근거 없으면 "모른다"</div>
+  </div>
+  <p class="note">핵심은 <strong>"권한을 먼저, 그 다음에 답"</strong>이라는 순서입니다. AI는 똑똑하게 일하되, <strong>볼 수 없는 자료는 검색조차 하지 못하며</strong>, 모든 행위는 기록으로 남아 사후에 추적됩니다.</p>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="03-project-info.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">04 / 11</a></div>
+    <div class="nav-right"><a href="05-pipeline.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+document.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft') navigateTo('03-project-info.html'); if(e.key==='ArrowRight') navigateTo('05-pipeline.html'); });
+</script>
+</body>
+</html>

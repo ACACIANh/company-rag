@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>접근제어 에이전트 Friday — 비주얼 자료</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3; min-height: 100vh; display: flex; justify-content: center; padding: 60px 0 80px; }
+.container { width: 1280px; padding: 0 80px; }
+.page-title { font-size: 42px; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; margin-bottom: 10px; }
+.page-subtitle { text-align: center; font-size: 16px; color: #8b949e; margin-bottom: 50px; }
+.section { margin-bottom: 32px; }
+.section-header { font-size: 18px; font-weight: 700; padding: 12px 20px; border-left: 4px solid; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.num-range { display: inline-block; font-size: 12px; font-weight: 700; color: white; padding: 3px 10px; border-radius: 10px; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 18px 20px; background: rgba(139,148,158,0.04); border: 1px solid rgba(139,148,158,0.1); border-radius: 12px; text-decoration: none; transition: all 0.25s ease; }
+.card:hover { transform: translateY(-3px); }
+.card .card-num { font-size: 28px; font-weight: 900; }
+.card .card-title { font-size: 14px; font-weight: 700; color: #c9d1d9; }
+.card .card-file { font-size: 11px; color: #484f58; font-family: 'Courier New', monospace; }
+
+.section-intro .section-header { border-color: #7c3aed; color: #a78bfa; }
+.section-intro .num-range { background: #5b21b6; }
+.section-intro .card:hover { border-color: #7c3aed; box-shadow: 0 8px 32px rgba(124, 58, 237, 0.18); }
+.section-intro .card .card-num { color: #7c3aed; }
+.section-1 .section-header { border-color: #38bdf8; color: #7dd3fc; }
+.section-1 .num-range { background: #0369a1; }
+.section-1 .card:hover { border-color: #38bdf8; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.18); }
+.section-1 .card .card-num { color: #38bdf8; }
+.section-2 .section-header { border-color: #7c3aed; color: #a78bfa; }
+.section-2 .num-range { background: #5b21b6; }
+.section-2 .card:hover { border-color: #7c3aed; box-shadow: 0 8px 32px rgba(124, 58, 237, 0.18); }
+.section-2 .card .card-num { color: #7c3aed; }
+.section-3 .section-header { border-color: #38bdf8; color: #7dd3fc; }
+.section-3 .num-range { background: #0369a1; }
+.section-3 .card:hover { border-color: #38bdf8; box-shadow: 0 8px 32px rgba(56, 189, 248, 0.18); }
+.section-3 .card .card-num { color: #38bdf8; }
+.section-outro .section-header { border-color: #7c3aed; color: #a78bfa; }
+.section-outro .num-range { background: linear-gradient(90deg, #7c3aed, #38bdf8); }
+.section-outro .card:hover { border-color: #7c3aed; box-shadow: 0 8px 32px rgba(124, 58, 237, 0.18); }
+.section-outro .card .card-num { background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="page-title">접근제어 에이전트 Friday — 비주얼 자료</h1>
+  <p class="page-subtitle">전체 11개 슬라이드 · 클릭하여 개별 페이지로 이동</p>
+
+  <div class="section section-intro">
+    <div class="section-header"><span class="num-range">01 – 03</span> 소개 · 개요</div>
+    <div class="grid">
+      <a class="card" href="01-cover.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">01</span><span class="card-title">표지 — Friday</span><span class="card-file">01-cover.html</span></a>
+      <a class="card" href="02-overview.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">02</span><span class="card-title">사내 지식을 묻고 답하는 AI</span><span class="card-file">02-overview.html</span></a>
+      <a class="card" href="03-project-info.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">03</span><span class="card-title">프로젝트 한눈에 보기</span><span class="card-file">03-project-info.html</span></a>
+    </div>
+  </div>
+
+  <div class="section section-1">
+    <div class="section-header"><span class="num-range">04 – 05</span> 작동 원리</div>
+    <div class="grid">
+      <a class="card" href="04-architecture.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">04</span><span class="card-title">질문이 답으로 바뀌는 과정</span><span class="card-file">04-architecture.html</span></a>
+      <a class="card" href="05-pipeline.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">05</span><span class="card-title">답을 만드는 5단계</span><span class="card-file">05-pipeline.html</span></a>
+    </div>
+  </div>
+
+  <div class="section section-2">
+    <div class="section-header"><span class="num-range">06 – 07</span> 기능 · 기술</div>
+    <div class="grid">
+      <a class="card" href="06-features.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">06</span><span class="card-title">믿고 쓰는 6가지 기능</span><span class="card-file">06-features.html</span></a>
+      <a class="card" href="07-tech-stack.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">07</span><span class="card-title">기술 스택 & 차별점</span><span class="card-file">07-tech-stack.html</span></a>
+    </div>
+  </div>
+
+  <div class="section section-3">
+    <div class="section-header"><span class="num-range">08 – 10</span> 실행 · 운영 · 리스크</div>
+    <div class="grid">
+      <a class="card" href="08-roadmap.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">08</span><span class="card-title">일정 & 마일스톤</span><span class="card-file">08-roadmap.html</span></a>
+      <a class="card" href="09-dev-discipline.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">09</span><span class="card-title">어떻게 만들었나</span><span class="card-file">09-dev-discipline.html</span></a>
+      <a class="card" href="10-risks.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">10</span><span class="card-title">리스크 & 성공 기준</span><span class="card-file">10-risks.html</span></a>
+    </div>
+  </div>
+
+  <div class="section section-outro">
+    <div class="section-header"><span class="num-range">11</span> 마무리</div>
+    <div class="grid">
+      <a class="card" href="11-closing.html" onclick="event.preventDefault(); navigateTo(this.href)"><span class="card-num">11</span><span class="card-title">마치며 & 향후 계획</span><span class="card-file">11-closing.html</span></a>
+    </div>
+  </div>
+</div>
+
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+</script>
+</body>
+</html>

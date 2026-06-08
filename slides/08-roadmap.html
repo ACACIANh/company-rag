@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>일정 & 마일스톤</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding-bottom: 50px; }
+.container { width: 1280px; padding: 40px 80px; display: flex; flex-direction: column; align-items: center; }
+.title { font-size: 46px; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; margin-bottom: 12px; line-height: 1.3; }
+.subtitle { font-size: 17px; color: #8b949e; text-align: center; margin-bottom: 30px; }
+.steps { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 960px; }
+.step { display: flex; align-items: flex-start; gap: 22px; background: rgba(139, 148, 158, 0.04); border: 1px solid rgba(139, 148, 158, 0.1); border-radius: 16px; padding: 22px 28px; opacity: 0; transform: translateX(-20px); animation: stepIn 0.5s ease-out forwards; }
+.step:nth-child(1) { animation-delay: 0.2s; }
+.step:nth-child(2) { animation-delay: 0.4s; }
+.step:nth-child(3) { animation-delay: 0.6s; }
+.step:nth-child(4) { animation-delay: 0.8s; }
+@keyframes stepIn { to { opacity: 1; transform: translateX(0); } }
+.step-week { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 76px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #7c3aed, #38bdf8); flex-shrink: 0; }
+.step-week .w-num { font-size: 24px; font-weight: 900; line-height: 1; }
+.step-week .w-unit { font-size: 12px; font-weight: 700; opacity: 0.85; margin-top: 2px; }
+.step-content { flex: 1; }
+.step-phase { font-size: 13px; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
+.step-title { font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+.step-desc { font-size: 14px; color: #8b949e; line-height: 1.55; }
+.final-flag { display: inline-block; font-size: 11px; font-weight: 700; color: #7dd3fc; background: rgba(56,189,248,0.12); padding: 2px 10px; border-radius: 10px; margin-left: 8px; }
+
+.slide-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif; }
+.slide-nav-inner { width: 1280px; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; }
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">일정 & 마일스톤</h1>
+  <p class="subtitle">3주간의 집중 개발 + 1주 평가·데모 — 총 4주 일정으로 완성했습니다.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-week"><span class="w-num">1</span><span class="w-unit">주차</span></div>
+      <div class="step-content"><div class="step-phase">기획 · 인프라</div><div class="step-title">기반 다지기</div><div class="step-desc">문서를 읽고·쪼개고·검색 가능하게 만드는 공용 인프라(로더·청커·임베더·벡터스토어·리트리버) 구축.</div></div>
+    </div>
+    <div class="step">
+      <div class="step-week"><span class="w-num">2</span><span class="w-unit">주차</span></div>
+      <div class="step-content"><div class="step-phase">핵심 개발</div><div class="step-title">대화의 뼈대 완성</div><div class="step-desc">질문을 처리하는 워크플로우(라우터·검색·Self-RAG), 대화 기억, 백엔드(실시간 스트리밍), 웹 화면 구현.</div></div>
+    </div>
+    <div class="step">
+      <div class="step-week"><span class="w-num">3</span><span class="w-unit">주차</span></div>
+      <div class="step-content"><div class="step-phase">접근제어 · 도구</div><div class="step-title">안전장치 장착</div><div class="step-desc">OpenFGA 접근제어, 사람 승인(HITL), 데이터베이스 에이전트, 권한 관리 에이전트 추가.</div></div>
+    </div>
+    <div class="step">
+      <div class="step-week"><span class="w-num">4</span><span class="w-unit">주차</span></div>
+      <div class="step-content"><div class="step-phase">평가 · 데모<span class="final-flag">발표주 ~6/8</span></div><div class="step-title">검증과 시연</div><div class="step-desc">품질 회귀 채점(eval), 데모 시나리오 구성, 발표 준비.</div></div>
+    </div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="07-tech-stack.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">08 / 11</a></div>
+    <div class="nav-right"><a href="09-dev-discipline.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+document.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft') navigateTo('07-tech-stack.html'); if(e.key==='ArrowRight') navigateTo('09-dev-discipline.html'); });
+</script>
+</body>
+</html>

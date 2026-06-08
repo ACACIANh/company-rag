@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>프로젝트 한눈에 보기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding-bottom: 50px; }
+.container { width: 1280px; padding: 40px 80px; display: flex; flex-direction: column; align-items: center; }
+.title { font-size: 46px; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; margin-bottom: 32px; line-height: 1.3; }
+
+.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; max-width: 1000px; margin-bottom: 26px; }
+.info-card { background: rgba(139,148,158,0.04); border: 1px solid rgba(139,148,158,0.12); border-radius: 14px; padding: 22px 26px; display: flex; align-items: center; gap: 18px; }
+.info-icon { font-size: 30px; }
+.info-label { font-size: 13px; color: #8b949e; font-weight: 700; margin-bottom: 4px; }
+.info-value { font-size: 17px; font-weight: 700; color: #e6edf3; line-height: 1.4; }
+
+.scenario { width: 100%; max-width: 1000px; background: rgba(22,27,40,0.6); border: 1px solid rgba(124,58,237,0.2); border-radius: 16px; padding: 24px 30px; }
+.scenario-title { font-size: 15px; font-weight: 700; color: #a78bfa; margin-bottom: 16px; }
+.scenario-flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.flow-pill { background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.25); border-radius: 10px; padding: 10px 16px; font-size: 14px; font-weight: 600; color: #c9d1d9; }
+.flow-pill.first { background: rgba(56,189,248,0.1); border-color: rgba(56,189,248,0.3); color: #7dd3fc; }
+.flow-pill.last { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.3); color: #a78bfa; }
+.flow-sep { color: #7c3aed; font-size: 16px; font-weight: 700; }
+
+.slide-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif; }
+.slide-nav-inner { width: 1280px; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; }
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">프로젝트 한눈에 보기</h1>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <span class="info-icon">📛</span>
+      <div><div class="info-label">프로젝트명</div><div class="info-value">접근제어 에이전트 (Friday)</div></div>
+    </div>
+    <div class="info-card">
+      <span class="info-icon">👥</span>
+      <div><div class="info-label">팀</div><div class="info-value">아카시아팀</div></div>
+    </div>
+    <div class="info-card">
+      <span class="info-icon">📅</span>
+      <div><div class="info-label">진행 기간</div><div class="info-value">2026.05.21 ~ 06.08</div></div>
+    </div>
+    <div class="info-card">
+      <span class="info-icon">🎯</span>
+      <div><div class="info-label">목표</div><div class="info-value">접근 제어 기반 사내문서 RAG·에이전트 환경 구성</div></div>
+    </div>
+    <div class="info-card" style="grid-column: span 2;">
+      <span class="info-icon">🙋</span>
+      <div><div class="info-label">주 사용자</div><div class="info-value">일반 직원 — 사내문서·DB 조회를 매번 인사/IT에 문의하던 불편을 직접 해결</div></div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <div class="scenario-title">사용 시나리오 — 질문 한 번이면 끝</div>
+    <div class="scenario-flow">
+      <span class="flow-pill first">직원이 질문</span>
+      <span class="flow-sep">&rarr;</span>
+      <span class="flow-pill">의도 분류(라우팅)</span>
+      <span class="flow-sep">&rarr;</span>
+      <span class="flow-pill">권한 확인</span>
+      <span class="flow-sep">&rarr;</span>
+      <span class="flow-pill">문서 검색</span>
+      <span class="flow-sep">&rarr;</span>
+      <span class="flow-pill">환각 검사</span>
+      <span class="flow-sep">&rarr;</span>
+      <span class="flow-pill last">출처 달린 답변 (권한 밖이면 접근 차단 안내)</span>
+    </div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="02-overview.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">03 / 11</a></div>
+    <div class="nav-right"><a href="04-architecture.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+document.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft') navigateTo('02-overview.html'); if(e.key==='ArrowRight') navigateTo('04-architecture.html'); });
+</script>
+</body>
+</html>

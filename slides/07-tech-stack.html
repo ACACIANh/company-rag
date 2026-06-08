@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>기술 스택 & 차별점</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding-bottom: 50px; }
+.container { width: 1280px; padding: 40px 80px; display: flex; flex-direction: column; align-items: center; }
+.title { font-size: 46px; font-weight: 900; background: linear-gradient(135deg, #7c3aed, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-align: center; margin-bottom: 12px; line-height: 1.3; }
+.subtitle { font-size: 17px; color: #8b949e; text-align: center; margin-bottom: 30px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; width: 100%; max-width: 1000px; margin-bottom: 26px; }
+.feature-card { background: rgba(139, 148, 158, 0.04); border: 1px solid rgba(139, 148, 158, 0.1); border-radius: 16px; padding: 24px 26px; transition: all 0.25s ease; }
+.feature-card:hover { transform: translateY(-3px); border-color: rgba(124,58,237,0.3); }
+.feature-icon { font-size: 34px; margin-bottom: 10px; display: block; }
+.feature-name { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+.feature-desc { font-size: 14px; color: #8b949e; line-height: 1.5; }
+.feature-desc strong { color: #c9d1d9; }
+.diff-banner { width: 100%; max-width: 1000px; display: flex; gap: 18px; }
+.diff-box { flex: 1; background: linear-gradient(145deg, rgba(124, 58, 237, 0.12), rgba(56, 189, 248, 0.06)); border: 1px solid rgba(124,58,237,0.3); border-radius: 14px; padding: 20px 24px; }
+.diff-label { font-size: 12px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; margin-bottom: 6px; }
+.diff-text { font-size: 16px; font-weight: 700; color: #e6edf3; line-height: 1.5; }
+
+.slide-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif; }
+.slide-nav-inner { width: 1280px; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; }
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">기술 스택 & 차별점</h1>
+  <p class="subtitle">검증된 오픈 기술 위에, 특정 회사에 묶이지 않는 교체 가능한 구조로 설계했습니다.</p>
+  <div class="grid">
+    <div class="feature-card"><span class="feature-icon">🧠</span><div class="feature-name">AI 모델</div><div class="feature-desc">OpenAI gpt-4.1-mini 기반. <strong>다른 모델로 교체 가능</strong>한 구조로 비용·성능을 유연하게 조정.</div></div>
+    <div class="feature-card"><span class="feature-icon">🔑</span><div class="feature-name">접근 제어</div><div class="feature-desc">OpenFGA로 <strong>폴더·테이블·개인 단위</strong> 권한 관리. 구글이 쓰는 권한 모델과 같은 방식.</div></div>
+    <div class="feature-card"><span class="feature-icon">🗃️</span><div class="feature-name">데이터 저장</div><div class="feature-desc">PostgreSQL 하나로 <strong>업무 DB·캐시·문서 검색(pgvector)</strong>까지. 인프라 단순·안정.</div></div>
+    <div class="feature-card"><span class="feature-icon">🌐</span><div class="feature-name">서비스 형태</div><div class="feature-desc">웹 화면(Vite) + 백엔드(FastAPI). 답변이 <strong>실시간으로 흘러나오는</strong> 스트리밍 방식.</div></div>
+  </div>
+  <div class="diff-banner">
+    <div class="diff-box"><div class="diff-label">차별점 ①</div><div class="diff-text">폴더·테이블·개인 위임까지 다루는 정교한 권한별 접근제어</div></div>
+    <div class="diff-box"><div class="diff-label">차별점 ②</div><div class="diff-text">민감 작업은 사유를 적어야 통과하는 승인 게이트 통합</div></div>
+  </div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="06-features.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">07 / 11</a></div>
+    <div class="nav-right"><a href="08-roadmap.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+document.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft') navigateTo('06-features.html'); if(e.key==='ArrowRight') navigateTo('08-roadmap.html'); });
+</script>
+</body>
+</html>
