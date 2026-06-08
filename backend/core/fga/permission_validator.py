@@ -17,10 +17,19 @@ import yaml
 
 
 class PermissionValidator:
-    def __init__(self, *, user_ids: set, departments: set, permissions: set) -> None:
+    def __init__(
+        self,
+        *,
+        user_ids: set,
+        departments: set,
+        permissions: set,
+        names: dict | None = None,
+    ) -> None:
         self._user_ids = user_ids
         self._departments = departments
         self._permissions = permissions
+        # display_name(예: "오대수") → user_id(예: "user-daesu"). 이름→id 해석용.
+        self._names = names or {}
 
     @classmethod
     def from_config(
@@ -30,12 +39,17 @@ class PermissionValidator:
     ) -> "PermissionValidator":
         users = yaml.safe_load(Path(users_path).read_text())["users"]
         user_ids = {u["user_id"] for u in users if u.get("user_id")}
+        names = {
+            u["display_name"]: u["user_id"]
+            for u in users
+            if u.get("display_name") and u.get("user_id")
+        }
         departments: set = set()
         for u in users:
             departments |= {d for d in u.get("departments", []) if d}
         perms_raw = yaml.safe_load(Path(permissions_path).read_text())["permissions"]
         permissions = {name for name in perms_raw.keys() if name}
-        return cls(user_ids=user_ids, departments=departments, permissions=permissions)
+        return cls(user_ids=user_ids, departments=departments, permissions=permissions, names=names)
 
     def _strip(self, value: str, prefix: str) -> str | None:
         return value[len(prefix):] if value.startswith(prefix) else None
@@ -66,6 +80,33 @@ class PermissionValidator:
         if len(candidates) == 1:
             return "user:" + next(iter(candidates))
         return None
+
+    def resolve_user_id(self, token: str | None) -> str | None:
+        """자유 형식 user 참조 → 정식 bare user_id(예: "user-daesu") 또는 None.
+
+        도구가 LLM이 만든 user 식별자(접두 불일치·이름 로마자 환각)를 신뢰하지 않도록
+        서버측에서 결정론적으로 정규화한다(데모 ⑪⑬⑮ 버그 수정).
+        해석 순서: display_name 정확 일치 → id 형태(_resolve_user). 불가 시 None(fail-closed).
+        """
+        if not isinstance(token, str) or not token.strip():
+            return None
+        t = token.strip()
+        if t in self._names:  # 1) 한국어 표시명: "오대수" → user-daesu
+            return self._names[t]
+        resolved = self._resolve_user(t)  # 2) id 형태: "user:user-mido"/"mido" → "user:user-mido"
+        return resolved[len("user:"):] if resolved is not None else None
+
+    def is_known_user_id(self, uid: str) -> bool:
+        return uid in self._user_ids
+
+    def user_catalog_text(self) -> str:
+        """LLM 도구 설명에 주입할 "id(이름)" 카탈로그 — 정확한 대상 유저 유도용."""
+        id_to_name = {uid: nm for nm, uid in self._names.items()}
+        parts = [
+            f"{uid}({id_to_name[uid]})" if uid in id_to_name else uid
+            for uid in sorted(self._user_ids)
+        ]
+        return ", ".join(parts)
 
     def validate(self, parsed: dict) -> tuple | None:
         action = parsed.get("action")

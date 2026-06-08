@@ -24,10 +24,9 @@ def build_tool_registry(
     *, llm: LLMClient, sql_pool, sql_rw_pool=None, fga_client: FGAClient, app_pool=None
 ) -> ToolRegistry:
     sql = SqlAgent(llm=llm, sql_pool=sql_pool, sql_rw_pool=sql_rw_pool)
-    permission = PermissionAgent(
-        llm=llm, fga_client=fga_client, validator=PermissionValidator.from_config()
-    )
-    audit = AuditAgent(fga_client=fga_client, app_pool=app_pool)
+    validator = PermissionValidator.from_config()
+    permission = PermissionAgent(llm=llm, fga_client=fga_client, validator=validator)
+    audit = AuditAgent(fga_client=fga_client, app_pool=app_pool, validator=validator)
     handlers = {sql.name: sql, permission.name: permission, audit.name: audit}
     tool_defs = [sql.tool, permission.tool, audit.tool]
     return ToolRegistry(handlers=handlers, tool_defs=tool_defs)

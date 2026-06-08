@@ -68,7 +68,11 @@ class PermissionAgent:
 
         action = parsed.get("action")
         if action == "query":
-            target = parsed.get("target_user_id") or caller
+            # LLM이 만든 target은 접두(user:)·로마자가 들쭉날쭉 → 서버측 정규화.
+            # self 조회("내 권한")가 접두 불일치로 타인 조회로 오판되던 버그 수정(데모 ⑬⑮).
+            raw_target = parsed.get("target_user_id")
+            resolved = self._validator.resolve_user_id(raw_target) if raw_target else None
+            target = resolved or caller
             return f"query {caller} {target}", RISK_SELECT
 
         validated = self._validator.validate(parsed)
