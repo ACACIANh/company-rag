@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>사내 지식을 묻고 답하는 AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0f1a; font-family: 'Noto Sans KR', sans-serif; color: #e6edf3;
+  min-height: 100vh; display: flex; justify-content: center; align-items: center; padding-bottom: 50px;
+}
+.container { width: 1280px; padding: 44px 80px; display: flex; flex-direction: column; align-items: center; }
+.title {
+  font-size: 48px; font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #38bdf8);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-align: center; margin-bottom: 14px; line-height: 1.3;
+}
+.subtitle { font-size: 18px; color: #8b949e; text-align: center; margin-bottom: 48px; line-height: 1.7; max-width: 880px; }
+.subtitle strong { color: #c9d1d9; }
+.cards { display: flex; gap: 32px; margin-bottom: 36px; width: 100%; }
+.card {
+  flex: 1; background: linear-gradient(145deg, rgba(124, 58, 237, 0.1), rgba(56, 189, 248, 0.05));
+  border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 20px; padding: 40px 28px; text-align: center;
+  position: relative; overflow: hidden; opacity: 0; transform: translateY(30px);
+  animation: cardAppear 0.6s ease-out forwards;
+}
+.card:nth-child(1) { animation-delay: 0.2s; }
+.card:nth-child(2) { animation-delay: 0.6s; }
+.card:nth-child(3) { animation-delay: 1.0s; }
+@keyframes cardAppear { to { opacity: 1; transform: translateY(0); } }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #7c3aed, #38bdf8); }
+.card-icon { font-size: 48px; margin-bottom: 20px; display: block; position: relative; z-index: 1; }
+.card-head { font-size: 22px; font-weight: 900; margin-bottom: 12px; position: relative; z-index: 1; }
+.card-text { font-size: 16px; font-weight: 400; line-height: 1.7; color: #c9d1d9; position: relative; z-index: 1; }
+.card-label { display: inline-block; margin-top: 16px; padding: 5px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; position: relative; z-index: 1; background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+.tagline { font-size: 17px; color: #8b949e; text-align: center; padding: 18px 36px; border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; background: rgba(22,27,40,0.6); }
+.tagline strong { color: #e6edf3; font-weight: 700; }
+
+.slide-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 50px; background: rgba(10, 15, 26, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(124, 58, 237, 0.2); display: flex; align-items: center; justify-content: center; z-index: 9999; font-family: 'Noto Sans KR', sans-serif; }
+.slide-nav-inner { width: 1280px; display: flex; align-items: center; justify-content: space-between; padding: 0 60px; }
+.slide-nav a { text-decoration: none; font-size: 14px; font-weight: 700; color: #7c3aed; transition: color 0.2s; }
+.slide-nav a:hover { color: #a78bfa; }
+.slide-nav .nav-disabled { font-size: 14px; font-weight: 700; color: #484f58; cursor: default; }
+.slide-nav .nav-center a { color: #8b949e; font-size: 13px; font-weight: 400; }
+.slide-nav .nav-center a:hover { color: #e6edf3; }
+body { opacity: 0; animation: fadeIn 0.4s ease forwards; }
+body.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-12px); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="title">사내 지식을 묻고 답하는 AI</h1>
+  <p class="subtitle">신뢰·보안 문제로 막혀 있던 사내 AI에 <strong>출처·권한·안전</strong>을 더해 실제 도입을 가능하게 합니다.<br>회사 문서와 데이터베이스를 검색 없이 <strong>대화 한 줄</strong>로 — 단, <strong>볼 수 있는 자료만</strong> · <strong>근거가 있을 때만</strong>.</p>
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">💬</span>
+      <div class="card-head">대화로 질문</div>
+      <div class="card-text">규정·보고서·계약서·매출 DB까지, 어디 있는지 몰라도 "지난 분기 매출은?" 한마디면 됩니다.</div>
+      <span class="card-label">검색 시간 0</span>
+    </div>
+    <div class="card">
+      <span class="card-icon">🔐</span>
+      <div class="card-head">볼 수 있는 것만</div>
+      <div class="card-text">직급·부서 권한에 맞는 자료만 근거로 사용합니다. 권한 밖 정보는 애초에 검색되지 않습니다.</div>
+      <span class="card-label">정보 유출 차단</span>
+    </div>
+    <div class="card">
+      <span class="card-icon">✅</span>
+      <div class="card-head">근거 있는 답</div>
+      <div class="card-text">추측하지 않습니다. 실제 문서·데이터에 기반해 답하고, 근거가 없으면 "모른다"고 말합니다.</div>
+      <span class="card-label">신뢰 가능</span>
+    </div>
+  </div>
+  <div class="tagline">한 문장으로 — <strong>"회사가 안심하고 쓸 수 있는, 권한을 아는 사내 AI"</strong></div>
+</div>
+
+<nav class="slide-nav">
+  <div class="slide-nav-inner">
+    <div class="nav-left"><a href="01-cover.html" onclick="event.preventDefault(); navigateTo(this.href)">&larr; 이전</a></div>
+    <div class="nav-center"><a href="index.html">02 / 11</a></div>
+    <div class="nav-right"><a href="03-project-info.html" onclick="event.preventDefault(); navigateTo(this.href)">다음 &rarr;</a></div>
+  </div>
+</nav>
+<script>
+function navigateTo(url){ document.body.classList.add('fade-out'); setTimeout(function(){ window.location.href=url; },300); }
+document.addEventListener('keydown', function(e){ if(e.key==='ArrowLeft') navigateTo('01-cover.html'); if(e.key==='ArrowRight') navigateTo('03-project-info.html'); });
+</script>
+</body>
+</html>
